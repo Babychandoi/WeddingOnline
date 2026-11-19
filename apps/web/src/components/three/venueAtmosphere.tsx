@@ -7,7 +7,7 @@
  * Everything heavy switches off in low quality.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, Stars } from '@react-three/drei';
 import * as THREE from 'three';
@@ -19,6 +19,7 @@ import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import type { VenueTheme } from '@dco/shared';
 import { IS_HANDHELD } from './deviceTier';
+import { PhSky, type SkyInfo } from './phAssets';
 
 type Vec3 = [number, number, number];
 
@@ -212,42 +213,28 @@ function GradientSky({ sky }: { sky: SkySetup }) {
 export function VenueAtmosphere({ theme, quality }: { theme: VenueTheme; quality: 'high' | 'low' }) {
   const setup = useMemo(() => moodSetup(theme), [theme]);
   const hdri = useVenueHdri(theme.mood, quality === 'high');
-  // Tells the thumbnail renderer the lighting is final (photographed environment in, or not used)
-  useEffect(() => {
-    (window as unknown as { __venueEnvReady?: boolean }).__venueEnvReady = quality !== 'high' || Boolean(hdri);
-  }, [hdri, quality]);
   const farScenery = theme.kits.b.length > 0;
   // Haze only in the distance: the ground melts into the horizon colour, the hall stays crisp
   const fogRange: [number, number] = farScenery ? [90, 260] : [55, 190];
 
-  return (
+  // Outdoors, the sky is a real photograph; it tells us where its sun is and what colour
+  // its horizon haze is, so shadows and fog agree with the picture
+  // (Phones keep the painted sky: the photograph is a 4–5 MB download)
+  // Night keeps the painted starry sky: the night photograph reads as a pale dusk on screen
+  const photoSky = quality === 'high' && (theme.mood === 'day' || theme.mood === 'sunset') && !IS_HANDHELD;
+  const [sky, setSky] = useState<SkyInfo | null>(null);
+  const onSky = useCallback((info: SkyInfo | null) => setSky(info), []);
+  useEffect(() => setSky(null), [theme.mood]);
+  const fogColor = sky ? `#${sky.horizon.getHexString()}` : setup.fogColor;
+  // Tells the thumbnail renderer the lighting is final (sky photo / environment loaded, or not used)
+  useEffect(() => {
+    (window as unknown as { __venueEnvReady?: boolean }).__venueEnvReady = quality !== 'high' || (photoSky ? Boolean(sky) : Boolean(hdri));
+  }, [hdri, sky, photoSky, quality]);
+  const sunPosition: Vec3 = sky?.sun ? [sky.sun.x * 60, sky.sun.y * 60, sky.sun.z * 60] : setup.sunLight.position;
+
+  const proceduralSky = (
     <>
-      <color attach="background" args={[setup.fogColor]} />
-      <fog attach="fog" args={[setup.fogColor, fogRange[0], fogRange[1]]} />
       <GradientSky sky={setup.sky} />
-      {theme.mood === 'night' && <Stars radius={160} depth={60} count={quality === 'high' ? 3000 : 900} factor={5} saturation={0.2} fade speed={0.4} />}
-
-      <hemisphereLight args={setup.hemi} />
-      <directionalLight
-        position={setup.sunLight.position}
-        color={setup.sunLight.color}
-        intensity={setup.sunLight.intensity}
-        castShadow={quality === 'high'}
-        shadow-mapSize-width={IS_HANDHELD ? 2048 : 4096}
-        shadow-mapSize-height={IS_HANDHELD ? 2048 : 4096}
-        shadow-camera-left={-27}
-        shadow-camera-right={27}
-        shadow-camera-top={27}
-        shadow-camera-bottom={-27}
-        shadow-camera-near={1}
-        shadow-camera-far={90}
-        shadow-bias={-0.00025}
-        shadow-normalBias={0.025}
-      />
-      {/* Warm bounce from lanterns and candles: a soft hemisphere, not a point light — an
-          invisible point light leaves a bright reflection on lacquered floors with no lamp */}
-      {setup.warmFill > 0 && <hemisphereLight args={['#ffd59a', '#2a1c12', setup.warmFill * 0.45]} />}
-
       {quality === 'high' && (
         <Environment
           key={hdri ?? 'formers'}
@@ -258,7 +245,7 @@ export function VenueAtmosphere({ theme, quality }: { theme: VenueTheme; quality
         >
           {!hdri && (
             <>
-              {/* Until the photographed sky arrives: a plain sky above and ground below */}
+              {/* Until the photographed light arrives: a plain sky above and ground below */}
               <color attach="background" args={[mixHex(setup.sky.horizon, '#000000', theme.mood === 'night' ? 0.4 : 0.15)]} />
               <mesh position={[0, -40, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <planeGeometry args={[400, 400]} />
@@ -271,6 +258,40 @@ export function VenueAtmosphere({ theme, quality }: { theme: VenueTheme; quality
           ))}
         </Environment>
       )}
+    </>
+  );
+
+  return (
+    <>
+      <color attach="background" args={[fogColor]} />
+      <fog attach="fog" args={[fogColor, fogRange[0], fogRange[1]]} />
+      {photoSky ? (
+        <PhSky mood={theme.mood as 'day' | 'sunset' | 'night'} intensity={setup.envIntensity * 1.1} fallback={proceduralSky} onSky={onSky} />
+      ) : (
+        proceduralSky
+      )}
+      {theme.mood === 'night' && !sky && <Stars radius={160} depth={60} count={quality === 'high' ? 3000 : 900} factor={5} saturation={0.2} fade speed={0.4} />}
+
+      <hemisphereLight args={setup.hemi} />
+      <directionalLight
+        position={sunPosition}
+        color={setup.sunLight.color}
+        intensity={setup.sunLight.intensity}
+        castShadow={quality === 'high'}
+        shadow-mapSize-width={IS_HANDHELD ? 2048 : 4096}
+        shadow-mapSize-height={IS_HANDHELD ? 2048 : 4096}
+        shadow-camera-left={-27}
+        shadow-camera-right={27}
+        shadow-camera-top={27}
+        shadow-camera-bottom={-27}
+        shadow-camera-near={1}
+        shadow-camera-far={130}
+        shadow-bias={-0.0006}
+        shadow-normalBias={0.06}
+      />
+      {/* Warm bounce from lanterns and candles: a soft hemisphere, not a point light — an
+          invisible point light leaves a bright reflection on lacquered floors with no lamp */}
+      {setup.warmFill > 0 && <hemisphereLight args={['#ffd59a', '#2a1c12', setup.warmFill * 0.45]} />}
     </>
   );
 }

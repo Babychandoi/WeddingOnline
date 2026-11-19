@@ -119,6 +119,10 @@ interface VenueSceneProps {
 
 /** Still captures only: counts rendered frames so the thumbnail script knows when the scene is drawn */
 const FrameProbe: React.FC = () => {
+  const scene = useThree((st) => st.scene);
+  useEffect(() => {
+    (window as unknown as { __venueScene?: THREE.Scene }).__venueScene = scene;
+  }, [scene]);
   useFrame(() => {
     const w = window as unknown as { __venueFrames?: number };
     w.__venueFrames = (w.__venueFrames ?? 0) + 1;

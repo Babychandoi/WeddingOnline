@@ -39,6 +39,7 @@ import {
   wineGlass,
 } from './realGeometry';
 import { IS_HANDHELD } from './deviceTier';
+import { PhScatter, type ScatterItem } from './phAssets';
 import { carpet, fabric, flameGlow, glass, gold, leaves, liquid, marble, organza, painted, petals, porcelain, silver, wax, wood } from './realMaterials';
 
 type Vec3 = [number, number, number];
@@ -762,6 +763,8 @@ export function BallroomWalls({ wallColor, drape, half = 15.4, height = 7.6 }: {
           })}
         </group>
       ))}
+      {/* Photo-scanned potted palms standing at the foot of each pilaster */}
+      <IndoorPlants half={half} bays={bays} />
       {/* Coffered ceiling, only seen from below (close-up views) */}
       <mesh position={[0, height, 0]} rotation={[Math.PI / 2, 0, 0]} userData={{ noCastShadow: true }}>
         <planeGeometry args={[half * 2, half * 2]} />
@@ -933,4 +936,22 @@ export function GiftTable({ accent }: { accent: string }) {
       </group>
     </group>
   );
+}
+
+function IndoorPlants({ half, bays }: { half: number; bays: number }) {
+  const items = useMemo(() => {
+    const out: ScatterItem[] = [];
+    const bay = (half * 2) / bays;
+    for (let b = 1; b < bays; b++) {
+      const t = -half + bay * b;
+      const inset = half - 0.55;
+      out.push(
+        { position: [t, 0, -inset], rotationY: b, scale: 1.1 },
+        { position: [-inset, 0, t], rotationY: b * 2, scale: 1.1 },
+        { position: [inset, 0, t], rotationY: b * 3, scale: 1.1 },
+      );
+    }
+    return out;
+  }, [half, bays]);
+  return <PhScatter id="potted_plant_01" items={items} height={1.6} />;
 }

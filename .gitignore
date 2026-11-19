@@ -26,3 +26,8 @@ infra/livekit.dev.yaml
 .impeccable/config.local.json
 **/.impeccable/review/
 **/.impeccable/mocks/
+
+# Downloaded upgrade bundles (their content is merged into the tree)
+*.patch
+polyhaven-assets/
+polyhaven-assets.zip

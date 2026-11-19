@@ -18,34 +18,82 @@ import { flutedColumn } from './realGeometry';
 import { gold, marble } from './realMaterials';
 import { CoconutLeafGate, DistantTreeline, Forest, WindClock } from './realNature';
 import { IS_HANDHELD } from './deviceTier';
+import { PhScatter, ringScatter, usePhReady, usePhSurface, type ScatterItem } from './phAssets';
 
 type Vec3 = [number, number, number];
 
-/** Floor or ground material with procedural detail (lawn, sand, planks, flagstone, marble…) */
+/**
+ * Floor or ground material. Uses textures photographed from the real material (Poly Haven)
+ * once they load, with the procedural version (lawn, sand, planks, flagstone, marble…) as
+ * the stand-in. Large grounds blend two texture scales so the tiling never shows.
+ */
 export function SurfaceMaterial({ color: swatch, theme, role, size }: { color: string; theme: VenueTheme; role: 'floor' | 'ground'; size: number }) {
   const kind = surfaceFor(swatch, theme, role);
   const { map, normalMap, roughnessMap } = useSurfaceMaps(kind, size);
+  const photo = usePhSurface(kind, size);
   // Real lawn is a duller, olive green than any theme swatch
   const color = kind === 'grass' ? naturalGrass(swatch) : swatch;
+  // A photographed surface already has its true colour: only hint at the theme
+  const photoTint = useMemo(() => {
+    // Poly Haven's ground photos are dry meadow: shift them to a watered lawn green
+    if (kind === 'grass') return '#b9e08f';
+    // The sand scan is a grey, damp sand: lean well towards the venue's own sand colour
+    if (kind === 'sand') return `#${new THREE.Color('#ffffff').lerp(new THREE.Color(swatch), 0.55).multiplyScalar(1.12).getHexString()}`;
+    return `#${new THREE.Color('#ffffff').lerp(new THREE.Color(swatch), kind === 'snow' ? 0.08 : 0.22).getHexString()}`;
+  }, [swatch, kind]);
   const normalScale = useMemo(() => new THREE.Vector2(0.8, 0.8), []);
+  const big = size > 100;
   // Polished floors get a clear lacquer coat so they mirror chandeliers and the stage
   const polished = kind === 'marble' || kind === 'tile' || (kind === 'wood' && role === 'floor');
+  // Photographed maps only where the photo matches the venue. The sand scan is cracked, damp
+  // sand (grey, glossy enough to mirror the sky); 'stone' is the catch-all for any colour that
+  // is not lawn, sand or planks (beach dunes, red earth, paving…), and a grey paving photo would
+  // override it. Both keep the procedural surface tinted with the venue's own colour.
+  const usePhoto = photo !== null && kind !== 'sand' && kind !== 'stone';
+  const maps = usePhoto && photo ? photo : { map, normalMap, roughnessMap };
+  const tint = usePhoto ? photoTint : color;
+  const roughness = usePhoto ? 1 : SURFACE_ROUGHNESS[kind];
   return polished ? (
     <meshPhysicalMaterial
-      color={color}
-      map={map}
-      normalMap={normalMap}
+      key={usePhoto ? 'photo' : 'proc'}
+      color={tint}
+      map={maps.map}
+      normalMap={maps.normalMap}
       normalScale={normalScale}
-      roughnessMap={roughnessMap}
-      roughness={SURFACE_ROUGHNESS[kind]}
-      clearcoat={kind === 'wood' ? 0.35 : 0.4}
+      roughnessMap={maps.roughnessMap}
+      roughness={roughness}
+      clearcoat={usePhoto ? 0.3 : kind === 'wood' ? 0.35 : 0.4}
       clearcoatRoughness={0.22}
       // Polished stone mirrors the bright windows of the room at grazing angles; at full strength
       // that sheen read as a milky fog over the floor
       envMapIntensity={0.4}
     />
   ) : (
-    <meshStandardMaterial color={color} map={map} normalMap={normalMap} normalScale={normalScale} roughnessMap={roughnessMap} roughness={SURFACE_ROUGHNESS[kind]} />
+    <meshStandardMaterial
+      key={usePhoto ? 'photo' : 'proc'}
+      color={tint}
+      map={maps.map}
+      normalMap={maps.normalMap}
+      normalScale={normalScale}
+      roughnessMap={maps.roughnessMap}
+      roughness={roughness}
+      onBeforeCompile={big && usePhoto ? antiTile : undefined}
+    />
+  );
+}
+
+/** Blend the colour map at two scales plus a slow brightness drift, hiding repetition */
+function antiTile(shader: THREE.WebGLProgramParametersWithUniforms) {
+  shader.fragmentShader = shader.fragmentShader.replace(
+    '#include <map_fragment>',
+    `#ifdef USE_MAP
+      vec2 uvA = vMapUv;
+      vec2 uvB = vec2(vMapUv.y, -vMapUv.x) * 0.37 + vec2(0.31, 0.17);
+      vec4 sampledDiffuseColor = mix(texture2D(map, uvA), texture2D(map, uvB), 0.45);
+      float drift = texture2D(map, vMapUv * 0.031).g / max(0.05, texture2D(map, vMapUv * 0.031 + 0.5).g);
+      sampledDiffuseColor.rgb *= clamp(mix(1.0, drift, 0.35), 0.75, 1.25);
+      diffuseColor *= sampledDiffuseColor;
+    #endif`,
   );
 }
 
@@ -168,12 +216,13 @@ function Perimeter({ kind, colors }: { kind: PerimeterKit; colors: VenueColors }
     case 'round-trees':
     case 'blossom-trees': {
       const blossom = kind === 'blossom-trees';
+      const spots = [-16.6, 16.6].flatMap((x) => EDGE_Z.map((z) => ({ position: [x, 0, z] as Vec3 })));
       return (
-        <Forest
-          kind={blossom ? 'blossom' : 'broadleaf'}
-          leafColor={k ?? (blossom ? '#f6b8cf' : '#4d6b2a')}
-          seed={blossom ? 31 : 37}
-          spots={[-16.6, 16.6].flatMap((x) => EDGE_Z.map((z) => ({ position: [x, 0, z] as Vec3 })))}
+        <ScannedTrees
+          ids={blossom ? ['jacaranda_tree'] : ['island_tree_01', 'island_tree_02', 'tree_small_02']}
+          spots={spots}
+          height={blossom ? 7.5 : 6.5}
+          fallback={<Forest kind={blossom ? 'blossom' : 'broadleaf'} leafColor={k ?? (blossom ? '#f6b8cf' : '#4d6b2a')} seed={blossom ? 31 : 37} spots={spots} />}
         />
       );
     }
@@ -1561,8 +1610,9 @@ export function VenueEnvironment({ theme }: { theme: VenueTheme }) {
     <group>
       {/* Ground beyond the 30 m hall */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-        <planeGeometry args={[400, 400]} />
-        <SurfaceMaterial color={colors.g} theme={theme} role="ground" size={400} />
+        {/* Reaches the horizon so the photographed sky never shows below it */}
+        <planeGeometry args={[2400, 2400]} />
+        <SurfaceMaterial color={colors.g} theme={theme} role="ground" size={2400} />
       </mesh>
 
       {/* Hall floor border */}
@@ -1585,6 +1635,7 @@ export function VenueEnvironment({ theme }: { theme: VenueTheme }) {
         <Backdrop key={b} kind={b} colors={colors} mood={mood} />
       ))}
       <WindClock />
+      {mood !== 'indoor' && <GroundCover theme={theme} />}
       {mood !== 'indoor' && kits.b.length === 0 && !snowyOrDesert(theme) && (
         <DistantTreeline leafColor={lighten(colors.g, -0.08)} kind={kits.p === 'pines' ? 'pine' : kits.p === 'palms' ? 'palm' : 'broadleaf'} />
       )}
@@ -1602,6 +1653,70 @@ function naturalGrass(hex: string): string {
   c.getHSL(hsl);
   c.setHSL(Math.min(Math.max(hsl.h, 0.2), 0.3), Math.min(hsl.s, 0.38), Math.min(hsl.l, 0.4));
   return `#${c.getHexString()}`;
+}
+
+/** Photo-scanned trees at the given spots, the procedural trees standing in until they load */
+function ScannedTrees({ ids, spots, height, fallback }: { ids: string[]; spots: Array<{ position: Vec3 }>; height: number; fallback: React.ReactNode }) {
+  const ready = usePhReady(ids[0]);
+  const byId = useMemo(
+    () =>
+      ids.map((id, k) =>
+        spots
+          .filter((_, i) => i % ids.length === k)
+          .map((sp, i) => ({ position: sp.position, rotationY: rand(i * 13 + k) * Math.PI * 2, scale: 0.85 + rand(i * 7 + k) * 0.35 })),
+      ),
+    [ids, spots],
+  );
+  if (!ready) return <>{fallback}</>;
+  return (
+    <group>
+      {ids.map((id, k) => (
+        <PhScatter key={id} id={id} items={byId[k]} height={height} />
+      ))}
+    </group>
+  );
+}
+
+/**
+ * The land around an outdoor hall as it really looks: clumps of long grass, wildflowers,
+ * shrubs, ferns and mossy rocks (all photo-scanned), thick at the hall's edge and thinning
+ * out into the distance.
+ */
+function GroundCover({ theme }: { theme: VenueTheme }) {
+  const kind = surfaceFor(theme.colors.g, theme, 'ground');
+  const open = theme.kits.b.length === 0;
+  const outer = open ? 44 : 19;
+  const sets = useMemo(() => {
+    const out: Array<{ id: string; items: ScatterItem[] }> = [];
+    if (kind === 'grass') {
+      out.push({ id: 'grass_medium_01', items: ringScatter(open ? 300 : 110, 15.7, outer, 11, [0.7, 1.3]) });
+      out.push({ id: 'grass_medium_02', items: ringScatter(open ? 220 : 80, 15.7, outer, 12, [0.8, 1.4]) });
+      out.push({ id: 'flower_gazania', items: ringScatter(open ? 90 : 40, 15.8, Math.min(outer, 30), 13, [0.8, 1.2]) });
+      out.push({ id: 'fern_02', items: ringScatter(open ? 60 : 20, 16.5, outer, 14, [0.8, 1.3]) });
+      out.push({ id: 'shrub_02', items: ringScatter(open ? 36 : 10, 17.5, outer, 15, [0.8, 1.3]) });
+      out.push({ id: 'shrub_04', items: ringScatter(open ? 50 : 14, 16.2, outer, 16, [1.2, 2]) });
+      if (open) out.push({ id: 'rock_moss_set_01', items: ringScatter(16, 20, outer, 17, [0.7, 1.2]) });
+    } else if (kind === 'sand') {
+      out.push({ id: 'grass_medium_02', items: ringScatter(open ? 120 : 40, 16, outer, 21, [0.7, 1.2]) });
+      if (open) out.push({ id: 'rock_moss_set_01', items: ringScatter(10, 20, outer, 22, [0.6, 1]) });
+    } else if (kind === 'snow') {
+      if (open) out.push({ id: 'rock_moss_set_01', items: ringScatter(10, 20, outer, 23, [0.6, 1]) });
+    }
+    return out;
+  }, [kind, open, outer]);
+  return (
+    <group>
+      {sets.map((s) => (
+        <PhScatter key={s.id} id={s.id} items={s.items} variants castShadow={s.id.startsWith('shrub') || s.id.startsWith('rock')} />
+      ))}
+      {kind === 'grass' && open && (
+        <PhScatter
+          id="boulder_01"
+          items={ringScatter(5, 24, 42, 18, [0.8, 1.4])}
+        />
+      )}
+    </group>
+  );
 }
 
 /** Venues on snow or sand have no woodland on the horizon */

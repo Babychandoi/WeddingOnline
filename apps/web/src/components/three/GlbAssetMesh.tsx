@@ -3,9 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 const glbCache = new Map<string, Promise<THREE.Group>>();
-const sharedLoader = new GLTFLoader();
+// Poly Haven models are meshopt-compressed (see scripts/fetch-polyhaven.mjs)
+const sharedLoader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 
 /**
  * Our generated models have some triangles wound the wrong way round (their vertex normals
@@ -43,14 +45,15 @@ function repairWinding(root: THREE.Object3D) {
   });
 }
 
-function loadGlbCached(url: string): Promise<THREE.Group> {
+export function loadGlbCached(url: string): Promise<THREE.Group> {
   let pending = glbCache.get(url);
   if (!pending) {
     pending = new Promise<THREE.Group>((resolve, reject) => {
       sharedLoader.load(
         url,
         (gltf) => {
-          repairWinding(gltf.scene);
+          // Only our own generated models need it; photo-scanned Poly Haven models are clean
+          if (!url.startsWith('/assets/ph/')) repairWinding(gltf.scene);
           resolve(gltf.scene);
         },
         undefined,
