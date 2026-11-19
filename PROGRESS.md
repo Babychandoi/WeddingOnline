@@ -133,6 +133,12 @@
 - [x] Trang xem trước có khách mời mẫu (ngồi bàn, đứng trò chuyện) và tham số camera cho ảnh chụp cận (`?capture=1&cam=x,y,z,tx,ty,tz`)
 - [x] Kiểm chứng: mô phỏng mạng trễ 30–120 ms — dao động tốc độ hiển thị từ 48% xuống 5%, không còn khung khựng (unit test trong `npm test`); E2E realtime đồng bộ vị trí + dấu thời gian (`4/4`); `npm run typecheck`; ảnh chụp cận nhân vật và 101 ảnh đại diện
 
+### [x] Nhóm 18: Sảnh 3D Photoreal (patch `photoreal-3d.patch` + chỉnh sửa)
+- [x] Áp dụng patch: vật liệu PBR (vải, nhung, satin, vàng, bạc, kính, sứ, cẩm thạch), bàn tiệc phủ khăn đủ bộ đồ ăn, ghế Chiavari, bình hồng, sân khấu rèm nhung, tháp champagne, cây lá thật có gió, tường + đèn chùm pha lê cho sảnh trong nhà, đổ bóng góc (GTAO), chỉnh màu kiểu máy ảnh, HDRI chụp thật (`@pmndrs/assets`, CC0)
+- [x] Chế độ nhẹ cho điện thoại / máy yếu (`deviceTier.ts`): hoa ít đa giác, không GTAO, bóng 2K, kính không khúc xạ, không thêm đèn chùm, ít cây hơn
+- [x] Sửa lỗi hiển thị: HDRI ban ngày đổi `park` → `sky` (hết ám tím), váy/khăn bàn hướng mặt ra ngoài (hết "trong suốt"), bộ nạp GLB tự sửa tam giác đảo chiều (bánh cưới hết tối), ngưỡng bloom 1.8 + lọc NaN (hết sương/đốm chói), đèn bù ấm dạng bán cầu, bông hồng nở xòe, rừng nền thông thật
+- [x] `npm run assets:venues` chờ cảnh vẽ xong mới chụp; `RENDER_GPU=1` dùng card đồ họa (101 ảnh ~10 phút thay vì vài giờ)
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

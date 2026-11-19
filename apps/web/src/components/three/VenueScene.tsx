@@ -18,7 +18,22 @@ import { HumanAvatar } from './HumanAvatar';
 import { npcTrackKey, type MotionStore } from '@dco/shared';
 import { GlbAssetMesh } from './GlbAssetMesh';
 import { SurfaceMaterial, VenueEnvironment, VenueGate } from './venueKits';
-import { FpsGuard, PostFX, ShadowCasters, VenueAtmosphere, bloomStrength } from './venueAtmosphere';
+import {
+  AisleRunner,
+  BanquetTableDressing,
+  ChampagneTower,
+  ChiavariChair,
+  EaselFrame,
+  FloralPedestal,
+  GiftTable,
+  GuestbookLectern,
+  RoseDome,
+  StageDeck,
+  hashString,
+  naturalTone,
+} from './realProps';
+import { fabric } from './realMaterials';
+import { FpsGuard, PostFX, RendererSetup, ShadowCasters, VenueAtmosphere, bloomStrength } from './venueAtmosphere';
 
 /** In-scene HTML labels and buttons are hidden in the non-interactive venue preview */
 const SceneLabelsContext = createContext(true);
@@ -101,6 +116,15 @@ interface VenueSceneProps {
   /** Preview camera override (close-up stills) */
   previewCamera?: { position: [number, number, number]; target: [number, number, number] };
 }
+
+/** Still captures only: counts rendered frames so the thumbnail script knows when the scene is drawn */
+const FrameProbe: React.FC = () => {
+  useFrame(() => {
+    const w = window as unknown as { __venueFrames?: number };
+    w.__venueFrames = (w.__venueFrames ?? 0) + 1;
+  });
+  return null;
+};
 
 const setPointerCursor = (active: boolean) => {
   if (typeof document !== 'undefined') {
@@ -406,12 +430,13 @@ const PhotoCanvasPlane: React.FC<{ url?: string }> = ({ url }) => {
   }, [url]);
 
   return (
-    <mesh position={[0, 0.96, 0.08]}>
-      <planeGeometry args={[0.78, 0.94]} />
+    // A printed photo behind the frame's window: lit like paper, with a faint satin sheen
+    <mesh position={[0, 0, 0.012]}>
+      <planeGeometry args={[0.78, 0.96]} />
       {texture ? (
-        <meshBasicMaterial map={texture} />
+        <meshPhysicalMaterial map={texture} roughness={0.45} clearcoat={0.4} clearcoatRoughness={0.2} />
       ) : (
-        <meshBasicMaterial color={url ? '#fbcfe8' : '#e2e8f0'} />
+        <meshStandardMaterial color={url ? '#f3dfe3' : '#ece6dc'} roughness={0.8} />
       )}
     </mesh>
   );
@@ -536,33 +561,30 @@ const PrefabMesh: React.FC<{
     const rotY = (prefab.rotationDeg * Math.PI) / 180;
     const theme = getVenueTheme(templateId);
     const palette = { accent: theme.colors.a, carpet: theme.colors.c };
+    const seed = hashString(prefab.instanceId);
+    // Real flower colours drawn from the theme: its petal tone, a softened accent, ivory
+    const flowers = useMemo(() => {
+      const petal = theme.colors.pe || naturalTone(theme.colors.a, 0.45, 0.35);
+      return [naturalTone(petal, 0.1, 0.2), naturalTone(theme.colors.a, 0.3, 0.3), '#f7f1e6', '#f3d7dc', naturalTone(petal, 0.35, 0.3)];
+    }, [theme.colors.pe, theme.colors.a]);
+    const tableLinen = useMemo(() => fabric('#f7f3ec', 'linen'), []);
 
     if (prefab.prefabType === 'STAGE_MAIN') {
       return (
         <group position={[center.x, 0, center.z]} rotation={[0, rotY, 0]}>
-          {/* Tiered Stage Deck + Front Steps */}
-          <mesh position={[0, 0.2, 0]}>
-            <boxGeometry args={[6, 0.4, 4]} />
-            <meshStandardMaterial color={palette.accent} roughness={0.45} />
-          </mesh>
-          <mesh position={[0, 0.41, 0]}>
-            <boxGeometry args={[5.7, 0.05, 3.7]} />
-            <meshStandardMaterial color="#fffbeb" roughness={0.5} />
-          </mesh>
-          <mesh position={[0, 0.1, 2.2]}>
-            <boxGeometry args={[2.6, 0.2, 0.45]} />
-            <meshStandardMaterial color="#fef3c7" roughness={0.5} />
-          </mesh>
-
-          {/* Velvet Backdrop Curtain & Floral Arch */}
-          <mesh position={[0, 2.1, -1.78]}>
-            <boxGeometry args={[5.6, 3.4, 0.14]} />
-            <meshStandardMaterial color={theme.colors.cu} roughness={0.65} />
-          </mesh>
-          <mesh position={[0, 3.85, -1.68]}>
-            <boxGeometry args={[5.9, 0.35, 0.24]} />
-            <meshStandardMaterial color="#d4af37" metalness={0.35} roughness={0.35} />
-          </mesh>
+          {/* Carpeted stage deck, steps, pleated velvet backdrop and swag valance */}
+          <StageDeck curtain={theme.colors.cu} carpetColor={naturalTone(palette.carpet, 0.05, 0.15)} />
+          {/* Florist arrangements framing the stage */}
+          {[-2.55, 2.55].map((x) => (
+            <group key={x} position={[x, 0.42, 1.45]}>
+              <RoseDome radius={0.34} palette={flowers} seed={Math.round(x * 10) + 7} minY={-0.05} />
+            </group>
+          ))}
+          {[-2.75, 2.75].map((x) => (
+            <group key={`b${x}`} position={[x, 0.42, -1.45]}>
+              <RoseDome radius={0.42} palette={flowers} seed={Math.round(x * 10) + 11} minY={-0.05} />
+            </group>
+          ))}
 
           {/* Gold-Rimmed Stage LED Screen */}
           <group
@@ -578,12 +600,13 @@ const PrefabMesh: React.FC<{
             }}
           >
             <mesh>
-              <boxGeometry args={[4.5, 2.35, 0.18]} />
-              <meshStandardMaterial color="#d4af37" metalness={0.4} roughness={0.35} />
+              <boxGeometry args={[4.5, 2.35, 0.12]} />
+              <meshStandardMaterial color="#e3b65c" metalness={1} roughness={0.25} />
             </mesh>
-            <mesh position={[0, 0, 0.1]}>
+            {/* Switched-off LED wall: near-black glass that still mirrors the room */}
+            <mesh position={[0, 0, 0.065]}>
               <planeGeometry args={[4.2, 2.08]} />
-              <meshBasicMaterial color="#1e1b4b" />
+              <meshPhysicalMaterial color="#0b0d18" roughness={0.12} clearcoat={1} clearcoatRoughness={0.05} emissive="#141a3a" emissiveIntensity={0.35} />
             </mesh>
             <SceneLabel position={[0, 0, 0.16]} center distanceFactor={14}>
               <button
@@ -623,20 +646,15 @@ const PrefabMesh: React.FC<{
             />
           </group>
 
-          {/* Tiered Champagne Tower */}
+          {/* Coupe champagne tower on a silver tray */}
           <group position={[1.7, 0.45, 0.9]}>
-            <mesh position={[0, 0.1, 0]}>
-              <cylinderGeometry args={[0.42, 0.45, 0.16, 12]} />
-              <meshStandardMaterial color="#fef08a" transparent opacity={0.8} roughness={0.2} />
+            <mesh position={[0, 0.3, 0]}>
+              <cylinderGeometry args={[0.36, 0.42, 0.6, 32]} />
+              <primitive object={tableLinen} attach="material" />
             </mesh>
-            <mesh position={[0, 0.28, 0]}>
-              <cylinderGeometry args={[0.28, 0.32, 0.18, 12]} />
-              <meshStandardMaterial color="#fde047" transparent opacity={0.85} roughness={0.2} />
-            </mesh>
-            <mesh position={[0, 0.46, 0]}>
-              <cylinderGeometry args={[0.14, 0.18, 0.18, 12]} />
-              <meshStandardMaterial color="#facc15" transparent opacity={0.9} roughness={0.2} />
-            </mesh>
+            <group position={[0, 0.63, 0]}>
+              <ChampagneTower />
+            </group>
           </group>
         </group>
       );
@@ -680,14 +698,7 @@ const PrefabMesh: React.FC<{
               onOpenGuestbook();
             }}
           >
-            <mesh position={[0, 0.5, 0]}>
-              <boxGeometry args={[0.65, 1.0, 0.45]} />
-              <meshStandardMaterial color="#78350f" roughness={0.65} />
-            </mesh>
-            <mesh position={[0, 1.03, 0]} rotation={[-0.25, 0, 0]}>
-              <boxGeometry args={[0.52, 0.06, 0.36]} />
-              <meshStandardMaterial color="#fffbeb" roughness={0.6} />
-            </mesh>
+            <GuestbookLectern />
             <SceneLabel position={[0, 1.45, 0]} center distanceFactor={12}>
               <button
                 type="button"
@@ -720,25 +731,8 @@ const PrefabMesh: React.FC<{
             onOpenGiftBox();
           }}
         >
-          <GlbAssetMesh
-            url="/models/gift-heart-box.glb"
-            fallback={
-              <>
-                <mesh position={[0, 0.45, 0]}>
-                  <boxGeometry args={[0.95, 0.9, 0.95]} />
-                  <meshStandardMaterial color="#ffe4e6" roughness={0.55} />
-                </mesh>
-                <mesh position={[0, 0.93, 0]}>
-                  <boxGeometry args={[1.02, 0.06, 1.02]} />
-                  <meshStandardMaterial color="#d4af37" metalness={0.3} roughness={0.4} />
-                </mesh>
-                <mesh position={[0, 1.2, 0]}>
-                  <boxGeometry args={[0.58, 0.48, 0.48]} />
-                  <meshStandardMaterial color="#e11d48" roughness={0.45} />
-                </mesh>
-              </>
-            }
-          />
+          {/* Linen-draped gift table with wrapped presents and a glass card box */}
+          <GiftTable accent={naturalTone(palette.accent, 0.2, 0.25)} />
           <SceneLabel position={[0, 1.8, 0]} center distanceFactor={12}>
             <button
               type="button"
@@ -755,47 +749,20 @@ const PrefabMesh: React.FC<{
     if (prefab.prefabType === 'BANQUET_TABLE_10' || prefab.prefabType === 'BANQUET_TABLE_8') {
       const tableNo = prefab.meta?.tableNumber ?? 1;
       const seats = getTableSeatAnchors(prefab);
-      const radius = prefab.prefabType === 'BANQUET_TABLE_10' ? 0.98 : 0.82;
+      const radius = prefab.prefabType === 'BANQUET_TABLE_10' ? 0.9 : 0.76;
 
       return (
         <group>
           <group position={[center.x, 0, center.z]}>
-            {/* Floor-Length Draped Tablecloth */}
-            <mesh position={[0, 0.36, 0]}>
-              <cylinderGeometry args={[radius * 0.95, radius * 1.05, 0.72, 20]} />
-              <meshStandardMaterial color="#fff1f2" roughness={0.65} />
-            </mesh>
-            {/* Satin Accent Overlay */}
-            <mesh position={[0, 0.73, 0]}>
-              <cylinderGeometry args={[radius, radius, 0.05, 20]} />
-              <meshStandardMaterial color="#fecdd3" roughness={0.5} />
-            </mesh>
-            {/* Lazy Susan Tray & Teapot Centerpiece */}
-            <mesh position={[0, 0.77, 0]}>
-              <cylinderGeometry args={[radius * 0.48, radius * 0.48, 0.03, 16]} />
-              <meshStandardMaterial color="#ffffff" roughness={0.3} />
-            </mesh>
-            <mesh position={[0, 0.93, 0]}>
-              <cylinderGeometry args={[0.11, 0.15, 0.24, 10]} />
-              <meshStandardMaterial color="#e11d48" roughness={0.4} />
-            </mesh>
-            <mesh position={[0, 1.12, 0]}>
-              <sphereGeometry args={[0.2, 10, 10]} />
-              <meshStandardMaterial color="#fb7185" roughness={0.5} />
-            </mesh>
-            {/* Festive Plates around Table */}
-            {[0, 1, 2, 3, 4, 5].map((i) => {
-              const a = (i / 6) * Math.PI * 2;
-              return (
-                <mesh
-                  key={i}
-                  position={[Math.sin(a) * (radius * 0.72), 0.76, Math.cos(a) * (radius * 0.72)]}
-                >
-                  <cylinderGeometry args={[0.11, 0.09, 0.02, 10]} />
-                  <meshStandardMaterial color="#ffffff" roughness={0.3} />
-                </mesh>
-              );
-            })}
+            {/* Floor-length linen, full place settings, rose and candle centrepiece */}
+            <BanquetTableDressing
+              radius={radius}
+              seatCount={seats.length}
+              linen="#fbf9f5"
+              napkin={naturalTone(palette.accent, 0.25, 0.3)}
+              flowers={flowers}
+              seed={seed}
+            />
             <SceneLabel position={[0, 1.52, 0]} center distanceFactor={13}>
               <div className="pointer-events-none whitespace-nowrap rounded-full border border-rose-200 bg-white/90 px-2.5 py-0.5 text-[10px] font-bold text-rose-900 shadow-sm">
                 {prefab.meta?.tableLabel || `Bàn ${tableNo}`}
@@ -825,21 +792,13 @@ const PrefabMesh: React.FC<{
                   if (!occupied) onSitSeat(tableNo, seat.seatIndex);
                 }}
               >
-                {/* Seat Cushion */}
-                <mesh position={[0, 0.24, 0]}>
-                  <cylinderGeometry args={[0.21, 0.22, 0.36, 10]} />
-                  <meshStandardMaterial color={occupied ? '#cbd5e1' : '#fff1f2'} roughness={0.6} />
-                </mesh>
-                {/* Chair Backrest (outer side facing away from table) */}
-                <mesh position={[0, 0.56, -0.17]}>
-                  <boxGeometry args={[0.34, 0.42, 0.07]} />
-                  <meshStandardMaterial color={occupied ? '#94a3b8' : '#ffe4e6'} roughness={0.6} />
-                </mesh>
-                {/* Satin Chair Sash Bow */}
-                <mesh position={[0, 0.54, -0.215]}>
-                  <boxGeometry args={[0.26, 0.1, 0.04]} />
-                  <meshStandardMaterial color={occupied ? '#64748b' : '#f43f5e'} roughness={0.45} />
-                </mesh>
+                {/* Chiavari chair: cushion greys out when the seat is taken */}
+                <ChiavariChair
+                  occupied={occupied}
+                  cushion="#f5efe6"
+                  sash={naturalTone(palette.accent, 0.35, 0.25)}
+                  frame={theme.mood === 'indoor' || theme.mood === 'night' ? 'gold' : 'white'}
+                />
               </group>
             );
           })}
@@ -864,22 +823,9 @@ const PrefabMesh: React.FC<{
             onOpenPhoto(photo, idx);
           }}
         >
-          {/* Easel Legs */}
-          <mesh position={[-0.25, 0.55, 0]} rotation={[0, 0, -0.12]}>
-            <cylinderGeometry args={[0.03, 0.035, 1.15, 6]} />
-            <meshStandardMaterial color="#78350f" roughness={0.7} />
-          </mesh>
-          <mesh position={[0.25, 0.55, 0]} rotation={[0, 0, 0.12]}>
-            <cylinderGeometry args={[0.03, 0.035, 1.15, 6]} />
-            <meshStandardMaterial color="#78350f" roughness={0.7} />
-          </mesh>
-          {/* Gold Frame */}
-          <mesh position={[0, 0.96, 0]}>
-            <boxGeometry args={[0.92, 1.1, 0.11]} />
-            <meshStandardMaterial color="#d4af37" metalness={0.35} roughness={0.35} />
-          </mesh>
-          {/* Texture-mapped Photo Canvas */}
-          <PhotoCanvasPlane url={photo?.publicUrl} />
+          <EaselFrame>
+            <PhotoCanvasPlane url={photo?.publicUrl} />
+          </EaselFrame>
           <SceneLabel position={[0, 1.72, 0]} center distanceFactor={12}>
             <button
               type="button"
@@ -895,19 +841,8 @@ const PrefabMesh: React.FC<{
 
     if (prefab.prefabType === 'AISLE_CARPET_4X4') {
       return (
-        <group position={[center.x, 0.015, center.z]} rotation={[-Math.PI / 2, 0, rotY]}>
-          <mesh>
-            <planeGeometry args={[2.0, 2.0]} />
-            <meshStandardMaterial color={palette.carpet} roughness={0.8} />
-          </mesh>
-          <mesh position={[0.92, 0, 0.002]}>
-            <planeGeometry args={[0.08, 2.0]} />
-            <meshBasicMaterial color="#fde68a" />
-          </mesh>
-          <mesh position={[-0.92, 0, 0.002]}>
-            <planeGeometry args={[0.08, 2.0]} />
-            <meshBasicMaterial color="#fde68a" />
-          </mesh>
+        <group position={[center.x, 0.012, center.z]} rotation={[-Math.PI / 2, 0, rotY]}>
+          <AisleRunner color={naturalTone(palette.carpet, 0.04, 0.15)} seed={seed} />
         </group>
       );
     }
@@ -915,18 +850,7 @@ const PrefabMesh: React.FC<{
     if (prefab.prefabType === 'DECOR_FLOWER_PILLAR') {
       return (
         <group position={[center.x, 0, center.z]}>
-          <mesh position={[0, 0.55, 0]}>
-            <cylinderGeometry args={[0.24, 0.3, 1.1, 12]} />
-            <meshStandardMaterial color="#fffbeb" roughness={0.5} />
-          </mesh>
-          <mesh position={[0, 1.25, 0]}>
-            <sphereGeometry args={[0.42, 12, 12]} />
-            <meshStandardMaterial color="#fb7185" roughness={0.55} />
-          </mesh>
-          <mesh position={[0.2, 1.38, 0.16]}>
-            <sphereGeometry args={[0.18, 8, 8]} />
-            <meshStandardMaterial color="#fecdd3" roughness={0.5} />
-          </mesh>
+          <FloralPedestal flowers={flowers} seed={seed} />
         </group>
       );
     }
@@ -1003,16 +927,18 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
               position: isPreview ? (props.previewCamera?.position ?? [13, 9.5, 23]) : [0, 8.5, 17.5],
               fov: 50,
               near: 0.1,
-              far: 5000,
+              far: 2000,
             }}
             gl={{ preserveDrawingBuffer: true, antialias: !lowQuality }}
           >
             {/* Sky, sun with soft shadows, fill and image-based light */}
+            <RendererSetup exposure={theme.mood === 'night' ? 1.15 : 1.05} />
             <VenueAtmosphere theme={theme} quality={lowQuality ? 'low' : 'high'} />
             <ShadowCasters enabled={!lowQuality} />
             {!lowQuality && <PostFX strength={bloomStrength(theme)} />}
             {/* A still capture (no auto-rotate) must keep full quality however slow the renderer */}
             {isPreview && props.previewAutoRotate !== false && <FpsGuard onLowFps={setLowQuality} />}
+            {isPreview && props.previewAutoRotate === false && <FrameProbe />}
 
             <VenueEnvironment theme={theme} />
             <AmbientPetals lowQuality={lowQuality} templateId={layout.templateId} />

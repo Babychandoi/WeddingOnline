@@ -7,7 +7,7 @@
  * Everything heavy switches off in low quality.
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, Stars } from '@react-three/drei';
 import * as THREE from 'three';
@@ -15,7 +15,10 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import type { VenueTheme } from '@dco/shared';
+import { IS_HANDHELD } from './deviceTier';
 
 type Vec3 = [number, number, number];
 
@@ -87,9 +90,14 @@ function moodSetup(theme: VenueTheme): MoodSetup {
         sunLight: { position: [10, 26, 12], color: '#fff3dc', intensity: 1.3 },
         hemi: ['#fff4e0', '#5a4636', 0.55],
         envIntensity: 0.7,
+        // Reflections of a warm room: bright ceiling, four cream walls with window light
         formers: [
-          { position: [0, 20, 0], scale: [30, 30, 1], color: '#fff1d6', intensity: 1.2 },
-          { position: [0, 4, 25], scale: [30, 6, 1], color: '#ffe2b8', intensity: 0.6 },
+          { position: [0, 20, 0], scale: [30, 30, 1], color: '#fff1d6', intensity: 1.4 },
+          { position: [0, 4, 25], scale: [40, 8, 1], color: '#ffe6c4', intensity: 0.9 },
+          { position: [0, 4, -25], scale: [40, 8, 1], color: '#ffe6c4', intensity: 0.9 },
+          { position: [25, 4, 0], scale: [40, 8, 1], color: '#ffecd2', intensity: 0.8 },
+          { position: [-25, 4, 0], scale: [40, 8, 1], color: '#ffecd2', intensity: 0.8 },
+          { position: [0, 8, 0], scale: [3, 3, 1], color: '#ffd9a0', intensity: 4 },
         ],
         warmFill: 0.9,
         bloom: 0.6,
@@ -102,8 +110,9 @@ function moodSetup(theme: VenueTheme): MoodSetup {
         sky: { top: '#3b7dd8', horizon, sun: [70, 55, 30], sunColor: '#fff4d6', clouds: 0.7, cloudLit: '#ffffff', cloudShade: '#c4d2e4' },
         fogColor: horizon,
         sunLight: { position: [22, 32, 16], color: '#fff3e0', intensity: 2.5 },
-        hemi: ['#dfeaff', '#6b5a48', 0.42],
-        envIntensity: 0.5,
+        // Open-air shade is bright: sides of the cake, tablecloth skirts and faces need sky fill
+        hemi: ['#dfeaff', '#6b5a48', 0.55],
+        envIntensity: 0.8,
         formers: [
           { position: [0, 30, 0], scale: [50, 50, 1], color: '#ffffff', intensity: 1.2 },
           { position: [-30, 8, 0], scale: [6, 20, 1], color: '#cfe3ff', intensity: 0.5 },
@@ -202,6 +211,11 @@ function GradientSky({ sky }: { sky: SkySetup }) {
 /** Sky, fog, sun with soft shadows, fill lights and image-based light for one venue */
 export function VenueAtmosphere({ theme, quality }: { theme: VenueTheme; quality: 'high' | 'low' }) {
   const setup = useMemo(() => moodSetup(theme), [theme]);
+  const hdri = useVenueHdri(theme.mood, quality === 'high');
+  // Tells the thumbnail renderer the lighting is final (photographed environment in, or not used)
+  useEffect(() => {
+    (window as unknown as { __venueEnvReady?: boolean }).__venueEnvReady = quality !== 'high' || Boolean(hdri);
+  }, [hdri, quality]);
   const farScenery = theme.kits.b.length > 0;
   // Haze only in the distance: the ground melts into the horizon colour, the hall stays crisp
   const fogRange: [number, number] = farScenery ? [90, 260] : [55, 190];
@@ -219,23 +233,41 @@ export function VenueAtmosphere({ theme, quality }: { theme: VenueTheme; quality
         color={setup.sunLight.color}
         intensity={setup.sunLight.intensity}
         castShadow={quality === 'high'}
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={IS_HANDHELD ? 2048 : 4096}
+        shadow-mapSize-height={IS_HANDHELD ? 2048 : 4096}
         shadow-camera-left={-27}
         shadow-camera-right={27}
         shadow-camera-top={27}
         shadow-camera-bottom={-27}
         shadow-camera-near={1}
         shadow-camera-far={90}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.04}
+        shadow-bias={-0.00025}
+        shadow-normalBias={0.025}
       />
-      {setup.warmFill > 0 && <pointLight position={[0, 7, -2]} intensity={setup.warmFill * 40} distance={40} decay={2} color="#ffd59a" />}
+      {/* Warm bounce from lanterns and candles: a soft hemisphere, not a point light — an
+          invisible point light leaves a bright reflection on lacquered floors with no lamp */}
+      {setup.warmFill > 0 && <hemisphereLight args={['#ffd59a', '#2a1c12', setup.warmFill * 0.45]} />}
 
       {quality === 'high' && (
-        <Environment resolution={64} frames={1} environmentIntensity={setup.envIntensity}>
+        <Environment
+          key={hdri ?? 'formers'}
+          files={hdri}
+          resolution={256}
+          frames={1}
+          environmentIntensity={setup.envIntensity * (hdri ? 1.1 : 1)}
+        >
+          {!hdri && (
+            <>
+              {/* Until the photographed sky arrives: a plain sky above and ground below */}
+              <color attach="background" args={[mixHex(setup.sky.horizon, '#000000', theme.mood === 'night' ? 0.4 : 0.15)]} />
+              <mesh position={[0, -40, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[400, 400]} />
+                <meshBasicMaterial color={mixHex(theme.colors.f, '#000000', 0.35)} side={THREE.DoubleSide} />
+              </mesh>
+            </>
+          )}
           {setup.formers.map((f, i) => (
-            <Lightformer key={i} form="rect" position={f.position} scale={f.scale} color={f.color} intensity={f.intensity} target={[0, 0, 0]} />
+            <Lightformer key={i} form="rect" position={f.position} scale={f.scale} color={f.color} intensity={f.intensity * (hdri ? 0.5 : 1)} target={[0, 0, 0]} />
           ))}
         </Environment>
       )}
@@ -256,24 +288,112 @@ export function ShadowCasters({ enabled }: { enabled: boolean }) {
       const isGlow = (material as THREE.MeshBasicMaterial).isMeshBasicMaterial;
       const isFlatGround = (mesh.geometry as THREE.PlaneGeometry).type === 'PlaneGeometry';
       mesh.receiveShadow = !isGlow;
-      mesh.castShadow = !isGlow && !isFlatGround && !material.transparent;
+      const isClear = ((material as THREE.MeshPhysicalMaterial).transmission ?? 0) > 0;
+      mesh.castShadow = !isGlow && !isFlatGround && !material.transparent && !isClear && !mesh.userData.noCastShadow;
     });
   });
   return null;
 }
 
-/** Bloom on lights above white, rendered through an MSAA HDR target */
-export function PostFX({ strength }: { strength: number }) {
+/**
+ * Camera-like grade applied in linear HDR before tone mapping: a touch of contrast around
+ * mid-grey, gentle saturation, warm highlights / cool shadows split-tone, lens vignette
+ * and a whisper of film grain so flat CG gradients stop looking computer-made.
+ */
+const SanitizeShader = {
+  uniforms: { tDiffuse: { value: null as THREE.Texture | null } },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      if (any(isnan(c)) || any(isinf(c))) c = vec4(0.0, 0.0, 0.0, 1.0);
+      // Bulbs and flames peak around 7; anything far above is a pin-point specular glint
+      gl_FragColor = vec4(min(c.rgb, vec3(10.0)), c.a);
+    }`,
+};
+
+const GradeShader = {
+  uniforms: {
+    tDiffuse: { value: null as THREE.Texture | null },
+    uTime: { value: 0 },
+    uContrast: { value: 1.08 },
+    uSaturation: { value: 1.06 },
+    uVignette: { value: 0.32 },
+    uWarm: { value: new THREE.Vector3(1.03, 1.0, 0.96) },
+    uCool: { value: new THREE.Vector3(0.97, 0.99, 1.04) },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    uniform float uTime;
+    uniform float uContrast;
+    uniform float uSaturation;
+    uniform float uVignette;
+    uniform vec3 uWarm;
+    uniform vec3 uCool;
+    varying vec2 vUv;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main() {
+      vec4 tex = texture2D(tDiffuse, vUv);
+      vec3 c = max(tex.rgb, 0.0);
+      float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+      // Contrast in log space around 18% grey keeps highlights from clipping
+      vec3 lc = log2(c + 1e-4);
+      lc = (lc - log2(0.18)) * uContrast + log2(0.18);
+      c = exp2(lc);
+      l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+      c = mix(vec3(l), c, uSaturation);
+      float t = smoothstep(0.05, 0.6, l);
+      c *= mix(uCool, uWarm, t);
+      // Natural lens vignette (cos^4 falloff)
+      vec2 d = vUv - 0.5;
+      float v = 1.0 - dot(d, d) * uVignette * 2.2;
+      c *= clamp(v, 0.0, 1.0);
+      // Very fine luminance grain
+      float g = hash(vUv * 1024.0 + fract(uTime) * 61.0) - 0.5;
+      c *= 1.0 + g * 0.025;
+      gl_FragColor = vec4(c, tex.a);
+    }`,
+};
+
+/**
+ * Photographic finish: ground-truth ambient occlusion (contact shadows under every table,
+ * chair, pillar and plant), bloom on light sources, then the camera grade. Rendered
+ * through an MSAA half-float target so tone mapping happens once, at the end.
+ */
+export function PostFX({ strength, ambientOcclusion = !IS_HANDHELD }: { strength: number; ambientOcclusion?: boolean }) {
   const { gl, scene, camera, size } = useThree();
-  const composer = useMemo(() => {
+  const { composer, grade } = useMemo(() => {
     const target = new THREE.WebGLRenderTarget(size.width, size.height, { samples: 4, type: THREE.HalfFloatType });
     const c = new EffectComposer(gl, target);
     c.addPass(new RenderPass(scene, camera));
-    c.addPass(new UnrealBloomPass(new THREE.Vector2(size.width, size.height), strength, 0.55, 0.95));
+    // Safety net: one bad pixel (NaN / inf from a material) must not bloom into a haze
+    c.addPass(new ShaderPass(SanitizeShader));
+    if (ambientOcclusion) {
+      const ao = new GTAOPass(scene, camera, size.width, size.height);
+      ao.output = 0; // GTAOPass.OUTPUT.Default: the scene with AO multiplied in
+      // The AO pre-pass draws front faces only: open shells (skirts) must face outward — see
+      // the lathe profiles in HumanAvatar.tsx
+      ao.blendIntensity = 0.85;
+      ao.updateGtaoMaterial({ radius: 0.55, distanceExponent: 1.6, thickness: 1.2, scale: 1.1, samples: 16, distanceFallOff: 1 });
+      ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+      c.addPass(ao);
+    }
+    // Threshold 1.8: only true light sources (bulbs, flames, lanterns at 2–7×) bloom — a brightly
+    // lit cream floor under the chandeliers must not smear into a milky haze
+    c.addPass(new UnrealBloomPass(new THREE.Vector2(size.width, size.height), strength * 0.7, 0.5, 1.8));
+    const gradePass = new ShaderPass(GradeShader);
+    c.addPass(gradePass);
     c.addPass(new OutputPass());
-    return c;
+    return { composer: c, grade: gradePass };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gl, scene, camera, strength]);
+  }, [gl, scene, camera, strength, ambientOcclusion]);
 
   useEffect(() => {
     composer.setPixelRatio(gl.getPixelRatio());
@@ -282,8 +402,52 @@ export function PostFX({ strength }: { strength: number }) {
   useEffect(() => () => composer.dispose(), [composer]);
 
   // Priority 1 takes over rendering from react-three-fiber
-  useFrame((_, delta) => composer.render(delta), 1);
+  useFrame((state, delta) => {
+    grade.uniforms.uTime.value = state.clock.elapsedTime;
+    composer.render(delta);
+  }, 1);
   return null;
+}
+
+/** Renderer settings for a photographic look: Khronos PBR Neutral response keeps true colours */
+export function RendererSetup({ exposure = 1 }: { exposure?: number }) {
+  const { gl } = useThree();
+  useEffect(() => {
+    gl.toneMapping = THREE.NeutralToneMapping;
+    gl.toneMappingExposure = exposure;
+    gl.shadowMap.type = THREE.PCFSoftShadowMap;
+    gl.shadowMap.needsUpdate = true;
+  }, [gl, exposure]);
+  return null;
+}
+
+/**
+ * Photographed environments (Poly Haven HDRIs, CC0, via @pmndrs/assets) so reflections and
+ * ambient light come from a real place: a park by day, a real sunset, a lit hall indoors.
+ * Loaded lazily per mood so only the one in use is downloaded.
+ */
+const HDRI_LOADERS: Record<VenueTheme['mood'], () => Promise<{ default: string }>> = {
+  // 'sky' is open daylight with a natural blue skylight (R:G:B ≈ 0.76:0.82:1); 'park' was
+  // so blue (0.36:0.47:1) that white linen and brown bark turned lavender
+  day: () => import('@pmndrs/assets/hdri/sky.exr.js'),
+  sunset: () => import('@pmndrs/assets/hdri/sunset.exr.js'),
+  night: () => import('@pmndrs/assets/hdri/night.exr.js'),
+  indoor: () => import('@pmndrs/assets/hdri/hall.exr.js'),
+};
+
+function useVenueHdri(mood: VenueTheme['mood'], enabled: boolean): string | undefined {
+  const [url, setUrl] = useState<string>();
+  useEffect(() => {
+    if (!enabled) return;
+    let alive = true;
+    HDRI_LOADERS[mood]()
+      .then((m) => alive && setUrl(m.default))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [mood, enabled]);
+  return url;
 }
 
 /** Drops to low quality when the device cannot hold ~28 fps (used where no player rig runs) */

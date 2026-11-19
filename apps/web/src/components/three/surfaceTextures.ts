@@ -7,6 +7,7 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import type { VenueTheme } from '@dco/shared';
+import { normalFromCanvas } from './pbr';
 
 export type SurfaceKind = 'grass' | 'sand' | 'wood' | 'stone' | 'tile' | 'marble' | 'snow';
 
@@ -53,6 +54,16 @@ function drawSurface(kind: SurfaceKind): HTMLCanvasElement {
 
   switch (kind) {
     case 'grass':
+      // Mowing stripes: the lawn is cut in alternating directions in wide bands
+      ctx.fillStyle = grey(200, 0.18);
+      ctx.fillRect(0, 0, SIZE / 2, SIZE);
+      // Clover / soil patches break up the repetition
+      for (let i = 0; i < 40; i++) {
+        ctx.fillStyle = grey(r() < 0.5 ? 150 : 255, 0.08);
+        ctx.beginPath();
+        ctx.ellipse(r() * SIZE, r() * SIZE, 8 + r() * 30, 6 + r() * 20, r() * 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
       for (let i = 0; i < 9000; i++) {
         const x = r() * SIZE;
         const y = r() * SIZE;
@@ -147,28 +158,33 @@ function drawSurface(kind: SurfaceKind): HTMLCanvasElement {
       break;
     }
     case 'marble': {
+      // Soft, branching grey veins blurred into the stone, as in Carrara marble
       ctx.lineCap = 'round';
-      for (let v = 0; v < 14; v++) {
-        let x = r() * SIZE;
-        let y = r() * SIZE;
-        ctx.strokeStyle = grey(175 + r() * 40, 0.35);
-        ctx.lineWidth = 0.6 + r() * 2;
-        ctx.shadowColor = grey(170, 0.4);
-        ctx.shadowBlur = 4;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        for (let k = 0; k < 18; k++) {
-          x += (r() - 0.35) * 60;
-          y += (r() - 0.5) * 50;
-          ctx.lineTo(x, y);
+      ctx.lineJoin = 'round';
+      for (let pass = 0; pass < 2; pass++) {
+        ctx.filter = pass === 0 ? 'blur(6px)' : 'blur(1.2px)';
+        for (let v = 0; v < 9; v++) {
+          let x = r() * SIZE;
+          let y = r() * SIZE;
+          let ang = r() * Math.PI * 2;
+          ctx.strokeStyle = grey(pass === 0 ? 215 : 200 + r() * 20, pass === 0 ? 0.25 : 0.2);
+          ctx.lineWidth = pass === 0 ? 10 + r() * 14 : 0.8 + r() * 1.4;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          for (let k = 0; k < 40; k++) {
+            ang += (r() - 0.5) * 0.5;
+            x += Math.cos(ang) * 14;
+            y += Math.sin(ang) * 14;
+            ctx.lineTo(x, y);
+          }
+          ctx.stroke();
         }
-        ctx.stroke();
       }
-      ctx.shadowBlur = 0;
-      // Slab joints
-      ctx.fillStyle = grey(210, 0.6);
-      ctx.fillRect(0, SIZE / 2 - 1, SIZE, 2);
-      ctx.fillRect(SIZE / 2 - 1, 0, 2, SIZE);
+      ctx.filter = 'none';
+      // Hairline joints between 1.2 m slabs
+      ctx.fillStyle = grey(222, 0.5);
+      ctx.fillRect(0, SIZE / 2, SIZE, 1);
+      ctx.fillRect(SIZE / 2, 0, 1, SIZE);
       break;
     }
   }
@@ -203,16 +219,67 @@ const TILE_METRES: Record<SurfaceKind, number> = {
   snow: 4,
 };
 
-/** How shiny each surface is under the image-based light */
+/**
+ * How shiny each surface is under the image-based light. Polished floors also get a clear
+ * coat (see SurfaceMaterial): the coat gives the crisp reflection, so the base stays fairly
+ * matt — otherwise every light spreads into a broad glare on the floor.
+ */
 export const SURFACE_ROUGHNESS: Record<SurfaceKind, number> = {
   grass: 0.95,
   sand: 0.95,
-  wood: 0.5,
+  wood: 0.6,
   stone: 0.85,
-  tile: 0.35,
-  marble: 0.22,
+  tile: 0.5,
+  marble: 0.45,
   snow: 0.75,
 };
+
+const NORMAL_STRENGTH: Record<SurfaceKind, number> = {
+  grass: 6,
+  sand: 4,
+  wood: 5,
+  stone: 9,
+  tile: 6,
+  marble: 0.6,
+  snow: 3,
+};
+const normalCanvasCache = new Map<SurfaceKind, HTMLCanvasElement>();
+
+/** Colour, relief and roughness maps for a surface of `sizeMetres` across */
+export function useSurfaceMaps(kind: SurfaceKind, sizeMetres: number) {
+  const maps = useMemo(() => {
+    if (typeof document === 'undefined') return { map: null, normalMap: null, roughnessMap: null };
+    const tiles = sizeMetres / TILE_METRES[kind];
+    const map = surfaceTexture(kind, tiles);
+    const src = cache.get(kind)!;
+    let ncanvas = normalCanvasCache.get(kind);
+    if (!ncanvas) {
+      ncanvas = normalFromCanvas(src, NORMAL_STRENGTH[kind]);
+      normalCanvasCache.set(kind, ncanvas);
+    }
+    const normalMap = new THREE.CanvasTexture(ncanvas);
+    // Joints and grain read darker in the colour map: use it inverted-ish as roughness so
+    // grout, cracks and plank seams are matt while polished faces catch reflections
+    const roughnessMap = new THREE.CanvasTexture(src);
+    for (const t of [normalMap, roughnessMap]) {
+      t.wrapS = THREE.RepeatWrapping;
+      t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(tiles, tiles);
+      t.anisotropy = 8;
+      t.colorSpace = THREE.NoColorSpace;
+    }
+    return { map, normalMap, roughnessMap };
+  }, [kind, sizeMetres]);
+  useEffect(
+    () => () => {
+      maps.map?.dispose();
+      maps.normalMap?.dispose();
+      maps.roughnessMap?.dispose();
+    },
+    [maps],
+  );
+  return maps;
+}
 
 /** The texture for a surface of `sizeMetres` across, disposed when it is no longer used */
 export function useSurfaceTexture(kind: SurfaceKind, sizeMetres: number): THREE.Texture | null {

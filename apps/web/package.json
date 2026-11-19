@@ -11,6 +11,7 @@
   "dependencies": {
     "@dco/database": "*",
     "@dco/shared": "*",
+    "@pmndrs/assets": "^1.7.0",
     "@react-three/drei": "^9.114.3",
     "@react-three/fiber": "^8.17.10",
     "colyseus.js": "^0.15.0",

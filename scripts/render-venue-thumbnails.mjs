@@ -43,9 +43,11 @@ const chrome = spawn(
     `--user-data-dir=${profile}`,
     '--no-first-run',
     '--hide-scrollbars',
-    '--use-angle=swiftshader',
-    '--enable-unsafe-swiftshader',
-    '--ignore-gpu-blocklist',
+    // RENDER_GPU=1 draws on the machine's graphics card (much faster with the photoreal
+    // pipeline); the default software renderer works anywhere, including CI
+    ...(process.env.RENDER_GPU === '1'
+      ? ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=default']
+      : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']),
     'about:blank',
   ],
   { stdio: 'ignore' }
@@ -97,13 +99,24 @@ try {
     const loaded = page.once('Page.loadEventFired');
     await page.send('Page.navigate', { url: `${BASE}/khong-gian/${venue.id}?capture=1` });
     await loaded;
-    // Wait for the WebGL canvas, then give the scene (and the stage cake model) time to settle
-    for (let i = 0; i < 60; i++) {
-      const { result } = await page.send('Runtime.evaluate', { expression: 'Boolean(document.querySelector("canvas"))', returnByValue: true });
-      if (result.value) break;
+    // Wait until the lighting is final (photographed environment loaded) and a few more frames
+    // have been drawn after it — on a software renderer one frame can take many seconds
+    const evaluate = async (expression) => (await page.send('Runtime.evaluate', { expression, returnByValue: true })).result.value;
+    const deadline = Date.now() + 120_000;
+    let readyAt = null;
+    let settled = false;
+    while (Date.now() < deadline) {
+      const state = await evaluate('({ env: Boolean(window.__venueEnvReady), frames: window.__venueFrames || 0 })');
+      if (state?.env && readyAt === null) readyAt = state.frames;
+      if (readyAt !== null && state.frames >= readyAt + 4) {
+        settled = true;
+        break;
+      }
       await sleep(250);
     }
-    await sleep(2600);
+    if (!settled) process.stdout.write(`\n  ! ${venue.id}: scene not settled after 120 s, capturing anyway\n`);
+    // Streamed models (stage cake, gate crest) get a moment more
+    await sleep(1200);
     const { data } = await page.send('Page.captureScreenshot', {
       format: 'webp',
       quality: 80,

@@ -11,15 +11,42 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { BackdropKit, CanopyKit, CenterpieceKit, PerimeterKit, VenueColors, VenueMood, VenueTheme } from '@dco/shared';
-import { SURFACE_ROUGHNESS, surfaceFor, useSurfaceTexture } from './surfaceTextures';
+import { SURFACE_ROUGHNESS, surfaceFor, useSurfaceMaps } from './surfaceTextures';
+import { detailNormal, detailRoughness } from './pbr';
+import { BallroomWalls, CrystalChandelier, FloralArch, LightPost, SilkLantern, StringLights, naturalTone } from './realProps';
+import { flutedColumn } from './realGeometry';
+import { gold, marble } from './realMaterials';
+import { CoconutLeafGate, DistantTreeline, Forest, WindClock } from './realNature';
+import { IS_HANDHELD } from './deviceTier';
 
 type Vec3 = [number, number, number];
 
 /** Floor or ground material with procedural detail (lawn, sand, planks, flagstone, marble…) */
-export function SurfaceMaterial({ color, theme, role, size }: { color: string; theme: VenueTheme; role: 'floor' | 'ground'; size: number }) {
-  const kind = surfaceFor(color, theme, role);
-  const map = useSurfaceTexture(kind, size);
-  return <meshStandardMaterial color={color} map={map} roughness={SURFACE_ROUGHNESS[kind]} />;
+export function SurfaceMaterial({ color: swatch, theme, role, size }: { color: string; theme: VenueTheme; role: 'floor' | 'ground'; size: number }) {
+  const kind = surfaceFor(swatch, theme, role);
+  const { map, normalMap, roughnessMap } = useSurfaceMaps(kind, size);
+  // Real lawn is a duller, olive green than any theme swatch
+  const color = kind === 'grass' ? naturalGrass(swatch) : swatch;
+  const normalScale = useMemo(() => new THREE.Vector2(0.8, 0.8), []);
+  // Polished floors get a clear lacquer coat so they mirror chandeliers and the stage
+  const polished = kind === 'marble' || kind === 'tile' || (kind === 'wood' && role === 'floor');
+  return polished ? (
+    <meshPhysicalMaterial
+      color={color}
+      map={map}
+      normalMap={normalMap}
+      normalScale={normalScale}
+      roughnessMap={roughnessMap}
+      roughness={SURFACE_ROUGHNESS[kind]}
+      clearcoat={kind === 'wood' ? 0.35 : 0.4}
+      clearcoatRoughness={0.22}
+      // Polished stone mirrors the bright windows of the room at grazing angles; at full strength
+      // that sheen read as a milky fog over the floor
+      envMapIntensity={0.4}
+    />
+  ) : (
+    <meshStandardMaterial color={color} map={map} normalMap={normalMap} normalScale={normalScale} roughnessMap={roughnessMap} roughness={SURFACE_ROUGHNESS[kind]} />
+  );
 }
 
 /** Deterministic pseudo-random in [0, 1) so scenery is identical on every render */
@@ -28,9 +55,29 @@ function rand(seed: number): number {
   return x - Math.floor(x);
 }
 
+/**
+ * Standard surface with micro relief so nothing reads as flat plastic. Anything asked to be
+ * even slightly metallic is treated as real metal (gold leaf, brass): metalness 1, polished.
+ */
 function Std({ color, ...rest }: { color: string; roughness?: number; metalness?: number; emissive?: string; emissiveIntensity?: number; transparent?: boolean; opacity?: number; side?: THREE.Side; toneMapped?: boolean }) {
-  return <meshStandardMaterial color={color} roughness={rest.roughness ?? 0.7} {...rest} />;
+  const metal = (rest.metalness ?? 0) >= 0.25;
+  const roughness = metal ? Math.min(0.32, rest.roughness ?? 0.3) : Math.max(0.35, rest.roughness ?? 0.7);
+  const normalMap = detailNormal(metal ? 'micro' : roughness > 0.8 ? 'stone' : 'micro');
+  const roughnessMap = detailRoughness('micro');
+  return (
+    <meshStandardMaterial
+      color={color}
+      normalMap={normalMap}
+      normalScale={NORMAL_SCALE}
+      roughnessMap={roughnessMap}
+      envMapIntensity={metal ? 1.4 : 1}
+      {...rest}
+      metalness={metal ? 1 : rest.metalness ?? 0}
+      roughness={roughness}
+    />
+  );
 }
+const NORMAL_SCALE = new THREE.Vector2(0.35, 0.35);
 
 /** A light source (bulb, flame, lantern glow): brighter than white so the bloom pass picks it up */
 function Glow({ color, intensity = 2.4 }: { color: string; intensity?: number }) {
@@ -56,14 +103,13 @@ function Perimeter({ kind, colors }: { kind: PerimeterKit; colors: VenueColors }
           {[-14.5, 14.5].map((x) =>
             EDGE_Z.map((z) => (
               <group key={`${x}_${z}`} position={[x, 0, z]}>
-                <mesh position={[0, 3.2, 0]}>
-                  <cylinderGeometry args={[0.38, 0.44, 6.4, 12]} />
-                  <Std color={k ?? '#f5ebe0'} roughness={0.5} />
-                </mesh>
-                <mesh position={[0, 6.4, 0]}>
-                  <boxGeometry args={[1.1, 0.3, 1.1]} />
-                  <Std color={colors.a} metalness={0.4} roughness={0.35} />
-                </mesh>
+                <mesh geometry={flutedColumn(6.6, 0.36)} material={marble(k ?? '#f3eee5')} />
+                {/* Gilded astragal rings at the base and below the capital */}
+                {[0.62, 5.78].map((y) => (
+                  <mesh key={y} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]} material={gold('yellow')}>
+                    <torusGeometry args={[0.38, 0.03, 8, 40]} />
+                  </mesh>
+                ))}
               </group>
             ))
           )}
@@ -103,96 +149,42 @@ function Perimeter({ kind, colors }: { kind: PerimeterKit; colors: VenueColors }
       );
     case 'palms':
       return (
-        <group>
-          {[-15.5, 15.5].map((x) =>
-            [-12, -2, 8, 15].map((z) => (
-              <group key={`${x}_${z}`} position={[x, 0, z]}>
-                <mesh position={[0, 2.2, 0]}>
-                  <cylinderGeometry args={[0.16, 0.26, 4.4, 8]} />
-                  <Std color="#92400e" roughness={0.85} />
-                </mesh>
-                {[0, 1, 2, 3, 4, 5].map((a) => (
-                  <mesh
-                    key={a}
-                    position={[Math.cos(a) * 0.9, 4.4, Math.sin(a) * 0.9]}
-                    rotation={[0.45 * Math.sin(a), -a, 0.45 * Math.cos(a)]}
-                  >
-                    <boxGeometry args={[1.6, 0.08, 0.35]} />
-                    <Std color={k ?? '#16a34a'} />
-                  </mesh>
-                ))}
-              </group>
-            ))
-          )}
-        </group>
+        <Forest
+          kind="palm"
+          leafColor={k ?? '#4f7a32'}
+          seed={11}
+          spots={[-15.5, 15.5].flatMap((x) => [-12, -2, 8, 15].map((z, i) => ({ position: [x + (i % 2 ? 0.6 : -0.4), 0, z] as Vec3, height: 6 + ((i * 7) % 4) })))}
+        />
       );
     case 'pines':
       return (
-        <group>
-          {[-17, -11, 11, 17].map((x) =>
-            [-16, -6, 6, 16].map((z) => (
-              <group key={`${x}_${z}`} position={[x, 0, z]}>
-                <mesh position={[0, 0.9, 0]}>
-                  <cylinderGeometry args={[0.18, 0.25, 1.8, 8]} />
-                  <Std color="#78350f" roughness={0.8} />
-                </mesh>
-                <mesh position={[0, 2.3, 0]}>
-                  <coneGeometry args={[1.15, 2.3, 10]} />
-                  <Std color={k ?? '#15803d'} roughness={0.75} />
-                </mesh>
-                <mesh position={[0, 3.2, 0]}>
-                  <coneGeometry args={[0.85, 1.8, 10]} />
-                  <Std color={k ? lighten(k, 0.12) : '#22c55e'} roughness={0.75} />
-                </mesh>
-              </group>
-            ))
-          )}
-        </group>
+        <Forest
+          kind="pine"
+          leafColor={k ?? '#2f5a2c'}
+          seed={21}
+          spots={[-17, -11, 11, 17].flatMap((x) => [-16, -6, 6, 16].map((z, i) => ({ position: [x + ((i * 3) % 2) * 0.7, 0, z + (x % 3)] as Vec3, height: 5.5 + ((i * 5 + Math.abs(x)) % 4) })))}
+        />
       );
     case 'round-trees':
-    case 'blossom-trees':
+    case 'blossom-trees': {
+      const blossom = kind === 'blossom-trees';
       return (
-        <group>
-          {[-16.6, 16.6].map((x) =>
-            EDGE_Z.map((z, i) => (
-              <group key={`${x}_${z}`} position={[x, 0, z]}>
-                <mesh position={[0, 1.2, 0]}>
-                  <cylinderGeometry args={[0.16, 0.24, 2.4, 8]} />
-                  <Std color="#78350f" roughness={0.85} />
-                </mesh>
-                {(kind === 'blossom-trees'
-                  ? ([[0, 3, 0, 1.25], [0.75, 2.7, 0.3, 0.85], [-0.7, 2.8, -0.25, 0.9], [0.1, 3.6, -0.4, 0.75]] as const)
-                  : ([[0, 3.1, 0, 1.35], [0.4, 3.7, 0.2, 0.8]] as const)
-                ).map(([dx, y, dz, r], j) => (
-                  <mesh key={j} position={[dx, y, dz]}>
-                    <sphereGeometry args={[r, 12, 10]} />
-                    <Std color={j % 2 && k ? lighten(k, 0.1) : k ?? (kind === 'blossom-trees' ? '#f9a8d4' : '#4d7c0f')} roughness={0.8} />
-                  </mesh>
-                ))}
-                {i === 1 && <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[1.4, 16]} /><Std color={kind === 'blossom-trees' ? k ?? '#fbcfe8' : '#3f6212'} /></mesh>}
-              </group>
-            ))
-          )}
-        </group>
+        <Forest
+          kind={blossom ? 'blossom' : 'broadleaf'}
+          leafColor={k ?? (blossom ? '#f6b8cf' : '#4d6b2a')}
+          seed={blossom ? 31 : 37}
+          spots={[-16.6, 16.6].flatMap((x) => EDGE_Z.map((z) => ({ position: [x, 0, z] as Vec3 })))}
+        />
       );
+    }
     case 'cypress':
       return (
-        <group>
-          {[-16.2, 16.2].map((x) =>
-            [-14, -9, -4, 1, 6, 11].map((z) => (
-              <group key={`${x}_${z}`} position={[x, 0, z]}>
-                <mesh position={[0, 0.4, 0]}>
-                  <cylinderGeometry args={[0.12, 0.16, 0.8, 6]} />
-                  <Std color="#78350f" />
-                </mesh>
-                <mesh position={[0, 3.2, 0]} scale={[1, 2.4, 1]}>
-                  <sphereGeometry args={[0.7, 10, 10]} />
-                  <Std color={k ?? '#14532d'} roughness={0.85} />
-                </mesh>
-              </group>
-            ))
-          )}
-        </group>
+        <Forest
+          kind="cypress"
+          leafColor={k ?? '#27432a'}
+          seed={41}
+          spots={[-16.2, 16.2].flatMap((x) => [-14, -9, -4, 1, 6, 11].map((z) => ({ position: [x, 0, z] as Vec3 })))}
+        />
       );
     case 'bamboo':
       return (
@@ -315,48 +307,28 @@ function Perimeter({ kind, colors }: { kind: PerimeterKit; colors: VenueColors }
       );
     case 'birches':
       return (
-        <group>
-          {[-16.4, -18.2, 16.4, 18.2].map((x) =>
-            [-13, -7, -1, 5, 11].map((z, i) => (
-              <group key={`${x}_${z}`} position={[x, 0, z + (x > 17 || x < -17 ? 2.5 : 0)]}>
-                <mesh position={[0, 2.6, 0]}>
-                  <cylinderGeometry args={[0.11, 0.15, 5.2, 6]} />
-                  <Std color="#f5f5f4" roughness={0.8} />
-                </mesh>
-                {[3.6, 4.6, 5.4].map((y, j) => (
-                  <mesh key={y} position={[(j - 1) * 0.2, y, 0]}>
-                    <sphereGeometry args={[0.85 - j * 0.15, 8, 6]} />
-                    <Std color={k ?? (i % 2 ? '#84cc16' : '#65a30d')} roughness={0.85} />
-                  </mesh>
-                ))}
-              </group>
-            ))
-          )}
-        </group>
+        <Forest
+          kind="birch"
+          leafColor={k ?? '#7a9a3a'}
+          seed={51}
+          spots={[-16.4, -18.2, 16.4, 18.2].flatMap((x) => [-13, -7, -1, 5, 11].map((z) => ({ position: [x, 0, z + (x > 17 || x < -17 ? 2.5 : 0)] as Vec3 })))}
+        />
       );
     case 'acacia':
       return (
-        <group>
-          {[
+        <Forest
+          kind="acacia"
+          leafColor={k ?? '#5a7a2a'}
+          seed={61}
+          spots={[
             [-19, -10],
             [-21, 4],
             [19, -6],
             [22, 8],
             [-17, 14],
             [18, 15],
-          ].map(([x, z]) => (
-            <group key={`${x}_${z}`} position={[x, 0, z]}>
-              <mesh position={[0, 1.8, 0]} rotation={[0, 0, 0.15]}>
-                <cylinderGeometry args={[0.14, 0.22, 3.6, 6]} />
-                <Std color="#57534e" />
-              </mesh>
-              <mesh position={[0.25, 3.8, 0]} scale={[1, 0.22, 1]}>
-                <sphereGeometry args={[2.6, 14, 8]} />
-                <Std color={k ?? '#4d7c0f'} roughness={0.9} />
-              </mesh>
-            </group>
-          ))}
-        </group>
+          ].map(([x, z]) => ({ position: [x, 0, z] as Vec3 }))}
+        />
       );
     case 'baobab':
       return (
@@ -427,15 +399,8 @@ function Canopy({ kind, colors, mood }: { kind: CanopyKit; colors: VenueColors; 
       return (
         <group>
           {[-6, 4].map((z) => (
-            <group key={z} position={[0, 6.8, z]}>
-              <mesh>
-                <torusGeometry args={[1.5, 0.08, 8, 24]} />
-                <Lit color={colors.ca ?? '#facc15'} glow={1.4} />
-              </mesh>
-              <mesh position={[0, 0.5, 0]}>
-                <torusGeometry args={[0.9, 0.07, 8, 20]} />
-                <Lit color={colors.ca2 ?? '#fef08a'} glow={1.8} />
-              </mesh>
+            <group key={z} position={[0, 5.6, z]}>
+              <CrystalChandelier scale={1.15} />
             </group>
           ))}
         </group>
@@ -443,15 +408,13 @@ function Canopy({ kind, colors, mood }: { kind: CanopyKit; colors: VenueColors; 
     case 'fairy-lights':
       return (
         <group>
+          {/* Timber posts along both sides, festoons of warm bulbs crossing the lawn */}
+          {[-14.6, 14.6].map((x) => [-8, 0, 8].map((z) => <group key={`${x}_${z}`} position={[x, 0, z]}><LightPost height={5.4} /></group>))}
           {[-8, 0, 8].map((z) => (
-            <group key={z} position={[0, 5.2, z]}>
-              {[-10, -7.5, -5, -2.5, 0, 2.5, 5, 7.5, 10].map((x) => (
-                <mesh key={x} position={[x, -Math.cos((x / 10) * 1.1) * 0.4, 0]}>
-                  <sphereGeometry args={[0.11, 8, 8]} />
-                  <Glow color={colors.ca ?? '#fef08a'} intensity={2.6} />
-                </mesh>
-              ))}
-            </group>
+            <StringLights key={z} from={[-14.6, 5.3, z]} to={[14.6, 5.3, z]} sag={0.9} color={colors.ca ?? '#ffd28a'} />
+          ))}
+          {[-8, 0].map((z) => (
+            <StringLights key={`x${z}`} from={[-14.6, 5.3, z]} to={[14.6, 5.3, z + 8]} sag={1.1} color={colors.ca ?? '#ffd28a'} />
           ))}
         </group>
       );
@@ -460,20 +423,14 @@ function Canopy({ kind, colors, mood }: { kind: CanopyKit; colors: VenueColors; 
         <group>
           {[-10, 0, 10].map((z) => (
             <group key={z} position={[0, 5.4, z]}>
-              <mesh>
-                <boxGeometry args={[28, 0.28, 0.5]} />
-                <Std color={colors.ca ?? '#e11d48'} roughness={0.55} />
+              {/* Lacquered timber beam wrapped in a swag of silk */}
+              <mesh rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.09, 0.09, 28, 12]} />
+                <meshPhysicalMaterial color="#5a2a1a" roughness={0.35} clearcoat={0.8} clearcoatRoughness={0.15} />
               </mesh>
               {[-9, -3, 3, 9].map((x) => (
-                <group key={x} position={[x, -0.5, 0]}>
-                  <mesh>
-                    <sphereGeometry args={[0.26, 10, 10]} />
-                    <Lit color={colors.ca2 ?? '#dc2626'} glow={glow * 1.8} />
-                  </mesh>
-                  <mesh position={[0, -0.32, 0]}>
-                    <cylinderGeometry args={[0.04, 0.1, 0.22, 6]} />
-                    <Std color="#facc15" />
-                  </mesh>
+                <group key={x} position={[x, -1.0, 0]}>
+                  <SilkLantern color={colors.ca2 ?? '#dc2626'} glow={glow * 0.9} />
                 </group>
               ))}
             </group>
@@ -489,14 +446,7 @@ function Canopy({ kind, colors, mood }: { kind: CanopyKit; colors: VenueColors; 
               const color = (i + j) % 2 ? colors.ca2 ?? '#facc15' : colors.ca ?? '#ef4444';
               return (
                 <group key={`${x}_${z}`} position={[x, y, z]}>
-                  <mesh position={[0, (7 - y) / 2 + 0.2, 0]}>
-                    <cylinderGeometry args={[0.012, 0.012, 7 - y, 3]} />
-                    <meshBasicMaterial color="#44403c" />
-                  </mesh>
-                  <mesh scale={[1, 1.2, 1]}>
-                    <sphereGeometry args={[0.3, 10, 8]} />
-                    <Lit color={color} glow={glow * 1.8} />
-                  </mesh>
+                  <SilkLantern kind="paper" color={color} glow={glow * 0.9} />
                 </group>
               );
             })
@@ -708,6 +658,20 @@ function Aurora() {
 
 /* ───────────────────────────── Backdrop ───────────────────────────── */
 
+function ForestBackdrop({ leafColor }: { leafColor: string }) {
+  const spots = useMemo(
+    () =>
+      Array.from({ length: 70 }, (_, i) => i)
+        .filter((i) => !IS_HANDHELD || i % 2 === 0)
+        .map((i) => ({
+          position: [-70 + (i % 35) * 4 + rand(i) * 2, 0, -32 - Math.floor(i / 35) * 7 - rand(i + 3) * 4] as Vec3,
+          height: 7 + rand(i + 11) * 6,
+        })),
+    [],
+  );
+  return <Forest kind="pine" leafColor={leafColor} seed={71} spots={spots} castShadow={false} />;
+}
+
 function Backdrop({ kind, colors, mood }: { kind: BackdropKit; colors: VenueColors; mood: VenueMood }) {
   const sc = colors.sc;
   switch (kind) {
@@ -798,21 +762,8 @@ function Backdrop({ kind, colors, mood }: { kind: BackdropKit; colors: VenueColo
         </group>
       );
     case 'forest':
-      return (
-        <group>
-          {Array.from({ length: 70 }, (_, i) => {
-            const x = -70 + (i % 35) * 4 + rand(i) * 2;
-            const z = -32 - Math.floor(i / 35) * 7 - rand(i + 3) * 4;
-            const h = 6 + rand(i + 11) * 6;
-            return (
-              <mesh key={i} position={[x, h / 2, z]}>
-                <coneGeometry args={[h * 0.32, h, 7]} />
-                <Std color={i % 3 ? sc ?? '#14532d' : lighten(sc ?? '#14532d', 0.08)} roughness={0.9} />
-              </mesh>
-            );
-          })}
-        </group>
-      );
+      // Two staggered rows of real pines behind the hall (same leaf cards as the perimeter trees)
+      return <ForestBackdrop leafColor={sc ?? '#2f5a2c'} />;
     case 'terraces':
       return (
         <group>
@@ -1491,26 +1442,7 @@ export function VenueGate({ theme }: { theme: VenueTheme }) {
   const { colors } = theme;
   switch (theme.kits.g) {
     case 'coconut':
-      return (
-        <group>
-          {[-1.55, 1.55].map((x) => (
-            <mesh key={x} position={[x, 1.35, 0]}>
-              <cylinderGeometry args={[0.26, 0.32, 2.7, 10]} />
-              <Std color="#15803d" roughness={0.75} />
-            </mesh>
-          ))}
-          <mesh position={[0, 2.55, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.25, 0.25, 3.6, 10]} />
-            <Std color="#16a34a" />
-          </mesh>
-          {[-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].map((x, idx) => (
-            <mesh key={idx} position={[x, 2.85, 0.05]} rotation={[0.2, 0, (idx - 2.5) * -0.22]}>
-              <boxGeometry args={[0.35, 0.95, 0.12]} />
-              <Std color="#22c55e" />
-            </mesh>
-          ))}
-        </group>
-      );
+      return <CoconutLeafGate banner={colors.a} />;
     case 'lacquer':
       return (
         <group>
@@ -1613,31 +1545,11 @@ export function VenueGate({ theme }: { theme: VenueTheme }) {
         </group>
       );
     case 'floral':
-    default:
-      return (
-        <group>
-          {[-1.5, 1.5].map((x) => (
-            <mesh key={x} position={[x, 1.3, 0]}>
-              <cylinderGeometry args={[0.22, 0.28, 2.6, 12]} />
-              <Std color="#fff1f2" roughness={0.5} />
-            </mesh>
-          ))}
-          <mesh position={[0, 2.45, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.22, 0.22, 3.3, 12]} />
-            <Std color="#fda4af" roughness={0.5} />
-          </mesh>
-          {[-1.2, -0.5, 0.5, 1.2].map((x) => (
-            <mesh key={x} position={[x, 2.68, 0.1]}>
-              <sphereGeometry args={[0.26, 10, 10]} />
-              <Std color="#f43f5e" roughness={0.5} />
-            </mesh>
-          ))}
-          <mesh position={[0, 2.7, 0.18]}>
-            <boxGeometry args={[0.9, 0.36, 0.16]} />
-            <Std color="#d4af37" metalness={0.4} roughness={0.3} />
-          </mesh>
-        </group>
-      );
+    default: {
+      const petal = colors.pe || naturalTone(colors.a, 0.45, 0.35);
+      const flowers = [naturalTone(petal, 0.1, 0.2), naturalTone(colors.a, 0.3, 0.3), '#f7f1e6', '#f3d7dc', naturalTone(petal, 0.35, 0.3)];
+      return <FloralArch width={3.2} height={3.1} flowers={flowers} seed={hashSeed(theme.id)} />;
+    }
   }
 }
 
@@ -1656,26 +1568,54 @@ export function VenueEnvironment({ theme }: { theme: VenueTheme }) {
       {/* Hall floor border */}
       {(
         [
-          { pos: [0, 0.02, -15], size: [30.4, 0.04, 0.4] },
-          { pos: [0, 0.02, 15], size: [30.4, 0.04, 0.4] },
-          { pos: [-15, 0.02, 0], size: [0.4, 0.04, 30.4] },
-          { pos: [15, 0.02, 0], size: [0.4, 0.04, 30.4] },
+          { pos: [0, 0.03, -15], size: [30.3, 0.06, 0.25] },
+          { pos: [0, 0.03, 15], size: [30.3, 0.06, 0.25] },
+          { pos: [-15, 0.03, 0], size: [0.25, 0.06, 30.3] },
+          { pos: [15, 0.03, 0], size: [0.25, 0.06, 30.3] },
         ] as Array<{ pos: Vec3; size: Vec3 }>
       ).map((edge, idx) => (
         <mesh key={idx} position={edge.pos}>
           <boxGeometry args={edge.size} />
-          <Std color={colors.a} roughness={0.45} />
+          {/* Stone kerb edging the floor, not a painted stripe */}
+          <Std color="#a39d92" roughness={0.85} />
         </mesh>
       ))}
 
       {kits.b.map((b) => (
         <Backdrop key={b} kind={b} colors={colors} mood={mood} />
       ))}
+      <WindClock />
+      {mood !== 'indoor' && kits.b.length === 0 && !snowyOrDesert(theme) && (
+        <DistantTreeline leafColor={lighten(colors.g, -0.08)} kind={kits.p === 'pines' ? 'pine' : kits.p === 'palms' ? 'palm' : 'broadleaf'} />
+      )}
+      {mood === 'indoor' && <BallroomWalls wallColor={naturalTone(colors.f, 0.15, 0.3)} drape={naturalTone(colors.c, 0, 0.15)} />}
       <Perimeter kind={kits.p} colors={colors} />
       <Canopy kind={kits.c} colors={colors} mood={mood} />
       <Centerpiece kind={kits.ce} colors={colors} />
     </group>
   );
+}
+
+function naturalGrass(hex: string): string {
+  const c = new THREE.Color(hex);
+  const hsl = { h: 0, s: 0, l: 0 };
+  c.getHSL(hsl);
+  c.setHSL(Math.min(Math.max(hsl.h, 0.2), 0.3), Math.min(hsl.s, 0.38), Math.min(hsl.l, 0.4));
+  return `#${c.getHexString()}`;
+}
+
+/** Venues on snow or sand have no woodland on the horizon */
+function snowyOrDesert(theme: VenueTheme): boolean {
+  const g = new THREE.Color(theme.colors.g);
+  const hsl = { h: 0, s: 0, l: 0 };
+  g.getHSL(hsl);
+  return hsl.l > 0.7 || (hsl.h > 0.06 && hsl.h < 0.16 && hsl.s > 0.3);
+}
+
+function hashSeed(str: string): number {
+  let h = 7;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h % 10000;
 }
 
 /** Lighten (amount > 0) or darken (amount < 0) a hex colour */

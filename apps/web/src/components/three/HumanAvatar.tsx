@@ -107,7 +107,10 @@ const STRIDE_RAD_PER_M = (Math.PI * 2) / 2.4;
 type Pts = Array<[number, number]>;
 
 function lathe(points: Pts, segments = 22): THREE.LatheGeometry {
-  return new THREE.LatheGeometry(points.map(([r, y]) => new THREE.Vector2(r, y)), segments);
+  // Profiles must run bottom → top so faces point outward: the ambient-occlusion pre-pass only
+  // draws front faces, and an inward-facing skirt would let it see the legs through the gown
+  const ordered = points[0][1] > points[points.length - 1][1] ? [...points].reverse() : points;
+  return new THREE.LatheGeometry(ordered.map(([r, y]) => new THREE.Vector2(r, y)), segments);
 }
 
 function buildGeometries() {
