@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+.turbo
+**/.turbo
+.git
+.gitignore
+.env
+packages/database/.env
+.local-data
+.local-data-smoke
+infra/cloudflared/credentials.json
+*.log

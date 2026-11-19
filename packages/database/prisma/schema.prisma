@@ -1,0 +1,326 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  ZALO
+  GOOGLE
+  FACEBOOK
+}
+
+model User {
+  id            String          @id @default(cuid())
+  displayName   String
+  avatarUrl     String?
+  email         String?         @unique
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  // Platform-wide lock set from /admin/users: the account can no longer sign in,
+  // its sessions stop working and it is removed from every live hall.
+  isLocked      Boolean         @default(false)
+  lockedAt      DateTime?
+  lockedReason  String?         @db.VarChar(200)
+  lockedById    String?
+
+  accounts       Account[]
+  ownedWeddings  Wedding[]       @relation("WeddingOwner")
+  memberships    WeddingMember[]
+  photoAssets    PhotoAsset[]
+  guestbooks     GuestbookEntry[]
+  giftIntents    GiftIntent[]
+  giftLedgers    GiftLedger[]
+  bouquetCatches BouquetCatch[]
+  saasOrders     SaasOrder[]
+}
+
+model Account {
+  id                String       @id @default(cuid())
+  userId            String
+  provider          AuthProvider
+  providerAccountId String
+  accessToken       String?      @db.Text
+  refreshToken      String?      @db.Text
+  expiresAt         Int?
+  createdAt         DateTime     @default(now())
+
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+enum WeddingTier {
+  PUBLIC_PLAZA
+  TRIAL_24H
+  HAPPINESS
+  VIP_FULFILLMENT
+}
+
+enum WeddingStatus {
+  DRAFT
+  TRIAL_ACTIVE
+  EXPIRED_TRIAL
+  PUBLISHED_3D
+  GRACE_PERIOD_7D
+  ARCHIVED_2D_FOREVER
+}
+
+model Wedding {
+  id                 String        @id @default(cuid())
+  slug               String        @unique
+  title              String
+  brideName          String
+  groomName          String
+  ownerId            String
+  tier               WeddingTier   @default(TRIAL_24H)
+  status             WeddingStatus @default(DRAFT)
+
+  weddingDate        DateTime
+  trialExpiresAt     DateTime?
+  archiveAt          DateTime?
+  archivedAt         DateTime?
+
+  pinHash            String?
+  maxConcurrentUsers Int           @default(15)
+
+  videoEmbedUrl      String?
+  videoIsLive        Boolean       @default(false)
+
+  bankBin            String?
+  bankAccountNo      String?
+  bankAccountName    String?
+  webhookProvider    String?
+  webhookSecretHash  String?
+
+  ceremonyConfig     Json?
+
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  owner              User          @relation("WeddingOwner", fields: [ownerId], references: [id])
+  scene              WeddingScene?
+  members            WeddingMember[]
+  photos             PhotoAsset[]
+  guestbookEntries   GuestbookEntry[]
+  giftIntents        GiftIntent[]
+  giftLedgers        GiftLedger[]
+  bouquetCatches     BouquetCatch[]
+  saasOrders         SaasOrder[]
+
+  @@index([status, archiveAt])
+  @@index([status, trialExpiresAt])
+  @@index([ownerId])
+}
+
+enum MemberRole {
+  OWNER
+  BRIDE
+  GROOM
+  MC
+  GUEST
+}
+
+enum ModerationStatus {
+  ACTIVE
+  MUTED
+  BANNED
+}
+
+enum GuestSide {
+  GROOM_SIDE
+  BRIDE_SIDE
+  FRIEND
+  COLLEAGUE
+}
+
+model WeddingMember {
+  id               String           @id @default(cuid())
+  weddingId        String
+  userId           String
+  role             MemberRole       @default(GUEST)
+  side             GuestSide        @default(FRIEND)
+  nicknameOverride String?
+  avatarConfig     Json?
+  moderationStatus ModerationStatus @default(ACTIVE)
+  moderatedById    String?
+  moderationReason String?
+  joinedAt         DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  wedding          Wedding          @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([weddingId, userId])
+  @@index([weddingId, moderationStatus])
+}
+
+model WeddingScene {
+  id         String   @id @default(cuid())
+  weddingId  String   @unique
+  templateId String   @default("luxury_ballroom")
+  layoutData Json
+  version    Int      @default(1)
+  updatedAt  DateTime @updatedAt
+
+  wedding    Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+}
+
+enum PhotoType {
+  PRE_WEDDING_GALLERY
+  PHOTOBOOTH_SNAPSHOT
+}
+
+model PhotoAsset {
+  id           String    @id @default(cuid())
+  weddingId    String
+  uploaderId   String
+  type         PhotoType
+  r2ObjectKey  String
+  publicUrl    String
+  caption      String?   @db.VarChar(200)
+  hasWatermark Boolean   @default(false)
+  displayOrder Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  wedding      Wedding   @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  uploader     User      @relation(fields: [uploaderId], references: [id])
+
+  @@index([weddingId, type])
+}
+
+model GuestbookEntry {
+  id         String    @id @default(cuid())
+  weddingId  String
+  authorId   String
+  authorName String
+  side       GuestSide @default(FRIEND)
+  message    String    @db.VarChar(500)
+  isHidden   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  wedding    Wedding   @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  author     User      @relation(fields: [authorId], references: [id])
+
+  @@index([weddingId, createdAt])
+}
+
+model BouquetCatch {
+  id         String   @id @default(cuid())
+  weddingId  String
+  winnerId   String
+  winnerName String
+  shardId    String
+  caughtAt   DateTime @default(now())
+
+  wedding    Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  winner     User     @relation(fields: [winnerId], references: [id])
+
+  @@index([weddingId, caughtAt])
+}
+
+enum GiftIntentStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+}
+
+model GiftIntent {
+  id           String           @id @default(cuid())
+  weddingId    String
+  guestUserId  String
+  guestName    String
+  wishMessage  String           @db.VarChar(300)
+  transferCode String           @unique
+  status       GiftIntentStatus @default(PENDING)
+  expiresAt    DateTime
+  createdAt    DateTime         @default(now())
+
+  wedding      Wedding          @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  guest        User             @relation(fields: [guestUserId], references: [id])
+  ledger       GiftLedger?
+
+  @@index([weddingId, status])
+}
+
+model GiftLedger {
+  id           String     @id @default(cuid())
+  weddingId    String
+  giftIntentId String     @unique
+  guestUserId  String
+  guestName    String
+  wishMessage  String     @db.VarChar(300)
+  amountVnd    Int
+  provider     String
+  providerTxId String     @unique
+  bankTxDate   DateTime
+  verifiedAt   DateTime   @default(now())
+
+  wedding      Wedding    @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  giftIntent   GiftIntent @relation(fields: [giftIntentId], references: [id])
+  guest        User       @relation(fields: [guestUserId], references: [id])
+
+  @@index([weddingId, verifiedAt])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+model SaasOrder {
+  id         String      @id @default(cuid())
+  weddingId  String
+  buyerId    String
+  targetTier WeddingTier
+  amountVnd  Int
+  orderCode  String      @unique
+  status     OrderStatus @default(PENDING)
+  paidAt     DateTime?
+  createdAt  DateTime    @default(now())
+
+  wedding    Wedding     @relation(fields: [weddingId], references: [id])
+  buyer      User        @relation(fields: [buyerId], references: [id])
+  webhookLog PaymentWebhookLog?
+
+  @@index([status, orderCode])
+}
+
+model PaymentWebhookLog {
+  id           String     @id @default(cuid())
+  provider     String
+  providerTxId String     @unique
+  saasOrderId  String?    @unique
+  rawPayload   Json
+  processedAt  DateTime   @default(now())
+
+  saasOrder    SaasOrder? @relation(fields: [saasOrderId], references: [id])
+}
+
+// Platform-wide settings edited from /admin/settings (bank account for plan payments,
+// SePay webhook key, R2 storage). Secret values are AES-256-GCM encrypted.
+model PlatformSetting {
+  key         String   @id
+  value       String   @db.Text
+  isSecret    Boolean  @default(false)
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
+model PartnerVoucher {
+  id              String       @id @default(cuid())
+  code            String       @unique
+  studioName      String
+  discountPercent Int
+  targetTier      WeddingTier?
+  maxUses         Int          @default(50)
+  usedCount       Int          @default(0)
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+}

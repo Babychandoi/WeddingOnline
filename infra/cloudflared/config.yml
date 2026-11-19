@@ -1,0 +1,17 @@
+tunnel: 51e0b6d4-feef-4104-bbfa-226dd1a267ed
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: poiplegal.online
+    service: http://web:3000
+  - hostname: www.poiplegal.online
+    service: http://web:3000
+  # Service-to-service routes stay private (web -> realtime over the Docker network only)
+  - hostname: ws.poiplegal.online
+    path: ^/(internal|shards)(/|$)
+    service: http_status:404
+  - hostname: ws.poiplegal.online
+    service: http://realtime:2567
+  - hostname: lk.poiplegal.online
+    service: http://livekit:7880
+  - service: http_status:404

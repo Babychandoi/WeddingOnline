@@ -1,0 +1,16 @@
+damcuoionline.vn, www.damcuoionline.vn {
+    encode zstd gzip
+
+    handle /colyseus/* {
+        uri strip_prefix /colyseus
+        reverse_proxy realtime:2567
+    }
+
+    handle {
+        reverse_proxy web:3000
+    }
+}
+
+lk.damcuoionline.vn {
+    reverse_proxy 127.0.0.1:7880
+}

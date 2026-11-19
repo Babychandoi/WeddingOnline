@@ -1,0 +1,113 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dco-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dco_admin
+      POSTGRES_PASSWORD: ${DCO_POSTGRES_PASSWORD:?set DCO_POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: damcuoionline
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - dco_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dco_admin -d damcuoionline"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  redis:
+    image: redis:7-alpine
+    container_name: dco-redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${DCO_REDIS_PASSWORD:?set DCO_REDIS_PASSWORD in .env}", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - dco_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${DCO_REDIS_PASSWORD:?set DCO_REDIS_PASSWORD in .env}", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  livekit:
+    image: livekit/livekit-server:v1.8
+    container_name: dco-livekit
+    restart: unless-stopped
+    command: ["--config", "/etc/livekit.yaml", "--node-ip", "127.0.0.1"]
+    ports:
+      - "127.0.0.1:7880:7880"
+      - "127.0.0.1:7881:7881"
+      - "127.0.0.1:7882:7882/udp"
+    volumes:
+      - ./livekit.dev.yaml:/etc/livekit.yaml:ro
+
+  realtime:
+    build:
+      context: ..
+      dockerfile: apps/realtime/Dockerfile
+    container_name: dco-realtime
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "2567"
+      DATABASE_URL: "postgresql://dco_admin:${DCO_POSTGRES_PASSWORD:?set DCO_POSTGRES_PASSWORD in .env}@postgres:5432/damcuoionline"
+      REDIS_URL: "redis://:${DCO_REDIS_PASSWORD:?set DCO_REDIS_PASSWORD in .env}@redis:6379"
+    ports:
+      - "127.0.0.1:2567:2567"
+    volumes:
+      - ../.env:/app/.env:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    container_name: dco-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+      DATABASE_URL: "postgresql://dco_admin:${DCO_POSTGRES_PASSWORD:?set DCO_POSTGRES_PASSWORD in .env}@postgres:5432/damcuoionline"
+      REDIS_URL: "redis://:${DCO_REDIS_PASSWORD:?set DCO_REDIS_PASSWORD in .env}@redis:6379"
+      REALTIME_HTTP_URL: "http://realtime:2567"
+      LIVEKIT_URL: "ws://127.0.0.1:7880"
+      PUBLIC_LIVEKIT_URL: "wss://lk.poiplegal.online"
+      PUBLIC_COLYSEUS_URL: "wss://ws.poiplegal.online"
+      NEXT_PUBLIC_APP_URL: "https://poiplegal.online"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ../.env:/app/.env:ro
+      - dco_uploads:/app/.local-data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      realtime:
+        condition: service_started
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: dco-cloudflared
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "--config", "/etc/cloudflared/config.yml", "run"]
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+    depends_on:
+      - web
+      - realtime
+      - livekit
+
+volumes:
+  dco_pgdata:
+  dco_redisdata:
+  dco_uploads:

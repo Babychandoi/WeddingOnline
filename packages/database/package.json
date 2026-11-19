@@ -1,0 +1,22 @@
+{
+  "name": "@dco/database",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "generate": "prisma generate",
+    "db:push": "prisma db push",
+    "seed": "node dist/seed.js"
+  },
+  "dependencies": {
+    "@dco/shared": "*",
+    "@prisma/client": "^5.22.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0",
+    "typescript": "^5.7.2"
+  }
+}

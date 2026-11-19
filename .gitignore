@@ -1,0 +1,28 @@
+node_modules/
+.next/
+dist/
+.turbo/
+*.tsbuildinfo
+*.log
+.DS_Store
+
+# Secrets — never commit (templates: infra/.env.example, infra/livekit.dev.yaml.example)
+.env
+.env.local
+.env.*.local
+packages/database/.env
+infra/cloudflared/credentials.json
+infra/cloudflared/cert.pem
+infra/livekit.dev.yaml
+
+# Local data (guest accounts, uploads, test stores)
+.local-data/
+.local-data-*/
+
+# Personal tooling state
+.gemini/
+.claude/settings.local.json
+.codegraph/
+.impeccable/config.local.json
+**/.impeccable/review/
+**/.impeccable/mocks/
