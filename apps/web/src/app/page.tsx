@@ -12,8 +12,11 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import { TIER_CATALOG, VENUE_THEMES, getVenueTheme, type WeddingTier } from '@dco/shared';
+import { INVITATION_TEMPLATES, TIER_CATALOG, VENUE_THEMES, getVenueTheme, type InvitationTemplateId, type WeddingTier } from '@dco/shared';
 import { VenueCard } from '@/components/venues/VenueCard';
+import { CardFace } from '@/components/invitation/CardFace';
+
+const HOME_INVITATIONS: InvitationTemplateId[] = ['song-hy-do', 'sen-hong', 'mau-nuoc', 'baroque-vang'];
 
 /** Vietnamese spaces featured on the landing page; the full catalogue lives at /khong-gian */
 const FEATURED_VENUES = [
@@ -229,6 +232,47 @@ export default function HomePage() {
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURED_VENUES.map((venue) => (
               <VenueCard key={venue.id} venue={venue} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Online invitations: four real template fronts, the full gallery one click away */}
+      <section id="thiep-cuoi" className="mx-auto max-w-6xl px-5 pt-16 sm:px-6">
+        <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="max-w-xl">
+            <h2 className="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">
+              {INVITATION_TEMPLATES.length} Mẫu Thiệp Cưới Online Miễn Phí
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
+              Phong bì ghi tên từng khách, ngày âm lịch, xác nhận tham dự, sổ lời chúc và hộp mừng cưới
+              VietQR cho khách ở xa. Mọi gói phòng cưới đều tạo được thiệp.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/thiep-cuoi"
+                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-rose-700 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-rose-800"
+              >
+                Xem {INVITATION_TEMPLATES.length} mẫu thiệp <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/thiep-cuoi/song-hy-do"
+                className="inline-flex min-h-[44px] items-center rounded-full border border-rose-200 bg-white px-5 text-sm font-bold text-rose-700 transition hover:bg-rose-50"
+              >
+                Mở thử một thiệp
+              </Link>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {HOME_INVITATIONS.map((id) => (
+              <Link
+                key={id}
+                href={`/thiep-cuoi/${id}`}
+                className="overflow-hidden rounded-[6px] shadow-[0_18px_36px_-18px_rgba(60,20,20,0.55)] transition hover:-translate-y-1"
+                aria-label={`Thiệp mẫu ${INVITATION_TEMPLATES.find((t) => t.id === id)?.nameVi ?? ''}`}
+              >
+                <CardFace templateId={id} groom="Minh Quân" bride="Thu Hà" dateLine="20 · 12 · 2026" />
+              </Link>
             ))}
           </div>
         </div>

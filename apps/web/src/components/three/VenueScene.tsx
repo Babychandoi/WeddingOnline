@@ -51,6 +51,8 @@ export interface RemotePlayerView {
   outfitId: string;
   hairId: string;
   hairColor: string;
+  /** Realistic person (PEOPLE id); empty = stylised figure */
+  personId?: string;
   x: number;
   z: number;
   rotY: number;
@@ -1025,6 +1027,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
                   outfitId={p.outfitId}
                   hairId={p.hairId}
                   hairColor={p.hairColor}
+                  personId={p.personId}
                   targetX={p.x}
                   targetZ={p.z}
                   targetRotY={p.rotY}

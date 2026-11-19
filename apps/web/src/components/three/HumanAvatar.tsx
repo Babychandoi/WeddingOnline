@@ -14,6 +14,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import type { MotionStore } from '@dco/shared';
+import { RealPerson, type PersonMotion } from './RealPerson';
 
 export interface AvatarRenderProps {
   id: string;
@@ -44,6 +45,8 @@ export interface AvatarRenderProps {
   motionKey?: string;
   /** On a chair (the server may still play a gesture such as a table toast) */
   isSeated?: boolean;
+  /** Realistic person (PEOPLE id); '' draws the stylised figure */
+  personId?: string;
   onClick?: () => void;
 }
 
@@ -326,6 +329,7 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
   motion,
   motionKey,
   isSeated = false,
+  personId = '',
   onClick,
 }) => {
   const g = geo();
@@ -353,6 +357,7 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
   const skirtRef = useRef<THREE.Mesh>(null);
   const faceDetailRef = useRef<THREE.Group>(null);
   const trimDetailRef = useRef<THREE.Group>(null);
+  const personMotion = useRef<PersonMotion>({ walk: 0, speed: 0 });
 
   const st = useRef({
     phase: 0,
@@ -368,7 +373,7 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
     const root = rootRef.current;
     const body = bodyRef.current;
     const upper = upperRef.current;
-    if (!root || !body || !upper) return;
+    if (!root) return;
     const dt = Math.min(delta, 0.1);
     const s = st.current;
     const t = state.clock.elapsedTime + s.seed;
@@ -420,6 +425,10 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
     const walking = !seated && s.speed > 0.6;
     s.walk = damp(s.walk, walking ? 1 : 0, walking ? 10 : 6, dt);
     const w = s.walk;
+    personMotion.current.walk = w;
+    personMotion.current.speed = s.speed;
+    // A realistic body animates itself from here on
+    if (!body || !upper) return;
 
     // ── Static pose for the current action ──
     const target: Joints = { ...REST };
@@ -555,33 +564,7 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
     </group>
   );
 
-  return (
-    <group
-      ref={rootRef}
-      position={[targetX, 0, targetZ]}
-      rotation={[0, targetRotY, 0]}
-      onClick={(e) => {
-        if (onClick) {
-          e.stopPropagation();
-          onClick();
-        }
-      }}
-      onPointerOver={(e) => {
-        if (onClick && typeof document !== 'undefined') {
-          e.stopPropagation();
-          document.body.style.cursor = 'pointer';
-        }
-      }}
-      onPointerOut={() => {
-        if (onClick && typeof document !== 'undefined') document.body.style.cursor = 'auto';
-      }}
-    >
-      {/* Soft contact shadow (the sun shadow does the rest when it is on) */}
-      <mesh geometry={g.blob} material={blobMat('#1e1b2e', 0.16)} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]} />
-      {(isLocal || isSpeaking) && (
-        <mesh geometry={g.ring} material={blobMat(isSpeaking ? '#22c55e' : '#f43f5e', 0.85)} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]} />
-      )}
-
+  const stylisedBody = (
       <group ref={bodyRef} scale={scale}>
         <group position={[0, HIP_Y, 0]}>
           {leg(0.085, thighARef, kneeARef)}
@@ -676,9 +659,53 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
           </group>
         </group>
       </group>
+  );
+
+  return (
+    <group
+      ref={rootRef}
+      position={[targetX, 0, targetZ]}
+      rotation={[0, targetRotY, 0]}
+      onClick={(e) => {
+        if (onClick) {
+          e.stopPropagation();
+          onClick();
+        }
+      }}
+      onPointerOver={(e) => {
+        if (onClick && typeof document !== 'undefined') {
+          e.stopPropagation();
+          document.body.style.cursor = 'pointer';
+        }
+      }}
+      onPointerOut={() => {
+        if (onClick && typeof document !== 'undefined') document.body.style.cursor = 'auto';
+      }}
+    >
+      {/* Soft contact shadow (the sun shadow does the rest when it is on) */}
+      <mesh geometry={g.blob} material={blobMat('#1e1b2e', 0.16)} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]} />
+      {(isLocal || isSpeaking) && (
+        <mesh geometry={g.ring} material={blobMat(isSpeaking ? '#22c55e' : '#f43f5e', 0.85)} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]} />
+      )}
+
+      {personId ? (
+        <>
+          <RealPerson id={personId} anim={anim} seated={anim === 'sit' || isSeated} motion={personMotion} fallback={stylisedBody} />
+      {hasBouquetCrown && (
+        <group position={[0, 1.78, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh geometry={g.crown} material={mat('#facc15', 0.3, 0.5)} />
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <mesh key={i} geometry={g.sphereLow} material={mat('#f9a8d4', 0.5)} position={[Math.cos(i * 1.047) * 0.105, Math.sin(i * 1.047) * 0.105, -0.01]} scale={0.022} />
+          ))}
+        </group>
+      )}
+        </>
+      ) : (
+        stylisedBody
+      )}
 
       {(showLabel || bubbleText) && (
-        <Html position={[0, fem ? 1.95 : 2.02, 0]} center distanceFactor={11} zIndexRange={[10, 0]}>
+        <Html position={[0, personId ? 2.05 : fem ? 1.95 : 2.02, 0]} center distanceFactor={11} zIndexRange={[10, 0]}>
           <div className="pointer-events-none flex select-none flex-col items-center gap-1">
             {bubbleText && (
               <div className="max-w-[180px] rounded-2xl border border-amber-200 bg-white/95 px-2.5 py-1 text-center text-[11px] font-medium text-slate-900 shadow-md">

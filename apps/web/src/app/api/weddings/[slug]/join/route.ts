@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbRepo } from '@dco/database';
-import { filterVietnameseProfanity, type AvatarConfig, type GuestSide } from '@dco/shared';
+import { filterVietnameseProfanity, sanitizePersonId, type AvatarConfig, type GuestSide } from '@dco/shared';
 import { signJoinToken, verifyPin, verifyRoleInviteToken } from '@dco/shared/server';
 import { fetchWeddingShards } from '@/lib/realtimeClient';
 import { getRuntimeEnv, isLocalRequestHost } from '@/lib/runtimeEnv';
@@ -56,10 +56,12 @@ export async function POST(
   const rawName = (body.displayName || auth?.user.displayName || 'Khách Quý').trim().slice(0, 40);
   const displayName = filterVietnameseProfanity(rawName) || 'Khách Quý';
   const side: GuestSide = body.side ?? 'FRIEND';
-  const avatarConfig: AvatarConfig = body.avatarConfig ?? {
-    outfitId: 'ao_dai_guest',
-    hairId: 'hair_1',
-    hairColor: '#1f2937',
+  const rawAvatar = (body.avatarConfig ?? {}) as Partial<AvatarConfig>;
+  const avatarConfig: AvatarConfig = {
+    outfitId: typeof rawAvatar.outfitId === 'string' ? rawAvatar.outfitId.slice(0, 40) : 'ao_dai_guest',
+    hairId: typeof rawAvatar.hairId === 'string' ? rawAvatar.hairId.slice(0, 20) : 'hair_1',
+    hairColor: typeof rawAvatar.hairColor === 'string' && /^#[0-9a-f]{6}$/i.test(rawAvatar.hairColor) ? rawAvatar.hairColor : '#1f2937',
+    personId: sanitizePersonId(rawAvatar.personId),
   };
 
   let role: 'OWNER' | 'BRIDE' | 'GROOM' | 'MC' | 'GUEST' = 'GUEST';

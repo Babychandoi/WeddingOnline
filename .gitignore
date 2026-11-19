@@ -31,3 +31,5 @@ infra/livekit.dev.yaml
 *.patch
 polyhaven-assets/
 polyhaven-assets.zip
+people-assets/
+people-assets.zip

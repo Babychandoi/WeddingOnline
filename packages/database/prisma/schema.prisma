@@ -99,6 +99,8 @@ model Wedding {
   webhookSecretHash  String?
 
   ceremonyConfig     Json?
+  /// Online invitation (thiệp cưới online): template, content, sections — see @dco/shared invitation.ts
+  invitationConfig   Json?
 
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -112,6 +114,7 @@ model Wedding {
   giftLedgers        GiftLedger[]
   bouquetCatches     BouquetCatch[]
   saasOrders         SaasOrder[]
+  invitationRsvps    InvitationRsvp[]
 
   @@index([status, archiveAt])
   @@index([status, trialExpiresAt])
@@ -197,7 +200,8 @@ model PhotoAsset {
 model GuestbookEntry {
   id         String    @id @default(cuid())
   weddingId  String
-  authorId   String
+  /// Null for a wish left on the invitation page by a guest who did not sign in
+  authorId   String?
   authorName String
   side       GuestSide @default(FRIEND)
   message    String    @db.VarChar(500)
@@ -205,7 +209,7 @@ model GuestbookEntry {
   createdAt  DateTime  @default(now())
 
   wedding    Wedding   @relation(fields: [weddingId], references: [id], onDelete: Cascade)
-  author     User      @relation(fields: [authorId], references: [id])
+  author     User?     @relation(fields: [authorId], references: [id])
 
   @@index([weddingId, createdAt])
 }
@@ -233,7 +237,8 @@ enum GiftIntentStatus {
 model GiftIntent {
   id           String           @id @default(cuid())
   weddingId    String
-  guestUserId  String
+  /// Null for a guest gifting from the invitation page without signing in
+  guestUserId  String?
   guestName    String
   wishMessage  String           @db.VarChar(300)
   transferCode String           @unique
@@ -242,7 +247,7 @@ model GiftIntent {
   createdAt    DateTime         @default(now())
 
   wedding      Wedding          @relation(fields: [weddingId], references: [id], onDelete: Cascade)
-  guest        User             @relation(fields: [guestUserId], references: [id])
+  guest        User?            @relation(fields: [guestUserId], references: [id])
   ledger       GiftLedger?
 
   @@index([weddingId, status])
@@ -252,7 +257,7 @@ model GiftLedger {
   id           String     @id @default(cuid())
   weddingId    String
   giftIntentId String     @unique
-  guestUserId  String
+  guestUserId  String?
   guestName    String
   wishMessage  String     @db.VarChar(300)
   amountVnd    Int
@@ -263,7 +268,7 @@ model GiftLedger {
 
   wedding      Wedding    @relation(fields: [weddingId], references: [id], onDelete: Cascade)
   giftIntent   GiftIntent @relation(fields: [giftIntentId], references: [id])
-  guest        User       @relation(fields: [guestUserId], references: [id])
+  guest        User?      @relation(fields: [guestUserId], references: [id])
 
   @@index([weddingId, verifiedAt])
 }
@@ -272,6 +277,23 @@ enum OrderStatus {
   PENDING
   PAID
   CANCELLED
+}
+
+/// RSVP from the online invitation (private to the couple)
+model InvitationRsvp {
+  id         String    @id @default(cuid())
+  weddingId  String
+  guestName  String    @db.VarChar(80)
+  phone      String?   @db.VarChar(20)
+  attending  Boolean
+  headcount  Int       @default(1)
+  side       GuestSide @default(FRIEND)
+  note       String?   @db.VarChar(300)
+  createdAt  DateTime  @default(now())
+
+  wedding    Wedding   @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  @@index([weddingId, createdAt])
 }
 
 model SaasOrder {

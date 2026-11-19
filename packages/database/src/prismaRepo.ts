@@ -33,6 +33,7 @@ import type {
   GiftIntentRecord,
   GiftLedgerRecord,
   GuestbookEntryRecord,
+  InvitationRsvpRecord,
   PartnerVoucherRecord,
   PhotoAssetRecord,
   PhotoType,
@@ -95,6 +96,7 @@ function mapWedding(w: PrismaWedding): WeddingRecord {
     webhookProvider: w.webhookProvider,
     webhookSecretHash: w.webhookSecretHash,
     ceremonyConfig: (w.ceremonyConfig as unknown as CeremonyConfig | null) ?? null,
+    invitationConfig: w.invitationConfig ?? null,
     createdAt: w.createdAt.toISOString(),
     updatedAt: w.updatedAt.toISOString(),
   };
@@ -195,6 +197,10 @@ function mapGiftLedger(l: PrismaGiftLedger): GiftLedgerRecord {
     bankTxDate: l.bankTxDate.toISOString(),
     verifiedAt: l.verifiedAt.toISOString(),
   };
+}
+
+function mapRsvp(r: { id: string; weddingId: string; guestName: string; phone: string | null; attending: boolean; headcount: number; side: GuestSide; note: string | null; createdAt: Date }): InvitationRsvpRecord {
+  return { ...r, createdAt: r.createdAt.toISOString() };
 }
 
 function mapSaasOrder(o: PrismaSaasOrder): SaasOrderRecord {
@@ -385,6 +391,7 @@ export const prismaRepo = {
         | 'webhookProvider'
         | 'webhookSecretHash'
         | 'ceremonyConfig'
+        | 'invitationConfig'
       >
     >
   ): Promise<WeddingRecord | null> {
@@ -409,6 +416,10 @@ export const prismaRepo = {
         patch.ceremonyConfig === null
           ? Prisma.JsonNull
           : (patch.ceremonyConfig as unknown as Prisma.InputJsonValue);
+    }
+    if (patch.invitationConfig !== undefined) {
+      data.invitationConfig =
+        patch.invitationConfig === null ? Prisma.JsonNull : (patch.invitationConfig as Prisma.InputJsonValue);
     }
     if (patch.weddingDate !== undefined) {
       const wd = new Date(patch.weddingDate);
@@ -571,7 +582,7 @@ export const prismaRepo = {
 
   async addGuestbookEntry(input: {
     weddingId: string;
-    authorId: string;
+    authorId: string | null;
     authorName: string;
     side: GuestSide;
     message: string;
@@ -618,9 +629,24 @@ export const prismaRepo = {
     return row ? mapGiftIntent(row) : null;
   },
 
+  async getGiftIntentById(id: string): Promise<GiftIntentRecord | null> {
+    const row = await getPrismaClient().giftIntent.findUnique({ where: { id } });
+    return row ? mapGiftIntent(row) : null;
+  },
+
+  async createInvitationRsvp(input: Omit<InvitationRsvpRecord, 'id' | 'createdAt'>): Promise<InvitationRsvpRecord> {
+    const row = await getPrismaClient().invitationRsvp.create({ data: input });
+    return mapRsvp(row);
+  },
+
+  async listInvitationRsvps(weddingId: string): Promise<InvitationRsvpRecord[]> {
+    const rows = await getPrismaClient().invitationRsvp.findMany({ where: { weddingId }, orderBy: { createdAt: 'desc' } });
+    return rows.map(mapRsvp);
+  },
+
   async createGiftIntent(input: {
     weddingId: string;
-    guestUserId: string;
+    guestUserId: string | null;
     guestName: string;
     wishMessage: string;
     transferCode: string;

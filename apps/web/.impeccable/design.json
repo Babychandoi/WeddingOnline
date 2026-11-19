@@ -1,0 +1,1930 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-19T18:44:19.827Z",
+  "title": "Design System: DamCuoiOnline Thiệp Cưới",
+  "extensions": {
+    "colorMeta": {
+      "song-hy-do-ground": {
+        "role": "neutral",
+        "displayName": "Song Hỷ Đỏ Ground",
+        "canonical": "#5e0b0e",
+        "tonalRamp": [
+          "#1e0101",
+          "#490407",
+          "#701f1d",
+          "#933f3a",
+          "#b86059",
+          "#dd8179",
+          "#eeb4ad",
+          "#fbeae8"
+        ]
+      },
+      "song-hy-do-paper": {
+        "role": "neutral",
+        "displayName": "Song Hỷ Đỏ Paper",
+        "canonical": "#a3161b",
+        "tonalRamp": [
+          "#250000",
+          "#580000",
+          "#840000",
+          "#aa2021",
+          "#d04842",
+          "#f86c62",
+          "#ffaaa0",
+          "#ffe8e4"
+        ]
+      },
+      "song-hy-do-ink": {
+        "role": "neutral",
+        "displayName": "Song Hỷ Đỏ Ink",
+        "canonical": "#fff1d6",
+        "tonalRamp": [
+          "#0f0a03",
+          "#2c2310",
+          "#493e28",
+          "#685c45",
+          "#887c63",
+          "#aa9d84",
+          "#cbc3b4",
+          "#f0eeea"
+        ]
+      },
+      "song-hy-do-ink-soft": {
+        "role": "neutral",
+        "displayName": "Song Hỷ Đỏ Ink Soft",
+        "canonical": "#f3c9a0",
+        "tonalRamp": [
+          "#150800",
+          "#381c00",
+          "#59370f",
+          "#79552f",
+          "#9b754e",
+          "#be966e",
+          "#d8bfa7",
+          "#f4ede6"
+        ]
+      },
+      "song-hy-do-accent": {
+        "role": "primary",
+        "displayName": "Song Hỷ Đỏ Accent",
+        "canonical": "#e8b64c",
+        "tonalRamp": [
+          "#180600",
+          "#3e1900",
+          "#613400",
+          "#815300",
+          "#a37400",
+          "#c69623",
+          "#ddc088",
+          "#f6eede"
+        ]
+      },
+      "song-hy-do-on-accent": {
+        "role": "primary",
+        "displayName": "Song Hỷ Đỏ On Accent",
+        "canonical": "#5e0b0e",
+        "tonalRamp": [
+          "#1e0101",
+          "#490407",
+          "#701f1d",
+          "#933f3a",
+          "#b86059",
+          "#dd8179",
+          "#eeb4ad",
+          "#fbeae8"
+        ]
+      },
+      "song-hy-do-line": {
+        "role": "neutral",
+        "displayName": "Song Hỷ Đỏ Line",
+        "canonical": "#e8b64c",
+        "tonalRamp": [
+          "#180600",
+          "#3e1900",
+          "#613400",
+          "#815300",
+          "#a37400",
+          "#c69623",
+          "#ddc088",
+          "#f6eede"
+        ]
+      },
+      "song-hy-do-panel": {
+        "role": "neutral",
+        "displayName": "Song Hỷ Đỏ Panel",
+        "canonical": "#8a1216",
+        "tonalRamp": [
+          "#230000",
+          "#530000",
+          "#7d0009",
+          "#a22e2b",
+          "#c8514a",
+          "#ee746a",
+          "#faada5",
+          "#ffe8e6"
+        ]
+      },
+      "song-hy-do-accent-text": {
+        "role": "primary",
+        "displayName": "Song Hỷ Đỏ Accent Text",
+        "canonical": "#f6d27a",
+        "tonalRamp": [
+          "#150800",
+          "#381e00",
+          "#593900",
+          "#795800",
+          "#9a7815",
+          "#bc9a40",
+          "#d7c291",
+          "#f4eee0"
+        ]
+      },
+      "son-mai-ground": {
+        "role": "neutral",
+        "displayName": "Sơn Mài Ground",
+        "canonical": "#160606",
+        "tonalRamp": [
+          "#110908",
+          "#301f1e",
+          "#4f3a39",
+          "#6e5756",
+          "#8f7775",
+          "#b19796",
+          "#d0c0bf",
+          "#f2eded"
+        ]
+      },
+      "son-mai-paper": {
+        "role": "neutral",
+        "displayName": "Sơn Mài Paper",
+        "canonical": "#3a0d0d",
+        "tonalRamp": [
+          "#180505",
+          "#3d1615",
+          "#602f2d",
+          "#814d4a",
+          "#a46d68",
+          "#c78d89",
+          "#dfbab7",
+          "#f6ecea"
+        ]
+      },
+      "son-mai-ink": {
+        "role": "neutral",
+        "displayName": "Sơn Mài Ink",
+        "canonical": "#f6e7c8",
+        "tonalRamp": [
+          "#0f0a02",
+          "#2c230d",
+          "#4a3e24",
+          "#695c41",
+          "#897c60",
+          "#ab9d80",
+          "#ccc3b1",
+          "#f1eee9"
+        ]
+      },
+      "son-mai-ink-soft": {
+        "role": "neutral",
+        "displayName": "Sơn Mài Ink Soft",
+        "canonical": "#d9b98a",
+        "tonalRamp": [
+          "#130900",
+          "#351f00",
+          "#553a08",
+          "#74582b",
+          "#96784b",
+          "#b8996b",
+          "#d4c1a5",
+          "#f3eee6"
+        ]
+      },
+      "son-mai-accent": {
+        "role": "primary",
+        "displayName": "Sơn Mài Accent",
+        "canonical": "#d8a84e",
+        "tonalRamp": [
+          "#180700",
+          "#3d1a00",
+          "#5f3500",
+          "#805400",
+          "#a27404",
+          "#c5963a",
+          "#ddc08e",
+          "#f6ede0"
+        ]
+      },
+      "son-mai-on-accent": {
+        "role": "primary",
+        "displayName": "Sơn Mài On Accent",
+        "canonical": "#2a0b0b",
+        "tonalRamp": [
+          "#150706",
+          "#371b1a",
+          "#583433",
+          "#785250",
+          "#9a716f",
+          "#bd928f",
+          "#d8bdbb",
+          "#f4ecec"
+        ]
+      },
+      "son-mai-line": {
+        "role": "neutral",
+        "displayName": "Sơn Mài Line",
+        "canonical": "#b8893b",
+        "tonalRamp": [
+          "#170700",
+          "#3c1a00",
+          "#5f3500",
+          "#805300",
+          "#a17422",
+          "#c59548",
+          "#ddbf94",
+          "#f6ede1"
+        ]
+      },
+      "son-mai-panel": {
+        "role": "neutral",
+        "displayName": "Sơn Mài Panel",
+        "canonical": "#4a1212",
+        "tonalRamp": [
+          "#1a0404",
+          "#411211",
+          "#652b29",
+          "#874945",
+          "#aa6964",
+          "#ce8a84",
+          "#e4b8b4",
+          "#f8ebea"
+        ]
+      },
+      "son-mai-accent-text": {
+        "role": "primary",
+        "displayName": "Sơn Mài Accent Text",
+        "canonical": "#e2b866",
+        "tonalRamp": [
+          "#160700",
+          "#3a1c00",
+          "#5c3700",
+          "#7c5600",
+          "#9e761c",
+          "#c09745",
+          "#dac193",
+          "#f5eee1"
+        ]
+      },
+      "sen-hong-ground": {
+        "role": "neutral",
+        "displayName": "Sen Hồng Ground",
+        "canonical": "#e9d8cf",
+        "tonalRamp": [
+          "#0f0a07",
+          "#2c211c",
+          "#4a3c35",
+          "#695a52",
+          "#897a72",
+          "#ab9b92",
+          "#ccc2bc",
+          "#f1eeec"
+        ]
+      },
+      "sen-hong-paper": {
+        "role": "neutral",
+        "displayName": "Sen Hồng Paper",
+        "canonical": "#fffaf5",
+        "tonalRamp": [
+          "#0c0b09",
+          "#262320",
+          "#433f3b",
+          "#615d59",
+          "#817c78",
+          "#a29d99",
+          "#c6c3c1",
+          "#efeeed"
+        ]
+      },
+      "sen-hong-ink": {
+        "role": "neutral",
+        "displayName": "Sen Hồng Ink",
+        "canonical": "#3b2a2a",
+        "tonalRamp": [
+          "#100909",
+          "#2e2020",
+          "#4c3b3a",
+          "#6b5858",
+          "#8c7877",
+          "#ae9898",
+          "#cec0c0",
+          "#f1eded"
+        ]
+      },
+      "sen-hong-ink-soft": {
+        "role": "neutral",
+        "displayName": "Sen Hồng Ink Soft",
+        "canonical": "#7d5a5c",
+        "tonalRamp": [
+          "#140708",
+          "#351c1e",
+          "#563638",
+          "#765355",
+          "#977274",
+          "#ba9395",
+          "#d6bdbe",
+          "#f4eced"
+        ]
+      },
+      "sen-hong-accent": {
+        "role": "primary",
+        "displayName": "Sen Hồng Accent",
+        "canonical": "#b23f5c",
+        "tonalRamp": [
+          "#220005",
+          "#510017",
+          "#7a0030",
+          "#9f2d4d",
+          "#c5506b",
+          "#eb728c",
+          "#f8acb8",
+          "#ffe8eb"
+        ]
+      },
+      "sen-hong-on-accent": {
+        "role": "primary",
+        "displayName": "Sen Hồng On Accent",
+        "canonical": "#fffaf5",
+        "tonalRamp": [
+          "#0c0b09",
+          "#262320",
+          "#433f3b",
+          "#615d59",
+          "#817c78",
+          "#a29d99",
+          "#c6c3c1",
+          "#efeeed"
+        ]
+      },
+      "sen-hong-line": {
+        "role": "neutral",
+        "displayName": "Sen Hồng Line",
+        "canonical": "#d9a3ad",
+        "tonalRamp": [
+          "#160509",
+          "#3a1720",
+          "#5c303a",
+          "#7d4e58",
+          "#9f6d77",
+          "#c28e98",
+          "#dcbac0",
+          "#f5eced"
+        ]
+      },
+      "sen-hong-panel": {
+        "role": "neutral",
+        "displayName": "Sen Hồng Panel",
+        "canonical": "#fbeee9",
+        "tonalRamp": [
+          "#0e0a09",
+          "#2a221f",
+          "#473d39",
+          "#665b57",
+          "#867a76",
+          "#a79b97",
+          "#cac2bf",
+          "#f0eeed"
+        ]
+      },
+      "sen-hong-accent-text": {
+        "role": "primary",
+        "displayName": "Sen Hồng Accent Text",
+        "canonical": "#a83a56",
+        "tonalRamp": [
+          "#210006",
+          "#4f0018",
+          "#790330",
+          "#9d304d",
+          "#c2526c",
+          "#e9748c",
+          "#f6adb9",
+          "#fee8eb"
+        ]
+      },
+      "toi-gian-ground": {
+        "role": "neutral",
+        "displayName": "Tối Giản Ground",
+        "canonical": "#e8e4dd",
+        "tonalRamp": [
+          "#0c0b09",
+          "#26241f",
+          "#423f3a",
+          "#615d57",
+          "#807d76",
+          "#a29e97",
+          "#c6c4c0",
+          "#efeeed"
+        ]
+      },
+      "toi-gian-paper": {
+        "role": "neutral",
+        "displayName": "Tối Giản Paper",
+        "canonical": "#fdfcfa",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#242423",
+          "#40403e",
+          "#5e5d5c",
+          "#7e7d7b",
+          "#9f9e9c",
+          "#c4c4c3",
+          "#eeeeee"
+        ]
+      },
+      "toi-gian-ink": {
+        "role": "neutral",
+        "displayName": "Tối Giản Ink",
+        "canonical": "#1e1e1e",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "toi-gian-ink-soft": {
+        "role": "neutral",
+        "displayName": "Tối Giản Ink Soft",
+        "canonical": "#6b655c",
+        "tonalRamp": [
+          "#0d0b08",
+          "#28231d",
+          "#443f37",
+          "#635d54",
+          "#837c73",
+          "#a49d94",
+          "#c7c3bd",
+          "#efeeec"
+        ]
+      },
+      "toi-gian-accent": {
+        "role": "primary",
+        "displayName": "Tối Giản Accent",
+        "canonical": "#1e1e1e",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "toi-gian-on-accent": {
+        "role": "primary",
+        "displayName": "Tối Giản On Accent",
+        "canonical": "#fdfcfa",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#242423",
+          "#40403e",
+          "#5e5d5c",
+          "#7e7d7b",
+          "#9f9e9c",
+          "#c4c4c3",
+          "#eeeeee"
+        ]
+      },
+      "toi-gian-line": {
+        "role": "neutral",
+        "displayName": "Tối Giản Line",
+        "canonical": "#c9c3b8",
+        "tonalRamp": [
+          "#0d0b07",
+          "#27231c",
+          "#443f36",
+          "#625d53",
+          "#827d72",
+          "#a39e93",
+          "#c7c4bd",
+          "#efeeec"
+        ]
+      },
+      "toi-gian-panel": {
+        "role": "neutral",
+        "displayName": "Tối Giản Panel",
+        "canonical": "#f4f1ec",
+        "tonalRamp": [
+          "#0c0b09",
+          "#262421",
+          "#423f3b",
+          "#605d59",
+          "#7f7d78",
+          "#a19e99",
+          "#c5c4c1",
+          "#efeeed"
+        ]
+      },
+      "mau-nuoc-ground": {
+        "role": "neutral",
+        "displayName": "Màu Nước Ground",
+        "canonical": "#f3e4e1",
+        "tonalRamp": [
+          "#0f0a09",
+          "#2b2220",
+          "#483d3a",
+          "#675a58",
+          "#877a77",
+          "#a99b98",
+          "#cbc2c0",
+          "#f0eeed"
+        ]
+      },
+      "mau-nuoc-paper": {
+        "role": "neutral",
+        "displayName": "Màu Nước Paper",
+        "canonical": "#fffdfb",
+        "tonalRamp": [
+          "#0c0b0a",
+          "#252422",
+          "#413f3e",
+          "#5f5d5c",
+          "#7f7d7b",
+          "#a09e9c",
+          "#c5c4c3",
+          "#efeeee"
+        ]
+      },
+      "mau-nuoc-ink": {
+        "role": "neutral",
+        "displayName": "Màu Nước Ink",
+        "canonical": "#4f3237",
+        "tonalRamp": [
+          "#130709",
+          "#331c20",
+          "#54363b",
+          "#735459",
+          "#957378",
+          "#b79499",
+          "#d4bec1",
+          "#f3eded"
+        ]
+      },
+      "mau-nuoc-ink-soft": {
+        "role": "neutral",
+        "displayName": "Màu Nước Ink Soft",
+        "canonical": "#8a6468",
+        "tonalRamp": [
+          "#140708",
+          "#361b1e",
+          "#573539",
+          "#775256",
+          "#987175",
+          "#bb9296",
+          "#d7bdbf",
+          "#f4eced"
+        ]
+      },
+      "mau-nuoc-accent": {
+        "role": "primary",
+        "displayName": "Màu Nước Accent",
+        "canonical": "#a8505d",
+        "tonalRamp": [
+          "#1e0005",
+          "#490216",
+          "#701d2e",
+          "#933d4b",
+          "#b75e6a",
+          "#dc7f8a",
+          "#eeb2b8",
+          "#fbeaeb"
+        ]
+      },
+      "mau-nuoc-on-accent": {
+        "role": "primary",
+        "displayName": "Màu Nước On Accent",
+        "canonical": "#fffdfb",
+        "tonalRamp": [
+          "#0c0b0a",
+          "#252422",
+          "#413f3e",
+          "#5f5d5c",
+          "#7f7d7b",
+          "#a09e9c",
+          "#c5c4c3",
+          "#efeeee"
+        ]
+      },
+      "mau-nuoc-line": {
+        "role": "neutral",
+        "displayName": "Màu Nước Line",
+        "canonical": "#e3b8bd",
+        "tonalRamp": [
+          "#140709",
+          "#361b1f",
+          "#573439",
+          "#775257",
+          "#987176",
+          "#bb9297",
+          "#d7bdbf",
+          "#f4eced"
+        ]
+      },
+      "mau-nuoc-panel": {
+        "role": "neutral",
+        "displayName": "Màu Nước Panel",
+        "canonical": "#fcf1ef",
+        "tonalRamp": [
+          "#0e0a0a",
+          "#292221",
+          "#463d3c",
+          "#645b5a",
+          "#847b79",
+          "#a69c9a",
+          "#c9c2c1",
+          "#f0eeee"
+        ]
+      },
+      "mau-nuoc-accent-text": {
+        "role": "primary",
+        "displayName": "Màu Nước Accent Text",
+        "canonical": "#9e4855",
+        "tonalRamp": [
+          "#1d0105",
+          "#480316",
+          "#6f1d2e",
+          "#933e4b",
+          "#b75e6a",
+          "#dc7f8b",
+          "#edb2b8",
+          "#fbeaeb"
+        ]
+      },
+      "la-xanh-ground": {
+        "role": "neutral",
+        "displayName": "Lá Xanh Ground",
+        "canonical": "#c9b79c",
+        "tonalRamp": [
+          "#100a03",
+          "#2e220e",
+          "#4c3d26",
+          "#6b5b42",
+          "#8b7b61",
+          "#ad9c81",
+          "#cdc2b2",
+          "#f1eee9"
+        ]
+      },
+      "la-xanh-paper": {
+        "role": "neutral",
+        "displayName": "Lá Xanh Paper",
+        "canonical": "#f6f3ea",
+        "tonalRamp": [
+          "#0c0b08",
+          "#26241e",
+          "#424038",
+          "#605d56",
+          "#807d75",
+          "#a19e96",
+          "#c6c4bf",
+          "#efeeed"
+        ]
+      },
+      "la-xanh-ink": {
+        "role": "neutral",
+        "displayName": "Lá Xanh Ink",
+        "canonical": "#273326",
+        "tonalRamp": [
+          "#080d07",
+          "#1d271c",
+          "#374436",
+          "#556253",
+          "#748273",
+          "#95a393",
+          "#bec7bd",
+          "#edefec"
+        ]
+      },
+      "la-xanh-ink-soft": {
+        "role": "neutral",
+        "displayName": "Lá Xanh Ink Soft",
+        "canonical": "#5a6b57",
+        "tonalRamp": [
+          "#070d06",
+          "#1b2819",
+          "#354532",
+          "#52634f",
+          "#72836e",
+          "#92a58f",
+          "#bdc8ba",
+          "#ecefec"
+        ]
+      },
+      "la-xanh-accent": {
+        "role": "primary",
+        "displayName": "Lá Xanh Accent",
+        "canonical": "#4a6346",
+        "tonalRamp": [
+          "#050e04",
+          "#162a13",
+          "#2f472b",
+          "#4c6648",
+          "#6c8667",
+          "#8ca788",
+          "#b9cab6",
+          "#ebf0ea"
+        ]
+      },
+      "la-xanh-on-accent": {
+        "role": "primary",
+        "displayName": "Lá Xanh On Accent",
+        "canonical": "#f6f3ea",
+        "tonalRamp": [
+          "#0c0b08",
+          "#26241e",
+          "#424038",
+          "#605d56",
+          "#807d75",
+          "#a19e96",
+          "#c6c4bf",
+          "#efeeed"
+        ]
+      },
+      "la-xanh-line": {
+        "role": "neutral",
+        "displayName": "Lá Xanh Line",
+        "canonical": "#a9b8a3",
+        "tonalRamp": [
+          "#080d06",
+          "#1d2719",
+          "#384432",
+          "#55624f",
+          "#74826e",
+          "#95a48f",
+          "#bec7bb",
+          "#edefec"
+        ]
+      },
+      "la-xanh-panel": {
+        "role": "neutral",
+        "displayName": "Lá Xanh Panel",
+        "canonical": "#ece9dd",
+        "tonalRamp": [
+          "#0c0b07",
+          "#26241c",
+          "#424036",
+          "#605e53",
+          "#807d73",
+          "#a19f93",
+          "#c6c4bd",
+          "#efeeec"
+        ]
+      },
+      "la-xanh-accent-text": {
+        "role": "primary",
+        "displayName": "Lá Xanh Accent Text",
+        "canonical": "#435c40",
+        "tonalRamp": [
+          "#050e04",
+          "#162a14",
+          "#2f472c",
+          "#4c6649",
+          "#6b8668",
+          "#8ca788",
+          "#b9cab6",
+          "#ebf0ea"
+        ]
+      },
+      "ren-co-dien-ground": {
+        "role": "neutral",
+        "displayName": "Ren Cổ Điển Ground",
+        "canonical": "#d9c3bb",
+        "tonalRamp": [
+          "#100907",
+          "#2e201b",
+          "#4d3b35",
+          "#6c5952",
+          "#8c7871",
+          "#ae9992",
+          "#cec1bc",
+          "#f1edec"
+        ]
+      },
+      "ren-co-dien-paper": {
+        "role": "neutral",
+        "displayName": "Ren Cổ Điển Paper",
+        "canonical": "#faf4ef",
+        "tonalRamp": [
+          "#0d0b09",
+          "#272320",
+          "#433f3b",
+          "#625d58",
+          "#817c78",
+          "#a39d99",
+          "#c7c3c0",
+          "#efeeed"
+        ]
+      },
+      "ren-co-dien-ink": {
+        "role": "neutral",
+        "displayName": "Ren Cổ Điển Ink",
+        "canonical": "#4a3436",
+        "tonalRamp": [
+          "#110809",
+          "#301e20",
+          "#4f393b",
+          "#6f5658",
+          "#8f7678",
+          "#b19799",
+          "#d0bfc0",
+          "#f2eded"
+        ]
+      },
+      "ren-co-dien-ink-soft": {
+        "role": "neutral",
+        "displayName": "Ren Cổ Điển Ink Soft",
+        "canonical": "#80625f",
+        "tonalRamp": [
+          "#130807",
+          "#331d1c",
+          "#533835",
+          "#725552",
+          "#947571",
+          "#b69592",
+          "#d3bfbc",
+          "#f3edec"
+        ]
+      },
+      "ren-co-dien-accent": {
+        "role": "primary",
+        "displayName": "Ren Cổ Điển Accent",
+        "canonical": "#8a5257",
+        "tonalRamp": [
+          "#180507",
+          "#3e141a",
+          "#612d33",
+          "#824b50",
+          "#a56b6f",
+          "#c98b90",
+          "#e0b9bb",
+          "#f7ebec"
+        ]
+      },
+      "ren-co-dien-on-accent": {
+        "role": "primary",
+        "displayName": "Ren Cổ Điển On Accent",
+        "canonical": "#faf4ef",
+        "tonalRamp": [
+          "#0d0b09",
+          "#272320",
+          "#433f3b",
+          "#625d58",
+          "#817c78",
+          "#a39d99",
+          "#c7c3c0",
+          "#efeeed"
+        ]
+      },
+      "ren-co-dien-line": {
+        "role": "neutral",
+        "displayName": "Ren Cổ Điển Line",
+        "canonical": "#c9a3a2",
+        "tonalRamp": [
+          "#140707",
+          "#351c1c",
+          "#553636",
+          "#755453",
+          "#967372",
+          "#b99493",
+          "#d5bebd",
+          "#f3edec"
+        ]
+      },
+      "ren-co-dien-panel": {
+        "role": "neutral",
+        "displayName": "Ren Cổ Điển Panel",
+        "canonical": "#f3e7e1",
+        "tonalRamp": [
+          "#0e0a08",
+          "#2a221e",
+          "#473d39",
+          "#655b56",
+          "#857b75",
+          "#a79c96",
+          "#c9c2bf",
+          "#f0eeed"
+        ]
+      },
+      "ren-co-dien-accent-text": {
+        "role": "primary",
+        "displayName": "Ren Cổ Điển Accent Text",
+        "canonical": "#80484d",
+        "tonalRamp": [
+          "#180406",
+          "#3e141a",
+          "#622d33",
+          "#834b50",
+          "#a66a6f",
+          "#c98b8f",
+          "#e0b9bb",
+          "#f7ebec"
+        ]
+      },
+      "baroque-vang-ground": {
+        "role": "neutral",
+        "displayName": "Baroque Vàng Ground",
+        "canonical": "#070605",
+        "tonalRamp": [
+          "#0c0b0a",
+          "#252422",
+          "#413f3d",
+          "#5f5d5b",
+          "#7f7d7b",
+          "#a09e9c",
+          "#c5c4c2",
+          "#efeeee"
+        ]
+      },
+      "baroque-vang-paper": {
+        "role": "neutral",
+        "displayName": "Baroque Vàng Paper",
+        "canonical": "#14110e",
+        "tonalRamp": [
+          "#0c0b09",
+          "#262321",
+          "#433f3b",
+          "#615d59",
+          "#807c78",
+          "#a29e99",
+          "#c6c3c1",
+          "#efeeed"
+        ]
+      },
+      "baroque-vang-ink": {
+        "role": "neutral",
+        "displayName": "Baroque Vàng Ink",
+        "canonical": "#efe3c4",
+        "tonalRamp": [
+          "#0f0b03",
+          "#2b230d",
+          "#493f25",
+          "#675d42",
+          "#877c60",
+          "#a99e80",
+          "#cbc4b2",
+          "#f0eee9"
+        ]
+      },
+      "baroque-vang-ink-soft": {
+        "role": "neutral",
+        "displayName": "Baroque Vàng Ink Soft",
+        "canonical": "#bfae86",
+        "tonalRamp": [
+          "#100a00",
+          "#2e2203",
+          "#4d3e18",
+          "#6b5c36",
+          "#8c7c55",
+          "#ae9d75",
+          "#cdc3ab",
+          "#f1eee7"
+        ]
+      },
+      "baroque-vang-accent": {
+        "role": "primary",
+        "displayName": "Baroque Vàng Accent",
+        "canonical": "#c9a45c",
+        "tonalRamp": [
+          "#150800",
+          "#381d00",
+          "#593900",
+          "#795700",
+          "#9a772d",
+          "#bd9850",
+          "#d7c198",
+          "#f4eee2"
+        ]
+      },
+      "baroque-vang-on-accent": {
+        "role": "primary",
+        "displayName": "Baroque Vàng On Accent",
+        "canonical": "#14110e",
+        "tonalRamp": [
+          "#0c0b09",
+          "#262321",
+          "#433f3b",
+          "#615d59",
+          "#807c78",
+          "#a29e99",
+          "#c6c3c1",
+          "#efeeed"
+        ]
+      },
+      "baroque-vang-line": {
+        "role": "neutral",
+        "displayName": "Baroque Vàng Line",
+        "canonical": "#8f7340",
+        "tonalRamp": [
+          "#130900",
+          "#341f00",
+          "#543b00",
+          "#745925",
+          "#957946",
+          "#b79a66",
+          "#d4c2a3",
+          "#f3eee5"
+        ]
+      },
+      "baroque-vang-panel": {
+        "role": "neutral",
+        "displayName": "Baroque Vàng Panel",
+        "canonical": "#1d1915",
+        "tonalRamp": [
+          "#0d0b09",
+          "#272320",
+          "#433f3a",
+          "#625d58",
+          "#817c77",
+          "#a39d98",
+          "#c7c3c0",
+          "#efeeed"
+        ]
+      },
+      "baroque-vang-accent-text": {
+        "role": "primary",
+        "displayName": "Baroque Vàng Accent Text",
+        "canonical": "#d9b875",
+        "tonalRamp": [
+          "#140900",
+          "#361f00",
+          "#573a00",
+          "#76580d",
+          "#977835",
+          "#ba9a57",
+          "#d5c29b",
+          "#f3eee3"
+        ]
+      },
+      "hong-pastel-ground": {
+        "role": "neutral",
+        "displayName": "Hồng Pastel Ground",
+        "canonical": "#ffd6e0",
+        "tonalRamp": [
+          "#13070a",
+          "#341b23",
+          "#55353e",
+          "#75535c",
+          "#96727b",
+          "#b9939c",
+          "#d5bdc3",
+          "#f3ecee"
+        ]
+      },
+      "hong-pastel-paper": {
+        "role": "neutral",
+        "displayName": "Hồng Pastel Paper",
+        "canonical": "#fff7f9",
+        "tonalRamp": [
+          "#0d0a0b",
+          "#272224",
+          "#443e3f",
+          "#625c5d",
+          "#827b7d",
+          "#a39c9e",
+          "#c7c3c4",
+          "#efeeee"
+        ]
+      },
+      "hong-pastel-ink": {
+        "role": "neutral",
+        "displayName": "Hồng Pastel Ink",
+        "canonical": "#5c2436",
+        "tonalRamp": [
+          "#19040a",
+          "#3f1121",
+          "#632a3c",
+          "#844859",
+          "#a76879",
+          "#cb889a",
+          "#e2b7c1",
+          "#f7ebee"
+        ]
+      },
+      "hong-pastel-ink-soft": {
+        "role": "neutral",
+        "displayName": "Hồng Pastel Ink Soft",
+        "canonical": "#9a5a6c",
+        "tonalRamp": [
+          "#19030a",
+          "#401021",
+          "#64293c",
+          "#854759",
+          "#a86779",
+          "#cc889a",
+          "#e2b7c1",
+          "#f8ebee"
+        ]
+      },
+      "hong-pastel-accent": {
+        "role": "primary",
+        "displayName": "Hồng Pastel Accent",
+        "canonical": "#c2416b",
+        "tonalRamp": [
+          "#230007",
+          "#54001c",
+          "#7e0035",
+          "#a42252",
+          "#ca4871",
+          "#f06b92",
+          "#fca9bc",
+          "#ffe7ec"
+        ]
+      },
+      "hong-pastel-on-accent": {
+        "role": "primary",
+        "displayName": "Hồng Pastel On Accent",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "hong-pastel-line": {
+        "role": "neutral",
+        "displayName": "Hồng Pastel Line",
+        "canonical": "#f4b3c6",
+        "tonalRamp": [
+          "#18040a",
+          "#3d1323",
+          "#602c3e",
+          "#824a5c",
+          "#a4697b",
+          "#c88a9c",
+          "#dfb8c3",
+          "#f7ebee"
+        ]
+      },
+      "hong-pastel-panel": {
+        "role": "neutral",
+        "displayName": "Hồng Pastel Panel",
+        "canonical": "#ffeaf0",
+        "tonalRamp": [
+          "#0f090b",
+          "#2d2024",
+          "#4b3b40",
+          "#6a585d",
+          "#8a787d",
+          "#ac999e",
+          "#cdc0c4",
+          "#f1edee"
+        ]
+      },
+      "hong-pastel-accent-text": {
+        "role": "primary",
+        "displayName": "Hồng Pastel Accent Text",
+        "canonical": "#b8365f",
+        "tonalRamp": [
+          "#230006",
+          "#540019",
+          "#7f0032",
+          "#a4214f",
+          "#cb486e",
+          "#f16b8f",
+          "#fda9ba",
+          "#ffe7ec"
+        ]
+      },
+      "tap-chi-ground": {
+        "role": "neutral",
+        "displayName": "Tạp Chí Ground",
+        "canonical": "#d8d8d8",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "tap-chi-paper": {
+        "role": "neutral",
+        "displayName": "Tạp Chí Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "tap-chi-ink": {
+        "role": "neutral",
+        "displayName": "Tạp Chí Ink",
+        "canonical": "#0f0f0f",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "tap-chi-ink-soft": {
+        "role": "neutral",
+        "displayName": "Tạp Chí Ink Soft",
+        "canonical": "#4d4d4d",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "tap-chi-accent": {
+        "role": "primary",
+        "displayName": "Tạp Chí Accent",
+        "canonical": "#c8102e",
+        "tonalRamp": [
+          "#290000",
+          "#600000",
+          "#8f0000",
+          "#b6001f",
+          "#de3040",
+          "#ff5a60",
+          "#ffa39f",
+          "#ffe6e4"
+        ]
+      },
+      "tap-chi-on-accent": {
+        "role": "primary",
+        "displayName": "Tạp Chí On Accent",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "tap-chi-line": {
+        "role": "neutral",
+        "displayName": "Tạp Chí Line",
+        "canonical": "#0f0f0f",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "tap-chi-panel": {
+        "role": "neutral",
+        "displayName": "Tạp Chí Panel",
+        "canonical": "#f2f2f2",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "bien-xanh-ground": {
+        "role": "neutral",
+        "displayName": "Biển Xanh Ground",
+        "canonical": "#0b1f36",
+        "tonalRamp": [
+          "#040c16",
+          "#142539",
+          "#2c415b",
+          "#495f7a",
+          "#687f9c",
+          "#88a1be",
+          "#b7c6d8",
+          "#ebeff4"
+        ]
+      },
+      "bien-xanh-paper": {
+        "role": "neutral",
+        "displayName": "Biển Xanh Paper",
+        "canonical": "#f3f7fb",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#222427",
+          "#3d4043",
+          "#5b5e61",
+          "#7a7e81",
+          "#9b9fa2",
+          "#c2c4c7",
+          "#eeeeef"
+        ]
+      },
+      "bien-xanh-ink": {
+        "role": "neutral",
+        "displayName": "Biển Xanh Ink",
+        "canonical": "#0f2a47",
+        "tonalRamp": [
+          "#030c18",
+          "#0e253e",
+          "#264160",
+          "#436080",
+          "#6280a2",
+          "#83a1c5",
+          "#b3c6dd",
+          "#eaeff6"
+        ]
+      },
+      "bien-xanh-ink-soft": {
+        "role": "neutral",
+        "displayName": "Biển Xanh Ink Soft",
+        "canonical": "#46627f",
+        "tonalRamp": [
+          "#030c17",
+          "#0f253b",
+          "#27425d",
+          "#44607d",
+          "#63809f",
+          "#84a2c1",
+          "#b4c6da",
+          "#eaeff5"
+        ]
+      },
+      "bien-xanh-accent": {
+        "role": "primary",
+        "displayName": "Biển Xanh Accent",
+        "canonical": "#1f6fa8",
+        "tonalRamp": [
+          "#000c22",
+          "#002551",
+          "#004378",
+          "#0a629a",
+          "#3783be",
+          "#5aa5e2",
+          "#9ecaef",
+          "#e4f0fb"
+        ]
+      },
+      "bien-xanh-on-accent": {
+        "role": "primary",
+        "displayName": "Biển Xanh On Accent",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "bien-xanh-line": {
+        "role": "neutral",
+        "displayName": "Biển Xanh Line",
+        "canonical": "#9cc4e0",
+        "tonalRamp": [
+          "#010d16",
+          "#07273a",
+          "#1f445b",
+          "#3d627b",
+          "#5d829c",
+          "#7da4bf",
+          "#b0c8d9",
+          "#e9f0f4"
+        ]
+      },
+      "bien-xanh-panel": {
+        "role": "neutral",
+        "displayName": "Biển Xanh Panel",
+        "canonical": "#e3eef7",
+        "tonalRamp": [
+          "#080c0e",
+          "#1e252b",
+          "#384148",
+          "#565f67",
+          "#757f87",
+          "#96a0a8",
+          "#bfc5ca",
+          "#edeff0"
+        ]
+      },
+      "do-do-ground": {
+        "role": "neutral",
+        "displayName": "Đỏ Đô Ground",
+        "canonical": "#2a060f",
+        "tonalRamp": [
+          "#160608",
+          "#39181f",
+          "#5b3239",
+          "#7c4f56",
+          "#9d6e75",
+          "#c18f96",
+          "#dabbbf",
+          "#f5eced"
+        ]
+      },
+      "do-do-paper": {
+        "role": "neutral",
+        "displayName": "Đỏ Đô Paper",
+        "canonical": "#5a1022",
+        "tonalRamp": [
+          "#1c0106",
+          "#460818",
+          "#6c2230",
+          "#8f414d",
+          "#b3616c",
+          "#d7828d",
+          "#eab4b9",
+          "#faeaeb"
+        ]
+      },
+      "do-do-ink": {
+        "role": "neutral",
+        "displayName": "Đỏ Đô Ink",
+        "canonical": "#fbeee8",
+        "tonalRamp": [
+          "#0e0a08",
+          "#2a221e",
+          "#473d39",
+          "#665b56",
+          "#867b75",
+          "#a89c96",
+          "#cac2bf",
+          "#f0eeed"
+        ]
+      },
+      "do-do-ink-soft": {
+        "role": "neutral",
+        "displayName": "Đỏ Đô Ink Soft",
+        "canonical": "#e7b8a8",
+        "tonalRamp": [
+          "#150703",
+          "#391a10",
+          "#5a3427",
+          "#7b5244",
+          "#9c7263",
+          "#bf9283",
+          "#dabdb3",
+          "#f5ecea"
+        ]
+      },
+      "do-do-accent": {
+        "role": "primary",
+        "displayName": "Đỏ Đô Accent",
+        "canonical": "#e7b8a8",
+        "tonalRamp": [
+          "#150703",
+          "#391a10",
+          "#5a3427",
+          "#7b5244",
+          "#9c7263",
+          "#bf9283",
+          "#dabdb3",
+          "#f5ecea"
+        ]
+      },
+      "do-do-on-accent": {
+        "role": "primary",
+        "displayName": "Đỏ Đô On Accent",
+        "canonical": "#4a0d1c",
+        "tonalRamp": [
+          "#1a0307",
+          "#420f1a",
+          "#672833",
+          "#894650",
+          "#ac666f",
+          "#d08790",
+          "#e5b6bb",
+          "#f8ebec"
+        ]
+      },
+      "do-do-line": {
+        "role": "neutral",
+        "displayName": "Đỏ Đô Line",
+        "canonical": "#b97a72",
+        "tonalRamp": [
+          "#190403",
+          "#401410",
+          "#642d27",
+          "#854b44",
+          "#a86a63",
+          "#cc8b83",
+          "#e2b9b3",
+          "#f7ebea"
+        ]
+      },
+      "do-do-panel": {
+        "role": "neutral",
+        "displayName": "Đỏ Đô Panel",
+        "canonical": "#6e1427",
+        "tonalRamp": [
+          "#1f0004",
+          "#4b0013",
+          "#72192a",
+          "#963b47",
+          "#ba5b66",
+          "#e07d86",
+          "#f0b1b5",
+          "#fce9ea"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "names-script": {
+        "displayName": "Names (script)",
+        "purpose": "The couple's names in script worlds."
+      },
+      "names-display": {
+        "displayName": "Names (display)",
+        "purpose": "Names in display worlds (toi-gian)."
+      },
+      "names-display-upper": {
+        "displayName": "Names (display, uppercase)",
+        "purpose": "Uppercase names (son-mai)."
+      },
+      "names-masthead": {
+        "displayName": "Names (masthead)",
+        "purpose": "Tap-chi magazine cover names."
+      },
+      "date-numeral": {
+        "displayName": "Date numeral",
+        "purpose": "Day in the cover date block."
+      },
+      "event-time": {
+        "displayName": "Event time",
+        "purpose": "Hour of each ceremony."
+      },
+      "section-title-script": {
+        "displayName": "Section title (script)",
+        "purpose": "Section titles in script worlds."
+      },
+      "section-title-display": {
+        "displayName": "Section title (display)",
+        "purpose": "Section titles in display worlds."
+      },
+      "address-script": {
+        "displayName": "Guest address",
+        "purpose": "Guest name after Trân trọng kính mời."
+      },
+      "heading-label": {
+        "displayName": "Heading label",
+        "purpose": "Event names, uppercase in accent-text."
+      },
+      "family-label": {
+        "displayName": "Family label",
+        "purpose": "Nhà Trai / Nhà Gái."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Invitation message and running copy."
+      },
+      "body-small": {
+        "displayName": "Body small",
+        "purpose": "Addresses, lunar dates, labels."
+      },
+      "caption-label": {
+        "displayName": "Caption label",
+        "purpose": "Countdown units, footer credit."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-lift",
+        "value": "0 30px 70px -30px rgba(0,0,0,0.6)",
+        "purpose": "The card sheet on its ground."
+      },
+      {
+        "name": "envelope-lift",
+        "value": "inset 0 0 0 1px <line>88, 0 30px 60px -20px rgba(0,0,0,0.6)",
+        "purpose": "The envelope body."
+      },
+      {
+        "name": "seal",
+        "value": "drop-shadow(0 6px 10px rgba(0,0,0,0.35))",
+        "purpose": "Wax seal (CSS filter)."
+      },
+      {
+        "name": "soft-press",
+        "value": "0 6px 18px -6px rgba(0,0,0,0.45)",
+        "purpose": "Primary buttons in soft worlds only (--inv-btn-shadow)."
+      },
+      {
+        "name": "floating-toggle",
+        "value": "0 8px 20px -6px rgba(0,0,0,0.5)",
+        "purpose": "Fixed music button."
+      }
+    ],
+    "motion": [
+      {
+        "name": "flap-open",
+        "value": "650ms cubic-bezier(0.5, 0, 0.2, 1)",
+        "purpose": "Envelope top flap rotateX 180deg."
+      },
+      {
+        "name": "card-rise",
+        "value": "900ms cubic-bezier(0.16, 1, 0.3, 1) 520ms",
+        "purpose": "Inner card rises 70% out of the envelope; the cover header rises on the same curve."
+      },
+      {
+        "name": "envelope-fade",
+        "value": "500ms, 1350ms delay",
+        "purpose": "Envelope screen fades; removed at 1900ms."
+      },
+      {
+        "name": "seal-break",
+        "value": "300ms",
+        "purpose": "Seal scales to 0.75 and fades."
+      },
+      {
+        "name": "petal-fall",
+        "value": "11-17s linear infinite",
+        "purpose": "Falling petals in world petal colours; hidden under reduced motion."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Envelope opens instantly; petals hidden."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "family-two-col",
+        "value": "480px"
+      },
+      {
+        "name": "sm",
+        "value": "640px"
+      }
+    ],
+    "worldStructure": {
+      "song-hy-do": {
+        "displayName": "Song Hỷ Đỏ",
+        "shape": "gentle",
+        "cardFrame": "gold-inset",
+        "countdown": "ruled",
+        "frame": "arch",
+        "ornament": "song-hy",
+        "namesIn": "script"
+      },
+      "son-mai": {
+        "displayName": "Sơn Mài",
+        "shape": "square",
+        "cardFrame": "gold-inset",
+        "countdown": "ruled",
+        "frame": "circle",
+        "ornament": "clouds",
+        "namesIn": "display"
+      },
+      "sen-hong": {
+        "displayName": "Sen Hồng",
+        "shape": "soft",
+        "cardFrame": "none",
+        "countdown": "tiles",
+        "frame": "arch",
+        "ornament": "lotus",
+        "namesIn": "script"
+      },
+      "toi-gian": {
+        "displayName": "Tối Giản",
+        "shape": "square",
+        "cardFrame": "hairline",
+        "countdown": "ruled",
+        "frame": "rect",
+        "ornament": "hairline",
+        "namesIn": "display"
+      },
+      "mau-nuoc": {
+        "displayName": "Màu Nước",
+        "shape": "soft",
+        "cardFrame": "none",
+        "countdown": "tiles",
+        "frame": "oval",
+        "ornament": "watercolor",
+        "namesIn": "script"
+      },
+      "la-xanh": {
+        "displayName": "Lá Xanh",
+        "shape": "gentle",
+        "cardFrame": "none",
+        "countdown": "tiles",
+        "frame": "arch",
+        "ornament": "eucalyptus",
+        "namesIn": "script"
+      },
+      "ren-co-dien": {
+        "displayName": "Ren Cổ Điển",
+        "shape": "gentle",
+        "cardFrame": "double",
+        "countdown": "ruled",
+        "frame": "oval",
+        "ornament": "lace",
+        "namesIn": "script"
+      },
+      "baroque-vang": {
+        "displayName": "Baroque Vàng",
+        "shape": "square",
+        "cardFrame": "gold-inset",
+        "countdown": "ruled",
+        "frame": "arch",
+        "ornament": "baroque",
+        "namesIn": "script"
+      },
+      "hong-pastel": {
+        "displayName": "Hồng Pastel",
+        "shape": "soft",
+        "cardFrame": "none",
+        "countdown": "tiles",
+        "frame": "circle",
+        "ornament": "ribbon",
+        "namesIn": "script"
+      },
+      "tap-chi": {
+        "displayName": "Tạp Chí",
+        "shape": "square",
+        "cardFrame": "none",
+        "countdown": "ruled",
+        "frame": "full",
+        "ornament": "masthead",
+        "namesIn": "display"
+      },
+      "bien-xanh": {
+        "displayName": "Biển Xanh",
+        "shape": "gentle",
+        "cardFrame": "none",
+        "countdown": "tiles",
+        "frame": "arch",
+        "ornament": "waves",
+        "namesIn": "script"
+      },
+      "do-do": {
+        "displayName": "Đỏ Đô",
+        "shape": "gentle",
+        "cardFrame": "hairline",
+        "countdown": "ruled",
+        "frame": "oval",
+        "ornament": "rose-line",
+        "namesIn": "script"
+      }
+    },
+    "rasterProvenance": "No raster ships with the invitation system: ornaments, seals and the 囍 glyph are inline SVG; grain is an inline SVG feTurbulence data URI. The 3D-hall still /venues/<id>.webp is pre-existing, rendered in-house by scripts/render-venue-thumbnails.mjs. Couple photos and VietQR codes are user and runtime content."
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Accent-filled action (Chỉ đường, Gửi xác nhận, Vào sảnh cưới 3D); corner and shadow follow the world shape.",
+      "html": "<button class=\"ds-btn-primary\">Gửi xác nhận</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 28px;border:none;border-radius:var(--inv-btn-r, 4px);background:var(--inv-accent, #e8b64c);color:var(--inv-on-accent, #5e0b0e);font-family:var(--inv-body, Georgia, serif);font-size:15px;font-weight:600;box-shadow:var(--inv-btn-shadow, none);cursor:pointer;transition:filter .2s,transform .1s}.ds-btn-primary:hover{filter:brightness(1.1)}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:2px solid var(--inv-accent, #e8b64c);outline-offset:3px}.ds-btn-primary:disabled{opacity:.55;cursor:not-allowed}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action (Lưu vào lịch, Chia sẻ thiệp): accent border, ink text.",
+      "html": "<button class=\"ds-btn-outline\">Lưu vào lịch</button>",
+      "css": ".ds-btn-outline{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 24px;border:1px solid var(--inv-accent, #e8b64c);border-radius:var(--inv-btn-r, 4px);background:transparent;color:var(--inv-ink, #fff1d6);font-family:var(--inv-body, Georgia, serif);font-size:15px;font-weight:600;cursor:pointer;transition:filter .2s}.ds-btn-outline:hover{filter:brightness(1.1)}.ds-btn-outline:focus-visible{outline:2px solid var(--inv-accent, #e8b64c);outline-offset:3px}"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Text field on panel tone with a label above; 16px text.",
+      "html": "<label class=\"ds-label\" for=\"ds-f\">Tên của bạn</label><input id=\"ds-f\" class=\"ds-field\" placeholder=\"Không bắt buộc\">",
+      "css": ".ds-label{display:block;margin-bottom:6px;font-size:14px;font-weight:500;color:var(--inv-ink-soft, #f3c9a0)}.ds-field{width:100%;padding:12px 16px;border:1px solid var(--inv-line, #e8b64c);border-radius:var(--inv-r, 4px);background:var(--inv-panel, #8a1216);color:var(--inv-ink, #fff1d6);font-size:16px;outline:none;caret-color:var(--inv-accent, #e8b64c);transition:border-color .2s,box-shadow .2s}.ds-field::placeholder{color:var(--inv-ink-soft, #f3c9a0);opacity:.8}.ds-field:focus{border-color:var(--inv-accent, #e8b64c);box-shadow:0 0 0 1px var(--inv-accent, #e8b64c)}"
+    },
+    {
+      "name": "Attendance Choice",
+      "kind": "chip",
+      "refersTo": "choice-selected",
+      "description": "Two-up radio choice; idle on panel, selected filled with accent.",
+      "html": "<div class=\"ds-choices\"><button class=\"ds-choice\" aria-checked=\"true\">Mình sẽ đến</button><button class=\"ds-choice\" aria-checked=\"false\">Tiếc quá, bận rồi</button></div>",
+      "css": ".ds-choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}.ds-choice{min-height:52px;padding:0 8px;border:1px solid var(--inv-line, #e8b64c);border-radius:var(--inv-r, 4px);background:var(--inv-panel, #8a1216);color:var(--inv-ink, #fff1d6);font-size:15px;font-weight:600;cursor:pointer;transition:border-color .2s}.ds-choice:hover{border-color:var(--inv-accent, #e8b64c)}.ds-choice[aria-checked=\"true\"]{background:var(--inv-accent, #e8b64c);border-color:var(--inv-accent, #e8b64c);color:var(--inv-on-accent, #5e0b0e)}.ds-choice:focus-visible{outline:2px solid var(--inv-accent, #e8b64c);outline-offset:3px}"
+    },
+    {
+      "name": "Ruled Countdown",
+      "kind": "custom",
+      "refersTo": "countdown-tile",
+      "description": "Countdown as numerals between rules (ruled worlds); tile worlds box each unit on panel at --inv-r.",
+      "html": "<div class=\"ds-count\"><div><b>30</b><span>Ngày</span></div><div><b>09</b><span>Giờ</span></div><div><b>02</b><span>Phút</span></div><div><b>45</b><span>Giây</span></div></div>",
+      "css": ".ds-count{display:grid;grid-template-columns:repeat(4,1fr);max-width:380px;padding:16px 0;border-top:1px solid var(--inv-line, #e8b64c);border-bottom:1px solid var(--inv-line, #e8b64c);text-align:center;background:var(--inv-paper, #a3161b)}.ds-count>div+div{border-left:1px solid var(--inv-line, #e8b64c)}.ds-count b{display:block;font-family:var(--inv-display, Georgia, serif);font-weight:400;font-size:2.4rem;line-height:1;color:var(--inv-accent-text, #f6d27a);font-variant-numeric:tabular-nums}.ds-count span{display:block;margin-top:8px;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--inv-ink-soft, #f3c9a0)}"
+    },
+    {
+      "name": "Date Block",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Classic printed date: weekday | day | month and year, lunar date beneath.",
+      "html": "<div class=\"ds-date\"><div class=\"ds-date-side\">Chủ Nhật</div><div class=\"ds-date-day\">20</div><div class=\"ds-date-side\">Tháng 12<br>2026</div></div><p class=\"ds-lunar\">(Tức ngày 11 tháng 11 năm Bính Ngọ)</p>",
+      "css": ".ds-date{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;max-width:340px;margin:0 auto;font-family:var(--inv-display, Georgia, serif);color:var(--inv-ink, #fff1d6)}.ds-date-side{padding:8px 0;border-top:1px solid var(--inv-line, #e8b64c);border-bottom:1px solid var(--inv-line, #e8b64c);font-size:15px;letter-spacing:.12em;text-transform:uppercase;text-align:center}.ds-date-day{font-size:3.6rem;font-weight:600;line-height:1;color:var(--inv-accent-text, #f6d27a);font-variant-numeric:tabular-nums}.ds-lunar{margin-top:16px;text-align:center;font-style:italic;font-size:15px;color:var(--inv-ink-soft, #f3c9a0)}"
+    },
+    {
+      "name": "Wish Card",
+      "kind": "card",
+      "refersTo": "choice-idle",
+      "description": "One guest wish on panel tone with a 1px line, no shadow.",
+      "html": "<div class=\"ds-wish\"><p class=\"ds-wish-name\">Hoàng Nam <span>Bạn bè</span></p><p>Chúc hai bạn trăm năm hạnh phúc!</p></div>",
+      "css": ".ds-wish{padding:14px 16px;border:1px solid var(--inv-line, #e8b64c);border-radius:var(--inv-r, 4px);background:var(--inv-panel, #8a1216);color:var(--inv-ink, #fff1d6);font-size:15px;line-height:1.625}.ds-wish p{margin:0}.ds-wish-name{font-weight:600;margin-bottom:6px!important}.ds-wish-name span{margin-left:8px;font-size:13px;font-weight:400;color:var(--inv-ink-soft, #f3c9a0)}"
+    },
+    {
+      "name": "Music Toggle",
+      "kind": "button",
+      "refersTo": "music-toggle",
+      "description": "Fixed 48px accent circle that starts and stops the music.",
+      "html": "<button class=\"ds-music\" aria-label=\"Tắt nhạc\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 18V5l12-2v13\"/><circle cx=\"6\" cy=\"18\" r=\"3\"/><circle cx=\"18\" cy=\"16\" r=\"3\"/></svg></button>",
+      "css": ".ds-music{display:grid;place-items:center;width:48px;height:48px;border:none;border-radius:999px;background:var(--inv-accent, #e8b64c);color:var(--inv-on-accent, #5e0b0e);box-shadow:0 8px 20px -6px rgba(0,0,0,.5);cursor:pointer}.ds-music:hover{filter:brightness(1.1)}.ds-music:focus-visible{outline:2px solid var(--inv-accent, #e8b64c);outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Card You Open",
+    "overview": "The invitation is a printed Vietnamese wedding card, not a website. A guest receives a sealed envelope addressed to them by name; tapping breaks the seal, the flap swings back, the card rises, and the card itself becomes the page. Everything after the envelope lives on one sheet of card stock (max 560px) set on the world's ground, with its own grain, its own printed border, its own drawn ornament family and its own type pairing.\n\nThere is no single palette. The system is twelve complete paper-and-ink worlds that share one structure: the same roles (ground, paper, ink, ink-soft, accent, accent-text, on-accent, line, panel), the same section order, and the same components, re-skinned per world through `--inv-*` custom properties set on the invitation root. A world is defined by its tokens plus four structure switches: corner language (`shape`), printed card frame (`cardFrame`), countdown form (`countdown`) and photo frame (`frame`). New worlds are made by adding a theme entry, never by forking components.\n\nThe register is ceremonial and quiet: centered, generous vertical rhythm, names at full width, dates set as printed type. Guests are often older relatives on phones inside Zalo, so body text never drops below 13px, taps are at least 44 to 48px, and every face carries the Vietnamese subset.",
+    "keyCharacteristics": [
+      "Envelope first: a full-screen sealed envelope in the world's colours, addressed \"Kính mời\" + guest name (or \"Quý khách\"), with a wax seal at the flap.",
+      "Twelve worlds, one structure: roles and components are shared; colour, faces, ornament, corners, frame and countdown form are per world.",
+      "Ornaments are hand-drawn inline SVG per world (囍 seal glyph, cloud scrolls, lotus, hairline diamond, watercolour roses, eucalyptus, lace scallops, baroque scrolls, ribbon and hearts, a red masthead rule, sea waves, a single-line rose).",
+      "Paper grain is an inline SVG feTurbulence tile, blended multiply on light paper and screen on dark paper.",
+      "Solar date, lunar date and countdown always travel together.",
+      "No raster imagery ships with the system. The only images are the couple's own photos, the VietQR code generated per gift, and the pre-existing 3D-hall still `/venues/<id>.webp`, rendered in-house by `scripts/render-venue-thumbnails.mjs`."
+    ],
+    "rules": [
+      {
+        "name": "The Closed World Rule",
+        "body": "A world's surfaces use only that world's nine roles plus its envelope and drawn-ornament colours. Nothing borrows from another world or from the app's rose/slate chrome.",
+        "section": "colors"
+      },
+      {
+        "name": "The Readable Accent Rule",
+        "body": "Accent-coloured text always uses `accent-text`. The fill accent is for fills, strokes and borders; when it cannot reach 4.5:1 as text, the world defines an `accent-text`.",
+        "section": "colors"
+      },
+      {
+        "name": "The Unbroken Name Rule",
+        "body": "A person's name never wraps mid-name: names up to 28 characters are set `white-space: nowrap`, and abbreviations bind to the next word with a no-break space (TP. Huế, Q. 3). Thumbnails size names in container units so they stay on one line at any card width.",
+        "section": "typography"
+      },
+      {
+        "name": "The Lunar Companion Rule",
+        "body": "A solar date on the card is always accompanied by its lunar date.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Sheet Rule",
+        "body": "Nothing on the card casts a shadow except soft-world buttons. The card and envelope are the only lifted objects.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do add a world by adding one `InviteTheme` entry with all nine roles, envelope and petal colours, a script face, an ornament, `shape`, `cardFrame`, `countdown` and `frame`, and `accentText` whenever the accent misses 4.5:1 as text.",
+      "Do read colours, corners and faces through `--inv-*` variables (`--inv-r`, `--inv-btn-r`, `--inv-btn-shadow`, `--inv-accent-text`) in every shared component.",
+      "Do keep the envelope as the first viewport, addressed to the guest by name, with \"Quý khách\" when there is no name.",
+      "Do set the lunar date beside every solar date and keep the countdown with the main date.",
+      "Do keep taps at 44 to 48px and body at 16px, and load every face with the Vietnamese subset and `preload: false`.",
+      "Do draw ornaments, the 囍 glyph and seals as inline SVG paths.",
+      "Do honour `prefers-reduced-motion`: the envelope opens instantly and petals are hidden."
+    ],
+    "donts": [
+      "Don't open on a hero photo, white cards or icon rows; the couple's photo sits in the world's frame shape inside the card (full-bleed only in the tap-chi magazine cover).",
+      "Don't set accent-coloured text with the fill accent when the world defines `accentText`.",
+      "Don't let a name or an abbreviation break across lines.",
+      "Don't put shadows on panels, fields or tiles inside the card.",
+      "Don't use emoji or font glyphs for ornaments, seals or the 囍 character.",
+      "Don't add shipped raster ornaments or textures; grain is the inline feTurbulence tile.",
+      "Don't show gift amounts anywhere on the card; suggested amounts exist only inside the guest's own gift form."
+    ]
+  }
+}

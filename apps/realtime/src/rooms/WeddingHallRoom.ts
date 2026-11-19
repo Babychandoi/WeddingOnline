@@ -15,6 +15,7 @@ import {
   getTableSeatAnchors,
   gridCellToWorld,
   sanitizeBubbleText,
+  sanitizePersonId,
   type CeremonyConfig,
   type JoinTokenPayload,
   type SceneLayoutDocument,
@@ -35,6 +36,7 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
   private unsubscribeBus: (() => void) | null = null;
   private layout: SceneLayoutDocument = STARTER_TEMPLATES.luxury_ballroom.layout;
   private originalOutfits = new Map<string, string>();
+  private originalPeople = new Map<string, string>();
   private lastChatTs = new Map<string, number>();
   private plazaNextAutoCeremonyAt = Date.now() + 25 * 60 * 1000;
   private bouquetCountdownEndsAt = 0;
@@ -168,6 +170,7 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
     player.outfitId = auth.avatarConfig.outfitId || 'ao_dai_guest';
     player.hairId = auth.avatarConfig.hairId || 'hair_1';
     player.hairColor = auth.avatarConfig.hairColor || '#1f2937';
+    player.personId = sanitizePersonId(auth.avatarConfig.personId);
     player.isMuted = auth.isMuted;
 
     const gate = this.layout.prefabs.find((p) => p.prefabType === 'GATE_RECEPTION');
@@ -179,6 +182,7 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
     player.anim = 'idle';
 
     this.originalOutfits.set(client.sessionId, player.outfitId);
+    this.originalPeople.set(client.sessionId, player.personId);
     this.state.players.set(client.sessionId, player);
     this.updateShardRegistry();
   }
@@ -191,6 +195,7 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
     }
     this.state.players.delete(client.sessionId);
     this.originalOutfits.delete(client.sessionId);
+    this.originalPeople.delete(client.sessionId);
     this.lastChatTs.delete(client.sessionId);
     this.updateShardRegistry();
   }
@@ -339,6 +344,7 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
         npc.isTakenOver = true;
         player.takingOverNpc = msg.targetNpc;
         player.outfitId = msg.targetNpc === 'BRIDE' ? 'vay_cuoi_trang' : 'vest_chu_re';
+        player.personId = '';
         player.x = npc.x;
         player.z = npc.z;
       }
@@ -355,6 +361,7 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
       }
       player.takingOverNpc = '';
       player.outfitId = this.originalOutfits.get(client.sessionId) ?? 'ao_dai_guest';
+      player.personId = this.originalPeople.get(client.sessionId) ?? '';
     });
 
     this.onMessage(

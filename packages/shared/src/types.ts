@@ -69,6 +69,8 @@ export interface AvatarConfig {
   outfitId: string;
   hairId: string;
   hairColor: string;
+  /** A realistic person from PEOPLE; '' or absent = the stylised figure */
+  personId?: string;
 }
 
 export interface CeremonyConfig {

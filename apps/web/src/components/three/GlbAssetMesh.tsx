@@ -45,6 +45,28 @@ function repairWinding(root: THREE.Object3D) {
   });
 }
 
+const gltfCache = new Map<string, Promise<{ scene: THREE.Group; animations: THREE.AnimationClip[] }>>();
+
+/** Scene and animation clips of a GLB, loaded once (people and their motion clips) */
+export function loadGltfCached(url: string): Promise<{ scene: THREE.Group; animations: THREE.AnimationClip[] }> {
+  let pending = gltfCache.get(url);
+  if (!pending) {
+    pending = new Promise((resolve, reject) => {
+      sharedLoader.load(
+        url,
+        (gltf) => resolve({ scene: gltf.scene, animations: gltf.animations }),
+        undefined,
+        (err) => {
+          gltfCache.delete(url);
+          reject(err);
+        },
+      );
+    });
+    gltfCache.set(url, pending);
+  }
+  return pending;
+}
+
 export function loadGlbCached(url: string): Promise<THREE.Group> {
   let pending = glbCache.get(url);
   if (!pending) {

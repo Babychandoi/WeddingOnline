@@ -47,6 +47,8 @@ export class PlayerSchema extends Schema {
 
   @type('string') bubbleText: string = '';
   @type('number') bubbleExpiresAt: number = 0;
+  /** Realistic person (PEOPLE id) the guest attends as; '' = stylised figure */
+  @type('string') personId: string = '';
 }
 
 export class NpcSchema extends Schema {

@@ -56,6 +56,8 @@ export interface WeddingRecord {
   webhookProvider: string | null;
   webhookSecretHash: string | null;
   ceremonyConfig: CeremonyConfig | null;
+  /** Raw stored invitation JSON; read it through resolveInvitationConfig() from @dco/shared */
+  invitationConfig?: unknown;
   createdAt: string;
   updatedAt: string;
 }
@@ -102,7 +104,8 @@ export interface PhotoAssetRecord {
 export interface GuestbookEntryRecord {
   id: string;
   weddingId: string;
-  authorId: string;
+  /** Null for a wish left on the invitation page without signing in */
+  authorId: string | null;
   authorName: string;
   side: GuestSide;
   message: string;
@@ -122,7 +125,8 @@ export interface BouquetCatchRecord {
 export interface GiftIntentRecord {
   id: string;
   weddingId: string;
-  guestUserId: string;
+  /** Null for a guest gifting from the invitation page without signing in */
+  guestUserId: string | null;
   guestName: string;
   wishMessage: string;
   transferCode: string;
@@ -135,7 +139,7 @@ export interface GiftLedgerRecord {
   id: string;
   weddingId: string;
   giftIntentId: string;
-  guestUserId: string;
+  guestUserId: string | null;
   guestName: string;
   wishMessage: string;
   amountVnd: number;
@@ -143,6 +147,18 @@ export interface GiftLedgerRecord {
   providerTxId: string;
   bankTxDate: string;
   verifiedAt: string;
+}
+
+export interface InvitationRsvpRecord {
+  id: string;
+  weddingId: string;
+  guestName: string;
+  phone: string | null;
+  attending: boolean;
+  headcount: number;
+  side: GuestSide;
+  note: string | null;
+  createdAt: string;
 }
 
 export interface SaasOrderRecord {

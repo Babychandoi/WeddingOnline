@@ -6,7 +6,7 @@ import { DashboardClient } from '@/components/dashboard/DashboardClient';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DashboardPage({ params }: { params: { slug: string } }) {
+export default async function DashboardPage({ params, searchParams }: { params: { slug: string }; searchParams: { tab?: string } }) {
   const wedding = await dbRepo.getWeddingBySlug(params.slug);
   if (!wedding) notFound();
 
@@ -23,6 +23,7 @@ export default async function DashboardPage({ params }: { params: { slug: string
       layout={layout}
       photos={photos}
       devAuthEnabled={!isHardenedProduction()}
+      initialTab={searchParams.tab === 'thiep' ? 'thiep' : undefined}
     />
   );
 }

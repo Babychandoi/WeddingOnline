@@ -212,3 +212,52 @@ test('Admin settings secrets round-trip with AES-GCM and fail closed on a wrong 
   assert.equal(decryptSettingValue(tampered, key), null, 'tampered ciphertext → unreadable');
   assert.equal(decryptSettingValue('plain-text-from-old-row', key), null);
 });
+
+test('Vietnamese lunar calendar matches known Tết, leap-month and Trung Thu dates', async () => {
+  const { solarToLunar, canChiYear, formatLunarVi } = await import('../dist/index.js');
+  const tet2024 = solarToLunar(10, 2, 2024);
+  assert.deepEqual([tet2024.day, tet2024.month, tet2024.year, tet2024.leap], [1, 1, 2024, false]);
+  assert.equal(canChiYear(2024), 'Giáp Thìn');
+  const tet2025 = solarToLunar(29, 1, 2025);
+  assert.deepEqual([tet2025.day, tet2025.month, tet2025.year], [1, 1, 2025]);
+  assert.equal(canChiYear(2025), 'Ất Tỵ');
+  const tet2026 = solarToLunar(17, 2, 2026);
+  assert.deepEqual([tet2026.day, tet2026.month, tet2026.year], [1, 1, 2026]);
+  assert.equal(canChiYear(2026), 'Bính Ngọ');
+  // 2023 had a leap second month starting 22 March
+  const leap = solarToLunar(22, 3, 2023);
+  assert.deepEqual([leap.day, leap.month, leap.leap], [1, 2, true]);
+  // Trung Thu 2025: 15/8 âm lịch
+  const trungThu = solarToLunar(6, 10, 2025);
+  assert.deepEqual([trungThu.day, trungThu.month], [15, 8]);
+  // An evening in Vietnam that is still the previous day in UTC uses the Vietnamese date
+  assert.equal(formatLunarVi('2026-02-16T18:00:00.000Z'), '1 tháng 1 năm Bính Ngọ');
+});
+
+test('Invitation config sanitiser keeps content bounded and links safe', async () => {
+  const { defaultInvitationConfig, sanitizeInvitationConfig, invitationMapLink } = await import('../dist/index.js');
+  const base = defaultInvitationConfig({ groomName: 'Minh', brideName: 'Linh', weddingDate: '2026-12-20T03:00:00.000Z' });
+  const out = sanitizeInvitationConfig(
+    {
+      templateId: 'not-a-template',
+      coverPhotoUrl: 'javascript:alert(1)',
+      music: { mode: 'URL', url: 'http://insecure.example/song.mp3' },
+      headline: 'x'.repeat(500),
+      events: [{ kind: 'TIEC_CUOI', venueName: 'Trung tâm tiệc cưới', address: '1 Lê Lợi, Huế', mapUrl: 'data:text/html,hi', startsAt: 'nope' }],
+      sections: { gift: false },
+    },
+    base,
+  );
+  assert.equal(out.templateId, base.templateId);
+  assert.equal(out.coverPhotoUrl, '');
+  assert.equal(out.music.url, '');
+  assert.equal(out.headline.length, 120);
+  assert.equal(out.events.length, 1);
+  assert.equal(out.events[0].mapUrl, '');
+  assert.equal(out.events[0].startsAt, base.events[0].startsAt);
+  assert.match(invitationMapLink(out.events[0]), /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=/);
+  assert.equal(out.sections.gift, false);
+  assert.equal(out.sections.wishes, true);
+  // Untouched fields keep the defaults
+  assert.equal(out.groomFullName, 'Minh');
+});

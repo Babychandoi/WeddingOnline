@@ -21,6 +21,7 @@ import type {
   GiftIntentRecord,
   GiftLedgerRecord,
   GuestbookEntryRecord,
+  InvitationRsvpRecord,
   PartnerVoucherRecord,
   PhotoAssetRecord,
   PhotoType,
@@ -317,6 +318,7 @@ const localJsonRepo = {
                           | 'webhookProvider'
                           | 'webhookSecretHash'
                           | 'ceremonyConfig'
+                          | 'invitationConfig'
                         >
                       >
   ): Promise < WeddingRecord | null > {
@@ -469,7 +471,7 @@ const localJsonRepo = {
 
                             async addGuestbookEntry(input: {
                               weddingId: string;
-                              authorId: string;
+                              authorId: string | null;
                               authorName: string;
                               side: GuestSide;
                               message: string;
@@ -518,13 +520,31 @@ const localJsonRepo = {
                                 });
                               },
 
+  async getGiftIntentById(id: string): Promise<GiftIntentRecord | null> {
+    return getStore().query((db) => db.giftIntents.find((i) => i.id === id) ?? null);
+  },
+
+  async createInvitationRsvp(input: Omit<InvitationRsvpRecord, 'id' | 'createdAt'>): Promise<InvitationRsvpRecord> {
+    return getStore().mutate((db) => {
+      const rec: InvitationRsvpRecord = { ...input, id: newId('rsvp'), createdAt: new Date().toISOString() };
+      (db.invitationRsvps ??= []).push(rec);
+      return rec;
+    });
+  },
+
+  async listInvitationRsvps(weddingId: string): Promise<InvitationRsvpRecord[]> {
+    return getStore().query((db) =>
+      (db.invitationRsvps ?? []).filter((r) => r.weddingId === weddingId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    );
+  },
+
   async getGiftIntentByCode(transferCode: string): Promise < GiftIntentRecord | null > {
                               return getStore().query((db) => db.giftIntents.find((i) => i.transferCode === transferCode) ?? null);
                             },
 
                                 async createGiftIntent(input: {
                                   weddingId: string;
-                                  guestUserId: string;
+                                  guestUserId: string | null;
                                   guestName: string;
                                   wishMessage: string;
                                   transferCode: string;
@@ -949,6 +969,10 @@ const localJsonRepo = {
                                     recordBouquetCatch: (i: Parameters<typeof localJsonRepo.recordBouquetCatch>[0]) =>
                                       activeRepo().recordBouquetCatch(i),
                                     getGiftIntentByCode: (code: string) => activeRepo().getGiftIntentByCode(code),
+                                    getGiftIntentById: (id: string) => activeRepo().getGiftIntentById(id),
+                                    createInvitationRsvp: (i: Parameters<typeof localJsonRepo.createInvitationRsvp>[0]) =>
+                                      activeRepo().createInvitationRsvp(i),
+                                    listInvitationRsvps: (weddingId: string) => activeRepo().listInvitationRsvps(weddingId),
                                     createGiftIntent: (i: Parameters<typeof localJsonRepo.createGiftIntent>[0]) =>
                                       activeRepo().createGiftIntent(i),
                                     settleGiftByWebhook: (i: Parameters<typeof localJsonRepo.settleGiftByWebhook>[0]) =>

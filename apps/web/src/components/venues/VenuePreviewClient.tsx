@@ -32,15 +32,16 @@ const COUPLE: RemoteNpcView[] = [
   { npcId: 'GROOM', displayName: 'Chú Rể', outfitId: 'vest_chu_re', isTakenOver: false, x: 0.9, z: -8.8, rotY: 0, anim: 'wave' },
 ];
 
+// Real, motion-captured people (Rocketbox); the stylised look shows while they load
 const GUEST_LOOKS = [
-  { outfitId: 'ao_dai_guest', hairId: 'hair_3', hairColor: '#1f2937' },
-  { outfitId: 'vest_suit', hairId: 'hair_1', hairColor: '#2b2118' },
-  { outfitId: 'evening_dress', hairId: 'hair_6', hairColor: '#78350f' },
-  { outfitId: 'smart_casual', hairId: 'hair_2', hairColor: '#1f2937' },
-  { outfitId: 'ao_dai_guest', hairId: 'hair_4', hairColor: '#3b2a1e' },
-  { outfitId: 'vest_suit', hairId: 'hair_2', hairColor: '#111827' },
-  { outfitId: 'evening_dress', hairId: 'hair_3', hairColor: '#1f2937' },
-  { outfitId: 'smart_casual', hairId: 'hair_1', hairColor: '#4a3426' },
+  { outfitId: 'ao_dai_guest', hairId: 'hair_3', hairColor: '#1f2937', personId: 'business_female_02' },
+  { outfitId: 'vest_suit', hairId: 'hair_1', hairColor: '#2b2118', personId: 'business_male_01' },
+  { outfitId: 'evening_dress', hairId: 'hair_6', hairColor: '#78350f', personId: 'female_party_02' },
+  { outfitId: 'smart_casual', hairId: 'hair_2', hairColor: '#1f2937', personId: 'business_male_02' },
+  { outfitId: 'ao_dai_guest', hairId: 'hair_4', hairColor: '#3b2a1e', personId: 'business_female_04' },
+  { outfitId: 'vest_suit', hairId: 'hair_2', hairColor: '#111827', personId: 'male_adult_03' },
+  { outfitId: 'evening_dress', hairId: 'hair_3', hairColor: '#1f2937', personId: 'female_adult_14' },
+  { outfitId: 'smart_casual', hairId: 'hair_1', hairColor: '#4a3426', personId: 'business_male_03' },
 ];
 
 /** A few guests so the showcase looks like a party: some seated at tables, some mingling */

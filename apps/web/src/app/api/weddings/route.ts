@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbRepo, toPublicWedding } from '@dco/database';
-import { DEFAULT_VENUE_ID, isVenueId, type TemplateId, type WeddingTier } from '@dco/shared';
+import {
+  DEFAULT_VENUE_ID,
+  isInvitationTemplateId,
+  isVenueId,
+  resolveInvitationConfig,
+  sanitizeInvitationConfig,
+  type TemplateId,
+  type WeddingTier,
+} from '@dco/shared';
 import { getSessionFromRequest } from '@/lib/session';
 
 export async function GET(req: NextRequest) {
@@ -32,6 +40,8 @@ export async function POST(req: NextRequest) {
       tier?: WeddingTier;
       templateId?: TemplateId;
       weddingDate?: string;
+      /** Invitation template picked in the gallery before signing up */
+      invitationTemplateId?: string;
     };
 
     const slug = (body.slug || '')
@@ -62,6 +72,12 @@ export async function POST(req: NextRequest) {
       templateId,
       weddingDate,
     });
+
+    if (isInvitationTemplateId(body.invitationTemplateId)) {
+      await dbRepo.updateWedding(wedding.id, {
+        invitationConfig: sanitizeInvitationConfig({ templateId: body.invitationTemplateId }, resolveInvitationConfig(null, wedding)),
+      });
+    }
 
     return NextResponse.json({ wedding: toPublicWedding(wedding), scene }, { status: 201 });
   } catch (err) {

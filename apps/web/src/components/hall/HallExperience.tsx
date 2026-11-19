@@ -36,7 +36,7 @@ import {
 } from '@dco/shared';
 import { soundEngine } from '@/lib/soundEngine';
 import type { BouquetView, RemoteNpcView, RemotePlayerView } from '../three/VenueScene';
-import { MotionTrack, npcTrackKey, type MotionStore } from '@dco/shared';
+import { MotionTrack, PEOPLE, npcTrackKey, sanitizePersonId, type MotionStore } from '@dco/shared';
 import { OAuthModal } from './OAuthModal';
 import { VideoPipOverlay } from './VideoPipOverlay';
 import { PhotoboothModal } from './PhotoboothModal';
@@ -112,6 +112,25 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
   const [outfitId, setOutfitId] = useState('ao_dai_guest');
   const [hairId, setHairId] = useState('hair_4');
   const [hairColor, setHairColor] = useState('#1f2937');
+  // A real, motion-captured person by default; '' = the stylised figure with outfit/hair choices
+  const [personId, setPersonIdState] = useState('female_party_02');
+  const [personFilter, setPersonFilter] = useState<'all' | 'f' | 'm'>('all');
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem('dco_person');
+      if (saved !== null) setPersonIdState(sanitizePersonId(saved));
+    } catch {
+      /* private mode: keep the default */
+    }
+  }, []);
+  const setPersonId = useCallback((id: string) => {
+    setPersonIdState(id);
+    try {
+      window.localStorage.setItem('dco_person', id);
+    } catch {
+      /* not remembered, still used for this visit */
+    }
+  }, []);
   const [pin, setPin] = useState('');
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState('');
@@ -212,6 +231,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
               outfitId,
               hairId,
               hairColor,
+              personId,
             },
           }),
         });
@@ -285,6 +305,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
               outfitId: p.outfitId,
               hairId: p.hairId,
               hairColor: p.hairColor,
+              personId: p.personId,
               x: p.x,
               z: p.z,
               rotY: p.rotY,
@@ -301,7 +322,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
           const positionsDue = now - lastPositionsFlush >= RERENDER_POSITIONS_MS;
           const playersKey = pList
             .map((p) =>
-              [p.sessionId, p.displayName, p.role, p.side, p.outfitId, p.hairId, p.hairColor, p.anim, p.seatedTableNo, p.seatIndex, p.hasBouquetCrown, p.isSpeaking, p.takingOverNpc, p.bubbleText].join('|'),
+              [p.sessionId, p.displayName, p.role, p.side, p.outfitId, p.hairId, p.hairColor, p.personId, p.anim, p.seatedTableNo, p.seatIndex, p.hasBouquetCrown, p.isSpeaking, p.takingOverNpc, p.bubbleText].join('|'),
             )
             .join('§');
           const positionsKey = pList.map((p) => `${p.x},${p.z},${p.rotY}`).join(';');
@@ -397,7 +418,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
         setJoining(false);
       }
     },
-    [wedding.id, wedding.slug, displayName, side, pin, outfitId, hairId, hairColor, showNotice]
+    [wedding.id, wedding.slug, displayName, side, pin, outfitId, hairId, hairColor, personId, showNotice]
   );
 
   useEffect(() => {
@@ -520,23 +541,22 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
 
                 {/* Live Chibi Identity Preview Card */}
                 <div className="mb-5 flex items-center gap-4 rounded-2xl border border-amber-200/80 bg-[#FFFDF8] p-4">
-                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-amber-300 bg-rose-50 shadow-inner">
-                    <div
-                      className="h-6 w-6 rounded-full border-2 border-white shadow"
-                      style={{ backgroundColor: hairColor }}
-                      title="Màu tóc đã chọn"
-                    />
-                    <span className="absolute -bottom-1.5 rounded-full bg-slate-900 px-2 py-0.5 text-[9px] font-bold text-amber-200">
-                      Chibi
-                    </span>
+                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-amber-300 bg-rose-50 shadow-inner">
+                    {personId ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`/assets/people/${personId}.webp`} alt="" className="h-full w-full object-cover object-top" />
+                    ) : (
+                      <div className="h-6 w-6 rounded-full border-2 border-white shadow" style={{ backgroundColor: hairColor }} title="Màu tóc đã chọn" />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-slate-900">
                       {displayName.trim() || 'Khách Quý'}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-600">
-                      {OUTFIT_LABELS[outfitId] || outfitId} •{' '}
-                      {HAIR_STYLES.find((h) => h.id === hairId)?.label || 'Tóc Tự Nhiên'}
+                      {personId
+                        ? PEOPLE.find((p) => p.id === personId)?.label ?? 'Nhân vật thật'
+                        : `${OUTFIT_LABELS[outfitId] || outfitId} • ${HAIR_STYLES.find((h) => h.id === hairId)?.label || 'Tóc Tự Nhiên'}`}
                     </p>
                   </div>
                   {!isPlaza && (
@@ -552,7 +572,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                 <div className="space-y-4">
                   <div>
                     <label htmlFor="chibi-display-name" className="mb-1 block text-xs font-semibold text-slate-700">
-                      Tên trên đầu Chibi
+                      Tên hiển thị trong sảnh
                     </label>
                     <input
                       id="chibi-display-name"
@@ -594,7 +614,62 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
               )}
 
               <div>
-                <span className="mb-1 block text-xs font-semibold text-slate-700">Trang phục Chibi</span>
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-slate-700">Nhân vật của bạn</span>
+                  <div role="radiogroup" aria-label="Lọc nhân vật" className="flex gap-1">
+                    {(
+                      [
+                        ['all', 'Tất cả'],
+                        ['f', 'Nữ'],
+                        ['m', 'Nam'],
+                      ] as const
+                    ).map(([val, label]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        role="radio"
+                        aria-checked={personFilter === val}
+                        onClick={() => setPersonFilter(val)}
+                        className={`min-h-[32px] rounded-full px-3 text-[11px] font-bold transition ${personFilter === val ? 'bg-slate-900 text-amber-100' : 'text-slate-600 hover:bg-slate-100'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div role="radiogroup" aria-label="Chọn nhân vật" className="grid max-h-[248px] grid-cols-4 gap-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-1.5 sm:grid-cols-6">
+                  {PEOPLE.filter((p) => personFilter === 'all' || p.body === personFilter).map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={personId === p.id}
+                      aria-label={p.label ?? p.id}
+                      title={p.label}
+                      onClick={() => setPersonId(p.id)}
+                      className={`overflow-hidden rounded-lg border-2 bg-white transition ${personId === p.id ? 'border-rose-600 ring-2 ring-rose-200' : 'border-transparent hover:border-rose-200'}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`/assets/people/${p.id}.webp`} alt="" loading="lazy" className="aspect-square w-full object-cover object-top" />
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={personId === ''}
+                    onClick={() => setPersonId('')}
+                    className={`flex aspect-square flex-col items-center justify-center rounded-lg border-2 bg-white px-1 text-center text-[10px] font-bold leading-tight text-slate-600 transition ${personId === '' ? 'border-rose-600 ring-2 ring-rose-200' : 'border-dashed border-slate-300 hover:border-rose-200'}`}
+                  >
+                    Hình vẽ tự phối
+                  </button>
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500">Người thật có dáng đi, ngồi, vẫy tay, vỗ tay và nâng ly như thật. Chọn &quot;Hình vẽ tự phối&quot; để mặc áo dài và chọn kiểu tóc.</p>
+              </div>
+
+              {!personId && (
+              <>
+              <div>
+                <span className="mb-1 block text-xs font-semibold text-slate-700">Trang phục</span>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {(
                     [
@@ -622,7 +697,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
 
               <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
                 <div>
-                  <span className="mb-1 block text-xs font-semibold text-slate-700">Kiểu tóc Chibi</span>
+                  <span className="mb-1 block text-xs font-semibold text-slate-700">Kiểu tóc</span>
                   <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
                     {HAIR_STYLES.map((style) => (
                       <button
@@ -661,6 +736,9 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                   </div>
                 </div>
               </div>
+
+              </>
+              )}
 
               {!isPlaza && wedding.hasPin && (
                 <div>

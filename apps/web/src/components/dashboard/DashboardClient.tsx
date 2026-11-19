@@ -33,6 +33,7 @@ import type {
 import { TIER_CATALOG, type SceneLayoutDocument, type WeddingTier } from '@dco/shared';
 import { SceneBuilderEditor } from '../builder/SceneBuilderEditor';
 import { PrintQrTab } from './PrintQrTab';
+import { InvitationEditor } from './InvitationEditor';
 import { OAuthModal } from '../hall/OAuthModal';
 
 interface DashboardClientProps {
@@ -42,6 +43,8 @@ interface DashboardClientProps {
   photos: PhotoAssetRecord[];
   /** Server allows the dev/demo login (never on a production deployment). */
   devAuthEnabled: boolean;
+  /** Open on this tab (e.g. ?tab=thiep after picking an invitation template) */
+  initialTab?: 'thiep';
 }
 
 type MemberWithUser = WeddingMemberRecord & { userDisplayName: string };
@@ -52,10 +55,11 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
   layout,
   photos: initialPhotos,
   devAuthEnabled,
+  initialTab,
 }) => {
   const [wedding, setWedding] = useState(initialWedding);
   const [photos, setPhotos] = useState(initialPhotos);
-  const [tab, setTab] = useState<'builder' | 'settings' | 'photos' | 'members' | 'printqr' | 'ledger'>('builder');
+  const [tab, setTab] = useState<'builder' | 'settings' | 'photos' | 'members' | 'thiep' | 'printqr' | 'ledger'>(initialTab ?? 'builder');
   const [authUser, setAuthUser] = useState<{ id: string; displayName: string } | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [hostAccessDenied, setHostAccessDenied] = useState(false);
@@ -468,7 +472,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
               href={`/w/${wedding.slug}/invite`}
               className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-800 transition hover:bg-slate-50"
             >
-              <Mail className="h-4 w-4" /> Thiệp 2D
+              <Mail className="h-4 w-4" /> Xem thiệp cưới
             </Link>
             {wedding.tier !== 'VIP_FULFILLMENT' && (
               <button
@@ -514,6 +518,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
               { id: 'settings', label: 'Cài Đặt & Lịch Auto-NPC', icon: Settings },
               { id: 'photos', label: 'Ảnh Cưới Triển Lãm', icon: ImageIcon },
               { id: 'members', label: 'Thành Viên, MC & Kiểm Duyệt', icon: Users },
+              { id: 'thiep', label: 'Thiệp Cưới Online', icon: Mail },
               { id: 'printqr', label: 'Thiệp Mời & Mã QR In Ấn', icon: QrCode },
               { id: 'ledger', label: 'Sổ Mừng Cưới Riêng Tư', icon: Wallet },
             ] as const
@@ -834,6 +839,8 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
             )}
           </div>
         )}
+
+        {tab === 'thiep' && <InvitationEditor wedding={wedding} photos={photos} />}
 
         {tab === 'printqr' && <PrintQrTab wedding={wedding} />}
 

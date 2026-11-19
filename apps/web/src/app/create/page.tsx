@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle2, Loader2, LogOut, Sparkles } from 'lucide-react';
@@ -39,11 +39,15 @@ export default function CreateWeddingPage() {
     slug: string;
   } | null>(null);
   const [paidConfirmed, setPaidConfirmed] = useState(false);
+  const invitationTemplate = useRef<string | null>(null);
 
   useEffect(() => {
     // Arriving from a venue preview ("Tạo sảnh cưới với không gian này")
-    const fromPreview = new URLSearchParams(window.location.search).get('template');
+    const query = new URLSearchParams(window.location.search);
+    const fromPreview = query.get('template');
     if (isVenueId(fromPreview)) setTemplateId(fromPreview);
+    // Arriving from an invitation sample ("Dùng mẫu này")
+    invitationTemplate.current = query.get('thiep');
     setSlug(`huy-mai-${Math.floor(100 + Math.random() * 899)}`);
     fetch('/api/auth/me')
       .then((r) => r.json())
@@ -69,13 +73,14 @@ export default function CreateWeddingPage() {
           tier,
           templateId,
           weddingDate,
+          invitationTemplateId: invitationTemplate.current ?? undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Tạo phòng thất bại');
 
       if (tier === 'TRIAL_24H') {
-        router.push(`/dashboard/${data.wedding.slug}`);
+        router.push(`/dashboard/${data.wedding.slug}${invitationTemplate.current ? '?tab=thiep' : ''}`);
         return;
       }
 

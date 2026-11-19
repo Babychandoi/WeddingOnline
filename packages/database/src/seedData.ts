@@ -14,6 +14,7 @@ import type {
   WeddingMemberRecord,
   WeddingRecord,
   WeddingSceneRecord,
+  InvitationRsvpRecord,
 } from './types';
 
 export interface LocalDatabaseSnapshot {
@@ -32,6 +33,8 @@ export interface LocalDatabaseSnapshot {
   partnerVouchers: PartnerVoucherRecord[];
   /** Optional: snapshots written before admin settings existed don't have it */
   platformSettings?: PlatformSettingRecord[];
+  /** Optional: snapshots written before online invitations existed don't have it */
+  invitationRsvps?: InvitationRsvpRecord[];
 }
 
 export function createSampleSvgPhoto(title: string, subtitle: string, bg: string): string {

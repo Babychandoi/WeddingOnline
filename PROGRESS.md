@@ -139,6 +139,26 @@
 - [x] Sửa lỗi hiển thị: HDRI ban ngày đổi `park` → `sky` (hết ám tím), váy/khăn bàn hướng mặt ra ngoài (hết "trong suốt"), bộ nạp GLB tự sửa tam giác đảo chiều (bánh cưới hết tối), ngưỡng bloom 1.8 + lọc NaN (hết sương/đốm chói), đèn bù ấm dạng bán cầu, bông hồng nở xòe, rừng nền thông thật
 - [x] `npm run assets:venues` chờ cảnh vẽ xong mới chụp; `RENDER_GPU=1` dùng card đồ họa (101 ảnh ~10 phút thay vì vài giờ)
 
+### [x] Nhóm 19: Thiệp Cưới Online (12 mẫu) + Lời Chúc + Xác Nhận Tham Dự + Hộp Mừng Cưới SePay
+- [x] 12 mẫu thiệp, mỗi mẫu một bộ màu, phông chữ có dấu tiếng Việt và hoạ tiết SVG riêng: Song Hỷ Đỏ, Sơn Mài Hồng Phúc, Sen Hồng, Tối Giản, Hoa Hồng Màu Nước, Lá Xanh Boho, Ren Cổ Điển, Baroque Vàng, Hồng Pastel, Tạp Chí, Biển Xanh, Đỏ Đô
+- [x] Trang thiệp `/w/[slug]/invite` (link ngắn `/thiep/[slug]`): phong bì mở ra kèm nhạc nền (nhạc tự tổng hợp hoặc link riêng), `?khach=` ghi "Kính mời" đúng tên từng khách, ngày dương + âm lịch, đếm ngược, hai bên gia đình, lịch trình các lễ (chỉ đường Google Maps, lưu vào lịch), chuyện tình yêu, album, nút vào sảnh 3D
+- [x] Lời chúc không cần đăng nhập (lọc từ thô tục, giới hạn tần suất theo IP); xác nhận tham dự (số người, bên nào, ghi chú) — chủ tiệc xem danh sách trong dashboard
+- [x] Hộp mừng cưới VietQR: tiền vào thẳng tài khoản cô dâu chú rể, SePay webhook tự xác nhận, thiệp báo "Đã nhận" — số tiền không bao giờ hiện công khai; chỉ bật với gói có VietQR và đã cài tài khoản ngân hàng
+- [x] Dashboard tab "Thiệp Cưới Online": đổi mẫu, sửa nội dung, tạo link riêng từng khách, xem trước trên khung điện thoại, danh sách xác nhận tham dự
+- [x] Trang giới thiệu `/thiep-cuoi` + xem thử từng mẫu `/thiep-cuoi/[mau]` → "Dùng mẫu này" tạo phòng cưới với mẫu đã chọn và mở thẳng tab thiệp
+- [x] DB: cột `Wedding.invitationConfig`, bảng `InvitationRsvp`; lời chúc/mừng cưới cho phép khách ẩn danh (`authorId`, `guestUserId` nullable) — cần `npm run db:push` trước khi deploy
+- [x] Kiểm chứng: `npm test` (âm lịch Tết 2024–2026, tháng nhuận 2023, lọc cấu hình thiệp), `npm run typecheck`, E2E 18/18 (tạo phòng có mẫu, chặn sửa khi chưa đăng nhập, lọc link `javascript:`, lời chúc + RSVP ẩn danh, chặn spam 429, chặn mừng cưới khi chưa đủ điều kiện, link riêng có tên khách), ảnh chụp 12 mẫu trên điện thoại
+
+- [x] Rà soát thiết kế (impeccable): mỗi mẫu có góc bo, khung viền in (đôi, nhũ vàng, chỉ mảnh), kiểu đếm ngược và phông chữ viết tay riêng; màu chữ nhấn đạt tương phản ≥ 4.5:1; phong bì dọc toàn màn hình; tên người không bị ngắt dòng; giấy có vân; `apps/web/DESIGN.md`
+
+### [x] Nhóm 20: Khách Mời Là Người Thật (patch `real-people.patch` + `people-assets`)
+- [x] 51 nhân vật người thật (Microsoft Rocketbox, MIT — `public/assets/people/CREDITS.md`): da, tóc, quần áo thật, chuyển động quay từ người thật: đứng thở, đi (nhanh/chậm theo tốc độ thật), ngồi ghế, vẫy tay, vỗ tay, reo hò, nâng ly
+- [x] Patch gốc viết cho một bản "trình tạo nhân vật" chưa có trong repo nên được chuyển thủ công: trường `personId` mới (kiểm tra hợp lệ ở API join và máy chủ realtime, đồng bộ qua `PlayerSchema`), `RealPerson.tsx`, `loadGltfCached`; hình vẽ cũ hiện tạm khi đang tải và dùng cho cô dâu/chú rể (áo cưới, áo dài)
+- [x] Sảnh chờ: lưới ảnh chân dung chọn nhân vật (lọc Nữ/Nam) hoặc "Hình vẽ tự phối" (áo dài, kiểu tóc); lựa chọn được nhớ trên máy
+- [x] Điện thoại tải tối đa 10 nhân vật khác nhau mỗi trang (máy tính 36), người còn lại hiện hình vẽ — sảnh đông vẫn nhẹ
+- [x] Trang xem trước không gian có khách mời người thật ngồi bàn, đứng trò chuyện
+- [x] `scripts/convert-rocketbox.mjs`: chuyển FBX Rocketbox → GLB (cần cài tạm công cụ với `--no-save`)
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`
