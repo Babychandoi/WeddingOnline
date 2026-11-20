@@ -77,6 +77,10 @@ export interface CeremonyConfig {
   ceremonyTimeIso?: string;
   autoBouquetToss?: boolean;
   greetingMessage?: string;
+  /** Real person the bride appears as (BRIDE_PEOPLE id); '' = drawn figure; absent = default */
+  bridePersonId?: string;
+  /** Real person the groom appears as (GROOM_PEOPLE id); '' = drawn figure; absent = default */
+  groomPersonId?: string;
 }
 
 export interface JoinTokenPayload {

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbRepo, toPublicWedding } from '@dco/database';
 import {
+  BRIDE_PEOPLE,
+  GROOM_PEOPLE,
   sanitizeExternalVideoUrl,
   validateSceneLayout,
   type CeremonyConfig,
@@ -73,6 +75,31 @@ export async function PATCH(
     return NextResponse.json(
       { error: 'UNSUPPORTED_WEBHOOK_PROVIDER', message: 'Hệ thống chỉ hỗ trợ webhook SePay.' },
       { status: 400 }
+    );
+  }
+
+  // Couple characters: a listed person or '' (drawn figure); anything else is dropped
+  if (body.ceremonyConfig) {
+    const cc = { ...body.ceremonyConfig };
+    const keep = (v: unknown, list: Array<{ id: string }>) => v === '' || (typeof v === 'string' && list.some((p) => p.id === v));
+    if (cc.bridePersonId !== undefined && !keep(cc.bridePersonId, BRIDE_PEOPLE)) delete cc.bridePersonId;
+    if (cc.groomPersonId !== undefined && !keep(cc.groomPersonId, GROOM_PEOPLE)) delete cc.groomPersonId;
+    body.ceremonyConfig = cc;
+  }
+
+  // Photo spots: photo ids and captions stay short plain strings
+  if (body.layoutData?.prefabs) {
+    body.layoutData.prefabs = body.layoutData.prefabs.map((p) =>
+      p.meta
+        ? {
+            ...p,
+            meta: {
+              ...p.meta,
+              mediaSlotId: typeof p.meta.mediaSlotId === 'string' ? p.meta.mediaSlotId.slice(0, 64) : undefined,
+              customLabel: typeof p.meta.customLabel === 'string' ? p.meta.customLabel.slice(0, 40) : undefined,
+            },
+          }
+        : p,
     );
   }
 

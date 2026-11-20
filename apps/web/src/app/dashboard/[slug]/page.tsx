@@ -23,7 +23,7 @@ export default async function DashboardPage({ params, searchParams }: { params: 
       layout={layout}
       photos={photos}
       devAuthEnabled={!isHardenedProduction()}
-      initialTab={searchParams.tab === 'thiep' ? 'thiep' : undefined}
+      initialTab={searchParams.tab === 'thiep' || searchParams.tab === 'setup' ? searchParams.tab : undefined}
     />
   );
 }

@@ -42,26 +42,30 @@ type ClipName = 'idle' | 'walk' | 'sit' | 'wave' | 'clap' | 'cheers' | 'drink';
  */
 const MODEL_BUDGET = IS_HANDHELD ? 10 : 36;
 const admitted = new Set<string>();
-function admit(id: string): boolean {
+function admit(id: string, priority: boolean): boolean {
   if (admitted.has(id)) return true;
+  if (priority) {
+    admitted.add(id);
+    return true;
+  }
   if (admitted.size >= MODEL_BUDGET) return false;
   admitted.add(id);
   return true;
 }
 
-function useRig(id: string, body: 'f' | 'm') {
+function useRig(id: string, body: 'f' | 'm', priority: boolean) {
   const [rig, setRig] = useState<{ scene: THREE.Group; clips: THREE.AnimationClip[] } | null>(null);
   useEffect(() => {
     let alive = true;
     setRig(null);
-    if (!admit(id)) return;
+    if (!admit(id, priority)) return;
     Promise.all([loadGltfCached(personUrl(id)), loadGltfCached(`${PEOPLE_BASE}/anim_${body}.glb`)])
       .then(([person, anim]) => alive && setRig({ scene: person.scene, clips: anim.animations }))
       .catch(() => undefined);
     return () => {
       alive = false;
     };
-  }, [id, body]);
+  }, [id, body, priority]);
   return rig;
 }
 
@@ -77,6 +81,8 @@ export function RealPerson({
   motion,
   fallback = null,
   castShadow = true,
+  attire = 'none',
+  priority = false,
 }: {
   id: string;
   anim: string;
@@ -84,10 +90,14 @@ export function RealPerson({
   motion: React.MutableRefObject<PersonMotion>;
   fallback?: React.ReactNode;
   castShadow?: boolean;
+  /** 'gown' dresses the person as the bride: full ivory skirt, veil and tiara */
+  attire?: 'none' | 'gown';
+  /** The couple always load, whatever the page's model budget */
+  priority?: boolean;
 }) {
   const info = personInfo(id);
   const body = info?.body ?? 'f';
-  const rig = useRig(id, body);
+  const rig = useRig(id, body, priority);
 
   const { object, mixer, actions } = useMemo(() => {
     if (!rig) return { object: null, mixer: null, actions: null };
@@ -156,5 +166,93 @@ export function RealPerson({
   });
 
   if (!object) return <>{fallback}</>;
+  if (attire === 'gown') {
+    return (
+      <group>
+        <primitive object={object} />
+        <BridalGown person={object} />
+      </group>
+    );
+  }
   return <primitive object={object} />;
+}
+
+/* ───────────────────────── Bridal gown ───────────────────────── */
+
+let gownGeo: { skirt: THREE.LatheGeometry; tulle: THREE.LatheGeometry; veil: THREE.CylinderGeometry; tiara: THREE.TorusGeometry; sash: THREE.TorusGeometry } | null = null;
+let gownMat: { satin: THREE.MeshPhysicalMaterial; tulle: THREE.MeshPhysicalMaterial; veil: THREE.MeshPhysicalMaterial; gold: THREE.MeshStandardMaterial } | null = null;
+
+/** Ball-gown silhouette for a unit-height skirt: waist at y=0, hem at y=-1 (drawn bottom → top) */
+function skirtProfile(waist: number, hem: number): THREE.Vector2[] {
+  const pts: THREE.Vector2[] = [];
+  for (let i = 0; i <= 18; i++) {
+    const t = i / 18; // 0 hem … 1 waist
+    const flare = Math.pow(1 - t, 1.6);
+    pts.push(new THREE.Vector2(waist + (hem - waist) * flare + Math.sin(t * Math.PI) * 0.03, -1 + t));
+  }
+  return pts;
+}
+
+function gownParts() {
+  if (!gownGeo) {
+    gownGeo = {
+      skirt: new THREE.LatheGeometry(skirtProfile(0.15, 0.62), 48),
+      tulle: new THREE.LatheGeometry(skirtProfile(0.165, 0.68), 48),
+      // Open half-cone hanging behind the head
+      veil: new THREE.CylinderGeometry(0.1, 0.42, 1.25, 28, 1, true, Math.PI * 0.5, Math.PI),
+      tiara: new THREE.TorusGeometry(0.088, 0.008, 6, 24, Math.PI),
+      sash: new THREE.TorusGeometry(0.155, 0.018, 8, 40),
+    };
+    gownMat = {
+      satin: new THREE.MeshPhysicalMaterial({ color: '#fbf7ef', roughness: 0.5, sheen: 1, sheenColor: new THREE.Color('#ffffff'), sheenRoughness: 0.4, side: THREE.DoubleSide }),
+      tulle: new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.9, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide }),
+      veil: new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.9, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide }),
+      gold: new THREE.MeshStandardMaterial({ color: '#e5c06a', metalness: 0.85, roughness: 0.25 }),
+    };
+  }
+  return { geo: gownGeo, mat: gownMat! };
+}
+
+/**
+ * The gown follows the body every frame: the skirt hangs from the waist (just above the
+ * pelvis bone) to the floor, the veil and tiara sit on the head.
+ */
+function BridalGown({ person }: { person: THREE.Object3D }) {
+  const { geo, mat } = gownParts();
+  const root = useRef<THREE.Group>(null);
+  const skirt = useRef<THREE.Group>(null);
+  const head = useRef<THREE.Group>(null);
+  const bones = useMemo(() => ({ pelvis: person.getObjectByName('Bip01_Pelvis'), head: person.getObjectByName('Bip01_Head') }), [person]);
+  const v = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame(() => {
+    const r = root.current;
+    if (!r) return;
+    if (bones.pelvis && skirt.current) {
+      bones.pelvis.getWorldPosition(v);
+      r.worldToLocal(v);
+      const waist = Math.max(0.35, v.y + 0.1);
+      skirt.current.position.set(v.x, waist, v.z);
+      skirt.current.scale.set(1, waist - 0.01, 1);
+    }
+    if (bones.head && head.current) {
+      bones.head.getWorldPosition(v);
+      r.worldToLocal(v);
+      head.current.position.copy(v);
+    }
+  });
+
+  return (
+    <group ref={root}>
+      <group ref={skirt}>
+        <mesh geometry={geo.skirt} material={mat.satin} castShadow receiveShadow />
+        <mesh geometry={geo.tulle} material={mat.tulle} />
+        <mesh geometry={geo.sash} material={mat.gold} rotation={[Math.PI / 2, 0, 0]} position={[0, -0.005, 0]} scale={[1, 1, 0.012]} />
+      </group>
+      <group ref={head}>
+        <mesh geometry={geo.tiara} material={mat.gold} position={[0, 0.125, -0.02]} rotation={[Math.PI / 2 - 0.4, 0, 0]} />
+        <mesh geometry={geo.veil} material={mat.veil} position={[0, -0.42, -0.12]} scale={[0.8, 1, 0.9]} />
+      </group>
+    </group>
+  );
 }

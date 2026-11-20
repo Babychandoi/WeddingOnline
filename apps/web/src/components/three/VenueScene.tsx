@@ -70,6 +70,8 @@ export interface RemoteNpcView {
   displayName: string;
   outfitId: string;
   isTakenOver: boolean;
+  /** Real person the bride/groom appears as; empty = drawn figure */
+  personId?: string;
   x: number;
   z: number;
   rotY: number;
@@ -401,7 +403,7 @@ const AmbientPetals: React.FC<{ lowQuality: boolean; templateId: string }> = ({
   );
 };
 
-const PhotoCanvasPlane: React.FC<{ url?: string }> = ({ url }) => {
+const PhotoCanvasPlane: React.FC<{ url?: string; width?: number; height?: number; glow?: boolean }> = ({ url, width = 0.78, height = 0.96, glow = false }) => {
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
 
   useEffect(() => {
@@ -421,6 +423,19 @@ const PhotoCanvasPlane: React.FC<{ url?: string }> = ({ url }) => {
           return;
         }
         tex.colorSpace = THREE.SRGBColorSpace;
+        // Cover-fit: crop the photo to the frame's shape instead of stretching it
+        const img = tex.image as { width?: number; height?: number } | undefined;
+        if (img?.width && img?.height) {
+          const photoAspect = img.width / img.height;
+          const frameAspect = width / height;
+          if (photoAspect > frameAspect) {
+            tex.repeat.set(frameAspect / photoAspect, 1);
+            tex.offset.set((1 - tex.repeat.x) / 2, 0);
+          } else {
+            tex.repeat.set(1, photoAspect / frameAspect);
+            tex.offset.set(0, (1 - tex.repeat.y) / 2);
+          }
+        }
         loadedTex = tex;
         setTexture(tex);
       },
@@ -433,13 +448,16 @@ const PhotoCanvasPlane: React.FC<{ url?: string }> = ({ url }) => {
       active = false;
       loadedTex?.dispose();
     };
-  }, [url]);
+  }, [url, width, height]);
 
   return (
     // A printed photo behind the frame's window: lit like paper, with a faint satin sheen
     <mesh position={[0, 0, 0.012]}>
-      <planeGeometry args={[0.78, 0.96]} />
-      {texture ? (
+      <planeGeometry args={[width, height]} />
+      {texture && glow ? (
+        // The LED wall shows the photo by its own light
+        <meshStandardMaterial map={texture} emissiveMap={texture} emissive="#ffffff" emissiveIntensity={0.85} roughness={0.3} toneMapped={false} />
+      ) : texture ? (
         <meshPhysicalMaterial map={texture} roughness={0.45} clearcoat={0.4} clearcoatRoughness={0.2} />
       ) : (
         <meshStandardMaterial color={url ? '#f3dfe3' : '#ece6dc'} roughness={0.8} />
@@ -538,6 +556,23 @@ const CelebrationParticles: React.FC<{
   );
 };
 
+/** 'none' in a spot's mediaSlotId = the couple chose to show no photo there */
+const NO_PHOTO = 'none';
+
+/** The photo for a spot: the one the couple picked, else the wedding gallery in order */
+function spotPhoto(prefab: PlacedPrefab, photos: PhotoAssetRecord[], fallbackIndex: number | null): { photo: PhotoAssetRecord | null; index: number } {
+  const slot = prefab.meta?.mediaSlotId;
+  if (slot === NO_PHOTO) return { photo: null, index: -1 };
+  if (slot) {
+    const i = photos.findIndex((p) => p.id === slot);
+    if (i >= 0) return { photo: photos[i], index: i };
+  }
+  if (fallbackIndex === null) return { photo: null, index: -1 };
+  const gallery = photos.filter((p) => p.type === 'PRE_WEDDING_GALLERY');
+  const pick = gallery[fallbackIndex] ?? null;
+  return { photo: pick, index: pick ? photos.indexOf(pick) : fallbackIndex };
+}
+
 const PrefabMesh: React.FC<{
   prefab: PlacedPrefab;
   templateId: string;
@@ -576,6 +611,7 @@ const PrefabMesh: React.FC<{
     const tableLinen = useMemo(() => fabric('#f7f3ec', 'linen'), []);
 
     if (prefab.prefabType === 'STAGE_MAIN') {
+      const screen = spotPhoto(prefab, photos, 0).photo;
       return (
         <group position={[center.x, 0, center.z]} rotation={[0, rotY, 0]}>
           {/* Carpeted stage deck, steps, pleated velvet backdrop and swag valance */}
@@ -609,18 +645,25 @@ const PrefabMesh: React.FC<{
               <boxGeometry args={[4.5, 2.35, 0.12]} />
               <meshStandardMaterial color="#e3b65c" metalness={1} roughness={0.25} />
             </mesh>
-            {/* Switched-off LED wall: near-black glass that still mirrors the room */}
-            <mesh position={[0, 0, 0.065]}>
-              <planeGeometry args={[4.2, 2.08]} />
-              <meshPhysicalMaterial color="#0b0d18" roughness={0.12} clearcoat={1} clearcoatRoughness={0.05} emissive="#141a3a" emissiveIntensity={0.35} />
-            </mesh>
-            <SceneLabel position={[0, 0, 0.16]} center distanceFactor={14}>
+            {screen ? (
+              // The couple's photo on the LED wall
+              <group position={[0, 0, 0.053]}>
+                <PhotoCanvasPlane url={screen.publicUrl} width={4.2} height={2.08} glow />
+              </group>
+            ) : (
+              // Switched-off LED wall: near-black glass that still mirrors the room
+              <mesh position={[0, 0, 0.065]}>
+                <planeGeometry args={[4.2, 2.08]} />
+                <meshPhysicalMaterial color="#0b0d18" roughness={0.12} clearcoat={1} clearcoatRoughness={0.05} emissive="#141a3a" emissiveIntensity={0.35} />
+              </mesh>
+            )}
+            <SceneLabel position={[0, screen ? -0.82 : 0, 0.16]} center distanceFactor={14}>
               <button
                 type="button"
                 onClick={onOpenVideo}
-                className="rounded-xl border border-amber-300/70 bg-rose-600/95 px-3.5 py-2 text-xs font-bold text-white shadow-lg hover:bg-rose-500"
+                className={`whitespace-nowrap rounded-xl border border-amber-300/70 bg-rose-600/95 font-bold text-white shadow-lg hover:bg-rose-500 ${screen ? 'px-2.5 py-1 text-[10px]' : 'px-3.5 py-2 text-xs'}`}
               >
-                ▶ XEM VIDEO / LIVESTREAM LỄ CƯỚI
+                {screen ? '▶ Video lễ cưới' : '▶ XEM VIDEO / LIVESTREAM LỄ CƯỚI'}
               </button>
             </SceneLabel>
           </group>
@@ -690,6 +733,38 @@ const PrefabMesh: React.FC<{
               </div>
             </SceneLabel>
           )}
+
+          {(() => {
+            const welcome = prefab.meta?.mediaSlotId ? spotPhoto(prefab, photos, null) : null;
+            if (!welcome?.photo) return null;
+            return (
+              <group
+                position={[2.3, 0, -1.1]}
+                rotation={[0, -0.35, 0]}
+                onPointerOver={(e) => {
+                  e.stopPropagation();
+                  setPointerCursor(true);
+                }}
+                onPointerOut={() => setPointerCursor(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenPhoto(welcome.photo, welcome.index);
+                }}
+              >
+                {/* Welcome board: a large portrait print on an easel */}
+                <group scale={1.3}>
+                  <EaselFrame>
+                    <PhotoCanvasPlane url={welcome.photo.publicUrl} />
+                  </EaselFrame>
+                </group>
+                <SceneLabel position={[0, 2.2, 0]} center distanceFactor={12}>
+                  <div className="pointer-events-none whitespace-nowrap rounded bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-rose-800 shadow">
+                    💐 {prefab.meta?.customLabel || 'Chào mừng đến lễ cưới'}
+                  </div>
+                </SceneLabel>
+              </group>
+            );
+          })()}
 
           {/* Sculpted Guestbook Lectern */}
           <group
@@ -813,8 +888,9 @@ const PrefabMesh: React.FC<{
     }
 
     if (prefab.prefabType === 'PHOTO_FRAME_STAND') {
-      const idx = photoIndexMap.get(prefab.instanceId) ?? 0;
-      const photo = photos[idx] ?? null;
+      const spot = spotPhoto(prefab, photos, photoIndexMap.get(prefab.instanceId) ?? 0);
+      const photo = spot.photo;
+      const idx = spot.index;
       return (
         <group
           position={[center.x, 0, center.z]}
@@ -838,7 +914,7 @@ const PrefabMesh: React.FC<{
               onClick={() => onOpenPhoto(photo, idx)}
               className="whitespace-nowrap rounded bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-slate-800 shadow"
             >
-              🖼️ {prefab.meta?.customLabel || `Ảnh #${idx + 1}`}
+              🖼️ {prefab.meta?.customLabel || `Ảnh #${(photoIndexMap.get(prefab.instanceId) ?? 0) + 1}`}
             </button>
           </SceneLabel>
         </group>
@@ -998,6 +1074,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
                   id={npc.npcId}
                   displayName={npc.displayName}
                   outfitId={npc.outfitId}
+                  personId={npc.personId}
                   hairId={npc.npcId === 'BRIDE' ? 'hair_4' : 'hair_2'}
                   hairColor="#1f2937"
                   targetX={npc.x}

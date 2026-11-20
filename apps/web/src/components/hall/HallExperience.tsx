@@ -339,6 +339,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
               npcId: n.npcId,
               displayName: n.displayName,
               outfitId: n.outfitId,
+              personId: n.personId,
               isTakenOver: n.isTakenOver,
               x: n.x,
               z: n.z,
@@ -347,7 +348,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
               bubbleText: n.bubbleText,
             });
           });
-          const npcsKey = nList.map((n) => [n.npcId, n.displayName, n.outfitId, n.isTakenOver, n.anim, n.bubbleText].join('|')).join('§');
+          const npcsKey = nList.map((n) => [n.npcId, n.displayName, n.outfitId, n.personId, n.isTakenOver, n.anim, n.bubbleText].join('|')).join('§');
           const npcPositionsKey = nList.map((n) => `${n.x},${n.z},${n.rotY}`).join(';');
           if (npcsKey !== lastNpcsKey || (positionsDue && npcPositionsKey !== lastNpcPositionsKey)) {
             lastNpcsKey = npcsKey;

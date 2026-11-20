@@ -70,3 +70,38 @@ export const PERSON_IDS = PEOPLE.map((p) => p.id);
 export function sanitizePersonId(value: unknown): string {
   return typeof value === 'string' && PERSON_IDS.includes(value) ? value : '';
 }
+
+/* ───────────────────────── The couple ───────────────────────── */
+
+/**
+ * Real people the bride can be. Each wears her own top (white or blush) with a full ivory
+ * gown, veil and tiara added over it in the hall (Rocketbox has no wedding dress).
+ */
+export const BRIDE_PEOPLE: PersonInfo[] = [
+  { id: 'female_adult_02', body: 'f', label: 'Tóc đen búi, áo trắng' },
+  { id: 'female_party_01', body: 'f', label: 'Tóc vàng, áo hai dây trắng' },
+  { id: 'female_adult_05', body: 'f', label: 'Tóc đen, áo hồng phấn' },
+];
+
+/** Real people the groom can be: suits, the red tie first */
+export const GROOM_PEOPLE: PersonInfo[] = [
+  { id: 'business_male_01', body: 'm', label: 'Vest đen, cà vạt đỏ' },
+  { id: 'business_male_02', body: 'm', label: 'Vest xanh navy' },
+  { id: 'business_male_03', body: 'm', label: 'Vest đen, cà vạt xanh' },
+  { id: 'business_male_05', body: 'm', label: 'Vest đen, cà vạt tím' },
+  { id: 'male_adult_03', body: 'm', label: 'Blazer xám' },
+];
+
+export const DEFAULT_BRIDE_PERSON = BRIDE_PEOPLE[0].id;
+export const DEFAULT_GROOM_PERSON = GROOM_PEOPLE[0].id;
+
+/**
+ * Who the bride or groom appears as. Not chosen yet → the default real person;
+ * '' → the drawn figure (red áo dài / white gown); unknown ids fall back to the default.
+ */
+export function couplePersonId(role: 'BRIDE' | 'GROOM', chosen: unknown): string {
+  const list = role === 'BRIDE' ? BRIDE_PEOPLE : GROOM_PEOPLE;
+  if (chosen === '') return '';
+  if (typeof chosen === 'string' && list.some((p) => p.id === chosen)) return chosen;
+  return role === 'BRIDE' ? DEFAULT_BRIDE_PERSON : DEFAULT_GROOM_PERSON;
+}

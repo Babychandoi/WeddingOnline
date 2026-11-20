@@ -159,6 +159,13 @@
 - [x] Trang xem trước không gian có khách mời người thật ngồi bàn, đứng trò chuyện
 - [x] `scripts/convert-rocketbox.mjs`: chuyển FBX Rocketbox → GLB (cần cài tạm công cụ với `--no-save`)
 
+### [x] Nhóm 21: Setup Phòng Cưới + Cô Dâu Chú Rể Người Thật
+- [x] Tab dashboard "Setup Phòng Cưới": chọn nhân vật cho cô dâu (3 người thật mặc thêm váy cưới trắng, voan, vương miện, nơ eo nhũ vàng, hoặc hình vẽ) và chú rể (5 người thật mặc vest, hoặc hình vẽ)
+- [x] Gắn ảnh cưới vào từng vị trí trong sảnh: màn hình LED sân khấu (mặc định ảnh đầu album, có thể tắt), bảng chào mừng ở cổng (ảnh + câu chào), từng giá ảnh dọc lối đi (ảnh + chú thích); ảnh được cắt vừa khung, không còn bị kéo méo
+- [x] Lưu trong `layout.meta.mediaSlotId/customLabel` và `ceremonyConfig.bridePersonId/groomPersonId` (không đổi DB); API kiểm tra người hợp lệ và cắt độ dài chữ
+- [x] Cô dâu chú rể (NPC và chủ phòng nhập vai) hiện bằng người đã chọn; luôn được tải kể cả khi điện thoại đã chạm giới hạn mô hình
+- [x] Kiểm chứng: E2E trên stack cục bộ (tạo phòng, 4 ảnh, lưu setup, chặn id lạ, cắt chú thích 40 ký tự, cần đăng nhập, vào sảnh xem sân khấu/cổng), ảnh chụp cận cô dâu chú rể; test 2 trình duyệt trên production: thấy đúng nhân vật, đi, vẫy tay, vỗ tay đồng bộ hai chiều
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

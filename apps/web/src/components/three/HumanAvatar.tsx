@@ -690,7 +690,15 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
 
       {personId ? (
         <>
-          <RealPerson id={personId} anim={anim} seated={anim === 'sit' || isSeated} motion={personMotion} fallback={stylisedBody} />
+          <RealPerson
+            id={personId}
+            anim={anim}
+            seated={anim === 'sit' || isSeated}
+            motion={personMotion}
+            fallback={stylisedBody}
+            attire={outfitId === 'vay_cuoi_trang' ? 'gown' : 'none'}
+            priority={isNpc || outfitId === 'vay_cuoi_trang' || outfitId === 'vest_chu_re'}
+          />
       {hasBouquetCrown && (
         <group position={[0, 1.78, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <mesh geometry={g.crown} material={mat('#facc15', 0.3, 0.5)} />

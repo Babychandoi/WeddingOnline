@@ -4,7 +4,7 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
-import { getPrefabCenterWorld, getTableSeatAnchors, type SceneLayoutDocument } from '@dco/shared';
+import { DEFAULT_BRIDE_PERSON, DEFAULT_GROOM_PERSON, getPrefabCenterWorld, getTableSeatAnchors, type SceneLayoutDocument } from '@dco/shared';
 import type { BouquetView, RemoteNpcView, RemotePlayerView } from '../three/VenueScene';
 
 const VenueScene = dynamic(() => import('../three/VenueScene').then((mod) => mod.VenueScene), {
@@ -28,8 +28,8 @@ const IDLE_BOUQUET: BouquetView = {
 };
 // The couple greeting guests in front of the stage
 const COUPLE: RemoteNpcView[] = [
-  { npcId: 'BRIDE', displayName: 'Cô Dâu', outfitId: 'vay_cuoi_trang', isTakenOver: false, x: -0.9, z: -8.8, rotY: 0, anim: 'wave' },
-  { npcId: 'GROOM', displayName: 'Chú Rể', outfitId: 'vest_chu_re', isTakenOver: false, x: 0.9, z: -8.8, rotY: 0, anim: 'wave' },
+  { npcId: 'BRIDE', displayName: 'Cô Dâu', outfitId: 'vay_cuoi_trang', personId: DEFAULT_BRIDE_PERSON, isTakenOver: false, x: -0.9, z: -8.8, rotY: 0, anim: 'wave' },
+  { npcId: 'GROOM', displayName: 'Chú Rể', outfitId: 'vest_chu_re', personId: DEFAULT_GROOM_PERSON, isTakenOver: false, x: 0.9, z: -8.8, rotY: 0, anim: 'wave' },
 ];
 
 // Real, motion-captured people (Rocketbox); the stylised look shows while they load

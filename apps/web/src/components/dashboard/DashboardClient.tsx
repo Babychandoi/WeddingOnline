@@ -34,6 +34,7 @@ import { TIER_CATALOG, type SceneLayoutDocument, type WeddingTier } from '@dco/s
 import { SceneBuilderEditor } from '../builder/SceneBuilderEditor';
 import { PrintQrTab } from './PrintQrTab';
 import { InvitationEditor } from './InvitationEditor';
+import { RoomSetupEditor } from './RoomSetupEditor';
 import { OAuthModal } from '../hall/OAuthModal';
 
 interface DashboardClientProps {
@@ -44,7 +45,7 @@ interface DashboardClientProps {
   /** Server allows the dev/demo login (never on a production deployment). */
   devAuthEnabled: boolean;
   /** Open on this tab (e.g. ?tab=thiep after picking an invitation template) */
-  initialTab?: 'thiep';
+  initialTab?: 'thiep' | 'setup';
 }
 
 type MemberWithUser = WeddingMemberRecord & { userDisplayName: string };
@@ -59,7 +60,9 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
 }) => {
   const [wedding, setWedding] = useState(initialWedding);
   const [photos, setPhotos] = useState(initialPhotos);
-  const [tab, setTab] = useState<'builder' | 'settings' | 'photos' | 'members' | 'thiep' | 'printqr' | 'ledger'>(initialTab ?? 'builder');
+  const [tab, setTab] = useState<'builder' | 'settings' | 'photos' | 'members' | 'thiep' | 'setup' | 'printqr' | 'ledger'>(initialTab ?? 'builder');
+  // One copy of the hall layout shared by the builder and the room setup tab
+  const [layoutState, setLayoutState] = useState(layout);
   const [authUser, setAuthUser] = useState<{ id: string; displayName: string } | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [hostAccessDenied, setHostAccessDenied] = useState(false);
@@ -515,6 +518,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
           {(
             [
               { id: 'builder', label: 'Thiết Kế Sảnh 3D (Grid-Snap)', icon: Grid },
+              { id: 'setup', label: 'Setup Phòng Cưới', icon: Sparkles },
               { id: 'settings', label: 'Cài Đặt & Lịch Auto-NPC', icon: Settings },
               { id: 'photos', label: 'Ảnh Cưới Triển Lãm', icon: ImageIcon },
               { id: 'members', label: 'Thành Viên, MC & Kiểm Duyệt', icon: Users },
@@ -540,7 +544,20 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
           })}
         </div>
 
-        {tab === 'builder' && <SceneBuilderEditor slug={wedding.slug} initialLayout={layout} />}
+        {tab === 'builder' && <SceneBuilderEditor slug={wedding.slug} initialLayout={layoutState} onSaved={setLayoutState} />}
+
+        {tab === 'setup' && (
+          <RoomSetupEditor
+            wedding={wedding}
+            layout={layoutState}
+            photos={photos}
+            onUploadPhoto={handleUploadPhoto}
+            onSaved={(l, w) => {
+              setLayoutState(l);
+              if (w) setWedding(w);
+            }}
+          />
+        )}
 
         {tab === 'settings' && (
           <form

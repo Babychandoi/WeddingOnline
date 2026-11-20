@@ -15,6 +15,7 @@ import {
   getTableSeatAnchors,
   gridCellToWorld,
   sanitizeBubbleText,
+  couplePersonId,
   sanitizePersonId,
   type CeremonyConfig,
   type JoinTokenPayload,
@@ -83,6 +84,7 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
     brideNpc.npcId = 'BRIDE';
     brideNpc.displayName = `Cô Dâu ${wedding.brideName}`;
     brideNpc.outfitId = 'vay_cuoi_trang';
+    brideNpc.personId = couplePersonId('BRIDE', wedding.ceremonyConfig?.bridePersonId);
     brideNpc.x = gatePos.x - 1.2;
     brideNpc.z = gatePos.z - 2.4;
     brideNpc.rotY = 0;
@@ -93,6 +95,7 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
     groomNpc.npcId = 'GROOM';
     groomNpc.displayName = `Chú Rể ${wedding.groomName}`;
     groomNpc.outfitId = 'vest_chu_re';
+    groomNpc.personId = couplePersonId('GROOM', wedding.ceremonyConfig?.groomPersonId);
     groomNpc.x = gatePos.x + 1.2;
     groomNpc.z = gatePos.z - 2.4;
     groomNpc.rotY = 0;
@@ -344,7 +347,8 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
         npc.isTakenOver = true;
         player.takingOverNpc = msg.targetNpc;
         player.outfitId = msg.targetNpc === 'BRIDE' ? 'vay_cuoi_trang' : 'vest_chu_re';
-        player.personId = '';
+        // The host plays the couple as the person chosen for them in the dashboard
+        player.personId = npc.personId;
         player.x = npc.x;
         player.z = npc.z;
       }

@@ -62,6 +62,8 @@ export class NpcSchema extends Schema {
   @type('number') rotY: number = 0;
   @type('string') anim: string = 'wave';
   @type('string') bubbleText: string = '';
+  /** Real person the bride/groom appears as (people.ts); '' = drawn figure */
+  @type('string') personId: string = '';
 }
 
 export class CeremonySchema extends Schema {
