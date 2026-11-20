@@ -271,7 +271,7 @@ export default function HomePage() {
                 className="overflow-hidden rounded-[6px] shadow-[0_18px_36px_-18px_rgba(60,20,20,0.55)] transition hover:-translate-y-1"
                 aria-label={`Thiệp mẫu ${INVITATION_TEMPLATES.find((t) => t.id === id)?.nameVi ?? ''}`}
               >
-                <CardFace templateId={id} groom="Minh Quân" bride="Thu Hà" dateLine="20 · 12 · 2026" />
+                <CardFace templateId={id} groom="Minh Quân" bride="Thu Hà" />
               </Link>
             ))}
           </div>

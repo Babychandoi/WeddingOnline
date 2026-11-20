@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { INVITATION_TEMPLATES, isInvitationTemplateId } from '@dco/shared';
 import { InvitationView } from '@/components/invitation/InvitationView';
-import { SAMPLE_COUPLE, SAMPLE_WISHES, sampleInvitation } from '@/components/invitation/sampleInvitation';
+import { SAMPLE_COUPLE, SAMPLE_PHOTOS, SAMPLE_WISHES, sampleInvitation } from '@/components/invitation/sampleInvitation';
 
 export function generateMetadata({ params }: { params: { templateId: string } }): Metadata {
   const t = INVITATION_TEMPLATES.find((x) => x.id === params.templateId);
@@ -35,7 +35,7 @@ export default function TemplateDemoPage({ params, searchParams }: { params: { t
         brideName={SAMPLE_COUPLE.brideName}
         weddingDate={SAMPLE_COUPLE.weddingDate}
         config={sampleInvitation(params.templateId)}
-        photos={[]}
+        photos={SAMPLE_PHOTOS[params.templateId].photos}
         guestName={typeof searchParams.khach === 'string' ? searchParams.khach.slice(0, 60) : 'Anh Tuấn'}
         gift={{ enabled: false, bankName: null }}
         hallUrl="/khong-gian/vn_hue_imperial"

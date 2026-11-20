@@ -38,7 +38,7 @@ export function TemplateGallery() {
           <li key={t.id}>
             <Link href={`/thiep-cuoi/${t.id}`} className="group block focus-visible:outline-none">
               <div className="overflow-hidden rounded-[6px] shadow-[0_14px_30px_-14px_rgba(60,20,20,0.45)] ring-1 ring-black/5 transition duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_22px_40px_-16px_rgba(60,20,20,0.55)] group-focus-visible:ring-4 group-focus-visible:ring-rose-400">
-                <CardFace templateId={t.id} groom={SAMPLE_COUPLE.groomName} bride={SAMPLE_COUPLE.brideName} dateLine="20 · 12 · 2026" />
+                <CardFace templateId={t.id} groom={SAMPLE_COUPLE.groomName} bride={SAMPLE_COUPLE.brideName} />
               </div>
               <h3 className="mt-3 text-base font-bold text-slate-900">{t.nameVi}</h3>
               <p className="mt-0.5 text-sm leading-snug text-slate-600">{t.descriptionVi}</p>

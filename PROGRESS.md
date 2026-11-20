@@ -172,6 +172,12 @@
 - [x] Lý do: Google thỉnh thoảng trả link font dạng `/l/font?kit=…` không có đuôi file làm `next build` trong Docker hỏng ngẫu nhiên khi deploy
 - [x] Thêm/đổi font: sửa danh sách trong script rồi chạy `node scripts/fetch-fonts.mjs`
 
+### [x] Nhóm 23: 12 Mẫu Thiệp Bố Cục Riêng Có Ảnh (patch `0001-Online-invitations-12-photo-led-templates…`)
+- [x] Mỗi mẫu có bìa riêng (mái vòm Song Hỷ, ảnh tròn sơn mài, khung vòm cài mẫu đơn, tối giản kiểu tạp chí kiến trúc, oval màu nước, poster tràn viền giữa vườn, oval ren tông nâu, đen trắng khung vàng, polaroid, bìa tạp chí LOVE, poster biển, ảnh cài trong phong bì), tiêu đề mục, thẻ lịch trình, lịch tháng, album và màn cảm ơn riêng; phong bì hé ảnh cặp đôi; nút "Thả tim"
+- [x] 66 ảnh mẫu Unsplash (WebP, 2 cỡ; nguồn ở `public/invitation-samples/SOURCES.md`) cho thiệp mẫu và thẻ thư viện
+- [x] Patch gốc thêm 3 font bằng `next/font` → chuyển sang font tự lưu trữ: Viaoda Libre, Playfair Display, Cormorant Garamond (thêm chữ nghiêng) trong `scripts/fetch-fonts.mjs`
+- [x] Kiểm chứng: typecheck, `npm test`, E2E thiệp 18/18, chụp 12 mẫu trên điện thoại
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

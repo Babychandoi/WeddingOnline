@@ -28,18 +28,18 @@ export interface InvitationTemplateMeta {
 }
 
 export const INVITATION_TEMPLATES: InvitationTemplateMeta[] = [
-  { id: 'song-hy-do', nameVi: 'Song Hỷ Đỏ', descriptionVi: 'Thiệp đỏ truyền thống, chữ Hỷ vàng kim, phong bì đỏ mở ra như thiệp in.', style: 'truyen-thong', swatches: ['#7a1012', '#a3161b', '#e8b64c', '#fff3dc'] },
-  { id: 'son-mai', nameVi: 'Sơn Mài Hồng Phúc', descriptionVi: 'Nền sơn mài đỏ thẫm, viền vàng, hoạ tiết mây cát tường.', style: 'truyen-thong', swatches: ['#2a0b0b', '#5c1414', '#d8a84e', '#f6e7c8'] },
-  { id: 'sen-hong', nameVi: 'Sen Hồng', descriptionVi: 'Hoa sen hồng và lá sen xanh, nhẹ nhàng mà rất Việt.', style: 'truyen-thong', swatches: ['#f7ede6', '#fffaf5', '#d9627d', '#2f5d46'] },
-  { id: 'toi-gian', nameVi: 'Tối Giản', descriptionVi: 'Trắng ngà, chữ thanh mảnh, khoảng thở rộng. Đẹp nhờ sự tiết chế.', style: 'hien-dai', swatches: ['#f4f1ec', '#ffffff', '#1e1e1e', '#8a8378'] },
-  { id: 'mau-nuoc', nameVi: 'Hoa Hồng Màu Nước', descriptionVi: 'Hồng phấn và đào loang màu nước, chữ viết tay bay bổng.', style: 'lang-man', swatches: ['#fbf3f1', '#fffdfb', '#d98a94', '#5b3b3f'] },
-  { id: 'la-xanh', nameVi: 'Lá Xanh Boho', descriptionVi: 'Cành bạch đàn xanh xám, giấy kraft, hợp tiệc ngoài trời.', style: 'hien-dai', swatches: ['#e9ece4', '#f8f7f1', '#6f8a6b', '#2d3a2c'] },
-  { id: 'ren-co-dien', nameVi: 'Ren Cổ Điển', descriptionVi: 'Viền ren và khung đôi, hồng tro cổ điển như thiệp thập niên 60.', style: 'lang-man', swatches: ['#efe2dc', '#faf4ef', '#a86f72', '#4a3436'] },
-  { id: 'baroque-vang', nameVi: 'Baroque Hoàng Kim', descriptionVi: 'Đen tuyền và vàng kim, hoạ tiết hoa văn cung đình châu Âu.', style: 'sang-trong', swatches: ['#0f0d0b', '#1a1714', '#c9a45c', '#efe3c4'] },
-  { id: 'hong-pastel', nameVi: 'Hồng Pastel', descriptionVi: 'Hồng phấn ngọt ngào, trái tim và dải lụa, trẻ trung.', style: 'lang-man', swatches: ['#ffe4ea', '#fff7f9', '#ec7c9a', '#6b2c3e'] },
-  { id: 'tap-chi', nameVi: 'Tạp Chí', descriptionVi: 'Như trang bìa tạp chí: ảnh cưới lớn, chữ khổng lồ, đen trắng.', style: 'hien-dai', swatches: ['#ffffff', '#f2f2f2', '#111111', '#c8102e'] },
-  { id: 'bien-xanh', nameVi: 'Biển Xanh', descriptionVi: 'Xanh navy và xanh trời, sóng biển, hợp đám cưới miền biển.', style: 'hien-dai', swatches: ['#0f2a47', '#f3f7fb', '#5aa7d6', '#e9c46a'] },
-  { id: 'do-do', nameVi: 'Đỏ Đô Thư Pháp', descriptionVi: 'Đỏ rượu vang và hồng nhung, chữ viết tay, sang và ấm.', style: 'sang-trong', swatches: ['#4a0d1c', '#6e1427', '#e7b8a8', '#fbeee8'] },
+  { id: 'song-hy-do', nameVi: 'Song Hỷ Đỏ', descriptionVi: 'Mái vòm đỏ với chữ Song Hỷ vàng kim, ảnh cưới trong khung vòm, phong bì đỏ mở ra như thiệp in.', style: 'truyen-thong', swatches: ['#6d0f12', '#a3161b', '#d2ab62', '#fbf4e8'] },
+  { id: 'son-mai', nameVi: 'Sơn Mài Hồng Phúc', descriptionVi: 'Nền sơn mài đỏ thẫm, ảnh tròn viền vàng kim, góc hoạ tiết cung đình.', style: 'truyen-thong', swatches: ['#2a0b0b', '#5c1414', '#d8a84e', '#f6e7c8'] },
+  { id: 'sen-hong', nameVi: 'Sen Hồng', descriptionVi: 'Ảnh khung vòm cài hoa mẫu đơn, chữ viết tay hồng sen, nhẹ nhàng mà rất Việt.', style: 'truyen-thong', swatches: ['#f7ede6', '#fffaf5', '#d9627d', '#2f5d46'] },
+  { id: 'toi-gian', nameVi: 'Tối Giản', descriptionVi: 'Trắng ngà, chữ thanh mảnh, ảnh như trang tạp chí kiến trúc. Đẹp nhờ sự tiết chế.', style: 'hien-dai', swatches: ['#f4f1ec', '#ffffff', '#1e1e1e', '#8a8378'] },
+  { id: 'mau-nuoc', nameVi: 'Hoa Hồng Màu Nước', descriptionVi: 'Loang màu nước hồng đào, ảnh oval cài hoa mẫu đơn, chữ viết tay bay bổng.', style: 'lang-man', swatches: ['#fbf3f1', '#fffdfb', '#d98a94', '#5b3b3f'] },
+  { id: 'la-xanh', nameVi: 'Lá Xanh Boho', descriptionVi: 'Ảnh cưới tràn màn hình giữa vườn xanh, chữ viết tay trắng, hợp tiệc ngoài trời.', style: 'hien-dai', swatches: ['#e9ece4', '#f8f7f1', '#6f8a6b', '#2d3a2c'] },
+  { id: 'ren-co-dien', nameVi: 'Ren Cổ Điển', descriptionVi: 'Khung oval viền ren, ảnh tông nâu cổ điển, chữ Save the Date như thiệp thập niên 60.', style: 'lang-man', swatches: ['#efe2dc', '#faf4ef', '#a86f72', '#4a3436'] },
+  { id: 'baroque-vang', nameVi: 'Baroque Hoàng Kim', descriptionVi: 'Ảnh đen trắng trong khung vàng kim, chữ viết tay hoàng gia, sang như dạ tiệc.', style: 'sang-trong', swatches: ['#0f0d0b', '#1a1714', '#c9a45c', '#efe3c4'] },
+  { id: 'hong-pastel', nameVi: 'Hồng Pastel', descriptionVi: 'Ảnh polaroid dán băng keo, chấm bi hồng và trái tim. Trẻ trung, đáng yêu.', style: 'lang-man', swatches: ['#ffe4ea', '#fff7f9', '#ec7c9a', '#6b2c3e'] },
+  { id: 'tap-chi', nameVi: 'Tạp Chí', descriptionVi: 'Như bìa tạp chí: ảnh cưới tràn viền, chữ LOVE khổng lồ, các mục đánh số.', style: 'hien-dai', swatches: ['#ffffff', '#f2f2f2', '#111111', '#c8102e'] },
+  { id: 'bien-xanh', nameVi: 'Biển Xanh', descriptionVi: 'Ảnh biển tràn viền, chữ Save the Date viết tay trên nền trời, lịch cưới như vé tàu.', style: 'hien-dai', swatches: ['#0f2a47', '#f3f7fb', '#5aa7d6', '#e9c46a'] },
+  { id: 'do-do', nameVi: 'Đỏ Đô Thư Pháp', descriptionVi: 'Ảnh cưới cài trong phong bì đỏ rượu vang, dấu sáp vàng, nền giấy kem. Sang và ấm.', style: 'sang-trong', swatches: ['#2a060f', '#6e1427', '#c79d8e', '#f4ebe0'] },
 ];
 
 export const DEFAULT_INVITATION_TEMPLATE: InvitationTemplateId = 'song-hy-do';

@@ -190,7 +190,15 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
                 aria-pressed={config.templateId === t.id}
                 className={`overflow-hidden rounded-xl text-left ring-offset-2 transition ${config.templateId === t.id ? 'ring-[3px] ring-rose-600' : 'ring-1 ring-slate-200 hover:ring-slate-400'}`}
               >
-                <CardFace templateId={t.id} groom={config.groomFullName} bride={config.brideFullName} dateLine="" className="pointer-events-none" />
+                <CardFace
+                  templateId={t.id}
+                  groom={config.groomFullName}
+                  bride={config.brideFullName}
+                  date={config.events.find((e) => e.kind === 'THANH_HON' || e.kind === 'TIEC_CUOI')?.startsAt ?? wedding.weddingDate}
+                  cover={config.coverPhotoUrl || gallery[0]?.publicUrl}
+                  extras={gallery.filter((p) => p.publicUrl !== (config.coverPhotoUrl || gallery[0]?.publicUrl)).slice(0, 2).map((p) => p.publicUrl)}
+                  className="pointer-events-none"
+                />
                 <span className="block truncate bg-white px-2 py-1.5 text-[11px] font-bold text-slate-800">{t.nameVi}</span>
               </button>
             ))}

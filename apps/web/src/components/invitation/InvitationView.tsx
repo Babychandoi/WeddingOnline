@@ -1,15 +1,18 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarPlus, ChevronLeft, ChevronRight, MapPin, Music2, Share2, Sparkles, VolumeX, X } from 'lucide-react';
-import { INVITATION_EVENT_LABELS, invitationMapLink, type InvitationConfig, type InvitationTemplateId } from '@dco/shared';
+import { ChevronLeft, ChevronRight, Heart, Music2, Share2, Sparkles, VolumeX, X } from 'lucide-react';
+import type { InvitationConfig, InvitationTemplateId } from '@dco/shared';
 import type { InvitationWish } from '@/app/api/invitations/[slug]/wishes/route';
 import { INVITATION_FONT_VARS } from './fonts';
 import { GiftBox, RsvpForm, WishesSection, primaryButton } from './InvitationForms';
 import { Ornament, Seal } from './Ornaments';
 import { INVITE_THEMES, type InviteTheme } from './themes';
 import { MusicBox } from './musicBox';
-import { calendarLink, lunarLine, lunarShort, vnDate, vnParts, vnTime } from './format';
+import { vnDate } from './format';
+import { InvitationCover, type CoverData } from './covers';
+import { Album, ClosingPhoto, EventsBlock, Interlude, MonthCalendar, Section, type SectionTitle } from './blocks';
+import { Grain, Name, cityOf, isDark, keepAbbr, sized } from './parts';
 
 export interface InvitationPhoto {
   id: string;
@@ -36,32 +39,11 @@ export interface InvitationViewProps {
   embedded?: boolean;
 }
 
-/** Paper grain as a tiny SVG noise tile */
-const GRAIN =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E\")";
-
 const SHAPE: Record<InviteTheme['shape'], { r: string; btn: string }> = {
   soft: { r: '12px', btn: '999px' },
   gentle: { r: '4px', btn: '4px' },
   square: { r: '0px', btn: '0px' },
 };
-
-/** Dark papers take the grain lightened in, light papers darkened in */
-function isDark(hex: string): boolean {
-  const n = parseInt(hex.slice(1), 16);
-  return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 < 110;
-}
-
-function Grain({ paper, strength }: { paper: string; strength: number }) {
-  const dark = isDark(paper);
-  return (
-    <div
-      className="pointer-events-none absolute inset-0"
-      style={{ backgroundImage: GRAIN, opacity: Math.min(0.55, strength * (dark ? 1.1 : 0.8)), mixBlendMode: dark ? 'screen' : 'multiply' }}
-      aria-hidden="true"
-    />
-  );
-}
 
 /** The border printed around the whole card */
 function CardFrame({ theme }: { theme: InviteTheme }) {
@@ -83,14 +65,6 @@ function CardFrame({ theme }: { theme: InviteTheme }) {
   );
 }
 
-/** Keep abbreviations with the word after them (TP. Huế, Q. 3) */
-const keepAbbr = (s: string) => s.replace(/\b(TP|Tp|Q|P|X|H|TT)\. /g, '$1.\u00a0');
-
-/** A person's name never breaks across lines unless it is unusually long */
-function Name({ children }: { children: string }) {
-  return <span className={children.length <= 28 ? 'whitespace-nowrap' : undefined}>{children}</span>;
-}
-
 function themeVars(t: InviteTheme): React.CSSProperties {
   return {
     '--inv-ground': t.ground,
@@ -104,7 +78,7 @@ function themeVars(t: InviteTheme): React.CSSProperties {
     '--inv-btn-shadow': t.shape === 'soft' ? '0 6px 18px -6px rgba(0,0,0,0.45)' : 'none',
     '--inv-on-accent': t.onAccent,
     '--inv-line': t.line,
-    '--inv-panel': t.panel,
+    '--inv-panel': t.field ?? t.panel,
     '--inv-display': t.display,
     '--inv-script': t.script,
     '--inv-body': t.body,
@@ -118,7 +92,7 @@ function initials(a: string, b: string): string {
 
 /* ───────────────────────── Envelope ───────────────────────── */
 
-function Envelope({ theme, guestName, couple, monogram, onOpen }: { theme: InviteTheme; guestName: string | null; couple: string; monogram: string; onOpen: () => void }) {
+function Envelope({ theme, guestName, photo, monogram, couple, date, onOpen }: { theme: InviteTheme; guestName: string | null; photo: string; monogram: string; couple: string; date: string; onOpen: () => void }) {
   const [phase, setPhase] = useState<'closed' | 'opening' | 'gone'>('closed');
   const env = theme.envelope;
 
@@ -133,25 +107,34 @@ function Envelope({ theme, guestName, couple, monogram, onOpen }: { theme: Invit
 
   if (phase === 'gone') return null;
   const opening = phase === 'opening';
+  const headInk = isDark(theme.ground) ? '#fff6ea' : theme.ink;
 
   return (
     <div
       className={`fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden px-5 transition-opacity duration-500 ${opening ? 'pointer-events-none opacity-0 [transition-delay:1350ms]' : ''}`}
-      style={{ background: theme.ground }}
+      style={{ background: `radial-gradient(120% 80% at 50% 30%, ${theme.ground}, ${theme.ground} 40%, #00000022 100%), ${theme.ground}` }}
     >
+      <div className={`text-center transition-all duration-500 ${opening ? '-translate-y-3 opacity-0' : ''}`} style={{ color: headInk }}>
+        <p className="text-[12px] uppercase tracking-[0.42em] opacity-85">Thiệp mời cưới</p>
+        <p className="mt-1.5 px-2 text-[clamp(2.2rem,10vw,3rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.script }}>
+          {couple}
+        </p>
+        <p className="mt-1 text-[14px] tabular-nums tracking-[0.32em] opacity-90">{date}</p>
+      </div>
       <button
         type="button"
         onClick={open}
         aria-label="Mở thiệp cưới"
-        className="group relative h-[min(72vh,620px)] w-[min(88vw,460px)] outline-none [perspective:1200px] focus-visible:ring-4 focus-visible:ring-white/60"
+        className="group relative mt-[11vh] h-[min(50vh,460px)] w-[min(84vw,420px)] outline-none [perspective:1200px] focus-visible:ring-4 focus-visible:ring-white/60"
       >
-        {/* Card inside, rising out */}
+        {/* Card inside, peeking out, then rising out */}
         <div
-          className="absolute inset-x-[7%] top-[5%] h-[88%] rounded-[3px] shadow-md transition-transform duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)] [transition-delay:520ms]"
-          style={{ background: theme.paper, transform: opening ? 'translateY(-70%)' : 'translateY(0)' }}
+          className="absolute inset-x-[7%] top-[-17%] h-[92%] rounded-[3px] shadow-[0_-6px_20px_-8px_rgba(0,0,0,0.4)] transition-transform duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)] [transition-delay:520ms]"
+          style={{ background: theme.paper, transform: opening ? 'translateY(-60%)' : 'translateY(0)' }}
         >
-          <div className="flex h-full flex-col items-center justify-start pt-[9%]">
-            <span className="text-[clamp(1.6rem,7vw,2.3rem)] leading-none" style={{ color: theme.accentText ?? theme.accent, fontFamily: theme.script }}>
+          <div className="flex h-full flex-col items-center justify-start p-[4%]">
+            {photo && <img src={sized(photo, true)} alt="" className="block h-[52%] w-full object-cover" style={{ filter: theme.layout.photoFilter }} />}
+            <span className="mt-[6%] text-[clamp(1.6rem,7vw,2.3rem)] leading-none" style={{ color: theme.accentText ?? theme.accent, fontFamily: theme.script }}>
               {monogram}
             </span>
           </div>
@@ -191,7 +174,7 @@ function Envelope({ theme, guestName, couple, monogram, onOpen }: { theme: Invit
           <Seal theme={theme} monogram={monogram} />
         </div>
       </button>
-      <p className="mt-7 text-[16px] font-medium" style={{ color: env.text === theme.ground ? theme.ink : env.text }}>
+      <p className="mt-6 text-[15px] font-medium motion-safe:animate-pulse" style={{ color: headInk }}>
         Chạm vào thiệp để mở
       </p>
     </div>
@@ -237,40 +220,6 @@ function Petals({ colors }: { colors: string[] }) {
 }
 
 /* ───────────────────────── Pieces ───────────────────────── */
-
-function Section({ id, title, theme, children, tight = false }: { id: string; title?: string; theme: InviteTheme; children: React.ReactNode; tight?: boolean }) {
-  return (
-    <section id={id} aria-labelledby={title ? `${id}-title` : undefined} className={`px-6 text-center sm:px-10 ${tight ? 'py-10' : 'py-14'}`}>
-      {title && (
-        <>
-          <h2 id={`${id}-title`} className="text-[clamp(1.55rem,6vw,2rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.namesIn === 'script' ? theme.script : theme.display, fontSize: theme.namesIn === 'script' ? 'clamp(2.1rem,8vw,2.7rem)' : undefined }}>
-            {title}
-          </h2>
-          <div className="mb-8 mt-3">
-            <Ornament kind={theme.ornament} theme={theme} variant="divider" />
-          </div>
-        </>
-      )}
-      {children}
-    </section>
-  );
-}
-
-function PhotoFrame({ src, alt, theme, className = '' }: { src: string; alt: string; theme: InviteTheme; className?: string }) {
-  const shape =
-    theme.frame === 'arch'
-      ? 'rounded-t-[999px] rounded-b-[6px]'
-      : theme.frame === 'oval'
-        ? 'rounded-[50%]'
-        : theme.frame === 'circle'
-          ? 'rounded-full aspect-square'
-          : 'rounded-[2px]';
-  return (
-    <div className={`relative mx-auto w-[min(76%,330px)] p-[6px] ${className}`} style={{ border: `1px solid ${theme.line}`, borderRadius: theme.frame === 'arch' ? '999px 999px 8px 8px' : theme.frame === 'rect' ? 2 : '50%' }}>
-      <img src={src} alt={alt} className={`block w-full object-cover ${shape} ${theme.frame === 'circle' ? '' : 'aspect-[3/4]'}`} />
-    </div>
-  );
-}
 
 function Countdown({ target, theme }: { target: string; theme: InviteTheme }) {
   const [now, setNow] = useState<number | null>(null);
@@ -353,6 +302,42 @@ function Lightbox({ photos, index, onClose, onMove }: { photos: InvitationPhoto[
   );
 }
 
+/* ───────────────────────── Hearts ───────────────────────── */
+
+/** "Thả tim": a little burst of hearts from the button */
+function HeartButton({ theme }: { theme: InviteTheme }) {
+  const [bursts, setBursts] = useState<number[]>([]);
+  const fire = () => {
+    const id = Date.now();
+    setBursts((b) => [...b.slice(-3), id]);
+    setTimeout(() => setBursts((b) => b.filter((x) => x !== id)), 2200);
+  };
+  return (
+    <div className="fixed bottom-[84px] right-5 z-40">
+      {bursts.map((id) => (
+        <span key={id} className="pointer-events-none absolute bottom-6 left-1/2" aria-hidden="true">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <Heart
+              key={i}
+              className="absolute h-5 w-5 motion-reduce:hidden"
+              style={{ color: i % 2 ? theme.accent : theme.line, fill: 'currentColor', animation: `inv-heart 1.9s ease-out ${i * 90}ms both`, ['--hx' as string]: `${(i - 2.5) * 16}px` } as React.CSSProperties}
+            />
+          ))}
+        </span>
+      ))}
+      <button
+        type="button"
+        onClick={fire}
+        aria-label="Thả tim cho cô dâu chú rể"
+        className="grid h-12 w-12 place-items-center rounded-full shadow-[0_8px_20px_-6px_rgba(0,0,0,0.5)] transition active:scale-90"
+        style={{ background: '#ffffff', color: '#e0315b' }}
+      >
+        <Heart className="h-5 w-5" fill="currentColor" />
+      </button>
+    </div>
+  );
+}
+
 /* ───────────────────────── Invitation ───────────────────────── */
 
 export function InvitationView(props: InvitationViewProps) {
@@ -365,15 +350,31 @@ export function InvitationView(props: InvitationViewProps) {
   const sections = config.sections;
 
   const events = useMemo(() => [...config.events].sort((a, b) => a.startsAt.localeCompare(b.startsAt)), [config.events]);
-  const mainDate = events.find((e) => e.kind === 'THANH_HON' || e.kind === 'TIEC_CUOI')?.startsAt ?? props.weddingDate;
-  const date = vnParts(mainDate);
+  const mainEvent = events.find((e) => e.kind === 'THANH_HON' || e.kind === 'TIEC_CUOI');
+  const mainDate = mainEvent?.startsAt ?? props.weddingDate;
+
+  // Photo roles: cover, then the interlude and the closing photo from the rest
   const cover = config.coverPhotoUrl || props.photos[0]?.url || '';
+  const others = props.photos.map((p) => p.url).filter((u) => u !== cover);
+  const interludeSrc = others[0] ?? '';
+  const closingSrc = others[1] ?? others[0] ?? cover;
+  const coverData: CoverData = {
+    groom,
+    bride,
+    date: mainDate,
+    headline: config.headline,
+    cover,
+    extras: others.slice(0, 2),
+    city: cityOf(mainEvent?.address ?? events[events.length - 1]?.address ?? ''),
+  };
 
   const [opened, setOpened] = useState(embedded);
+  const [hydrated, setHydrated] = useState(false);
   const music = useRef<MusicBox | null>(null);
   const [playing, setPlaying] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
 
+  useEffect(() => setHydrated(true), []);
   useEffect(() => () => music.current?.dispose(), []);
 
   const startMusic = useCallback(async () => {
@@ -403,29 +404,47 @@ export function InvitationView(props: InvitationViewProps) {
   };
 
   const familyFilled = [config.groomFamily, config.brideFamily].some((f) => f.father || f.mother || f.address);
+  const accent = theme.accentText ?? theme.accent;
   const namesStyle: React.CSSProperties =
     theme.namesIn === 'script'
-      ? { fontFamily: theme.script, fontSize: 'clamp(3rem,15vw,4.6rem)', lineHeight: 1.05 }
-      : { fontFamily: theme.display, fontSize: theme.namesUpper ? 'clamp(2.2rem,11vw,3.6rem)' : 'clamp(2.6rem,12vw,4rem)', lineHeight: 1, letterSpacing: theme.namesUpper ? '0.04em' : '-0.01em', fontWeight: theme.namesWeight ?? 600 };
-  const magazine = theme.ornament === 'masthead';
+      ? { fontFamily: theme.script, fontSize: 'clamp(2.8rem,13vw,3.9rem)', lineHeight: 1.08 }
+      : { fontFamily: theme.display, fontSize: theme.namesUpper ? 'clamp(2rem,9.5vw,2.9rem)' : 'clamp(2.4rem,11vw,3.3rem)', lineHeight: 1.05, letterSpacing: theme.namesUpper ? '0.03em' : '-0.01em', fontWeight: theme.namesWeight ?? 600 };
+
+  // Section numbering follows what is actually shown
+  let n = 0;
+  const T = (title: string, kicker: string): SectionTitle => ({ title, kicker, index: ++n });
 
   return (
-    <div className={`${INVITATION_FONT_VARS} inv-root min-h-screen ${embedded ? '' : 'px-3 py-4 sm:px-0 sm:py-10'}`} style={{ ...themeVars(theme), background: theme.ground, color: theme.ink, fontFamily: theme.body }}>
+    <div className={`${INVITATION_FONT_VARS} inv-root min-h-screen ${hydrated ? 'inv-js' : ''} ${embedded ? '' : 'sm:px-0 sm:py-10'}`} style={{ ...themeVars(theme), background: theme.ground, color: theme.ink, fontFamily: theme.body }}>
       <style>{`
         @keyframes inv-fall { 0% { transform: translate3d(0,-20px,0) rotate(0deg); } 100% { transform: translate3d(var(--drift),110vh,0) rotate(540deg); } }
-        @keyframes inv-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+        @keyframes inv-rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+        @keyframes inv-zoom { from { transform: scale(1.12); } to { transform: scale(1); } }
+        @keyframes inv-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+        @keyframes inv-heart { 0% { opacity: 0; transform: translate(-50%, 0) scale(0.4); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--hx)), -150px) scale(1.15); } }
+        @keyframes inv-cue { 0%, 100% { transform: translateY(0); opacity: 0.55; } 50% { transform: translateY(6px); opacity: 1; } }
+        .inv-cover-in [data-a] { animation: inv-rise 1100ms cubic-bezier(0.16,1,0.3,1) both; animation-delay: calc(var(--d, 0) * 160ms + 250ms); }
+        .inv-cover-in [data-zoom] { animation: inv-zoom 2800ms cubic-bezier(0.2,0.7,0.2,1) both; }
+        .inv-js .inv-reveal { opacity: 0; transform: translateY(28px); transition: opacity 900ms ease, transform 1000ms cubic-bezier(0.16,1,0.3,1); }
+        .inv-js .inv-reveal.is-in { opacity: 1; transform: none; }
         .inv-root ::selection { background: ${theme.accent}; color: ${theme.onAccent}; }
         .inv-root :focus-visible { outline: 2px solid ${theme.accent}; outline-offset: 3px; }
         .inv-root input, .inv-root textarea { caret-color: ${theme.accent}; }
         .inv-root select option { color: #1a1a1a; }
+        @media (prefers-reduced-motion: reduce) {
+          .inv-root *, .inv-root *::before, .inv-root *::after { animation: none !important; }
+          .inv-js .inv-reveal { opacity: 1; transform: none; transition: none; }
+        }
       `}</style>
 
       {!embedded && !opened && (
         <Envelope
           theme={theme}
           guestName={guest || null}
-          couple={`${props.groomName} & ${props.brideName}`.toUpperCase()}
+          photo={cover}
           monogram={monogram.replace(/ /g, '')}
+          couple={`${groom} & ${bride}`}
+          date={vnDate(mainDate).replace(/\./g, ' · ')}
           onOpen={() => {
             setOpened(true);
             void startMusic();
@@ -435,172 +454,83 @@ export function InvitationView(props: InvitationViewProps) {
       {opened && !embedded && <Petals colors={theme.petals} />}
 
       <main
-        className={`relative mx-auto max-w-[560px] overflow-hidden ${embedded ? '' : 'rounded-[var(--inv-r)] shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6)]'}`}
+        className={`relative mx-auto max-w-[560px] overflow-hidden ${embedded ? '' : 'sm:rounded-[var(--inv-r)] sm:shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6)]'}`}
         style={{ background: theme.paper }}
       >
-        {/* Paper grain */}
         <Grain paper={theme.paper} strength={theme.grain} />
         <CardFrame theme={theme} />
         <div className="relative">
           {/* ── Cover ── */}
-          {magazine ? (
-            <header className="relative">
-              {cover ? (
-                <img src={cover} alt={`${groom} và ${bride}`} className="block aspect-[4/5] w-full object-cover grayscale-[15%]" />
-              ) : (
-                <div className="flex aspect-[4/5] w-full items-end justify-start px-6 pb-4" style={{ background: theme.ink }}>
-                  <span className="text-[clamp(8rem,46vw,15rem)] font-black leading-[0.8] tracking-[-0.07em]" style={{ fontFamily: theme.display, color: theme.paper }}>
-                    {initials(groom, bride)}
-                  </span>
+          <InvitationCover theme={theme} data={coverData} animate={opened && !embedded} />
+
+          {/* ── Families + invitation wording ── */}
+          {sections.family && (
+            <Section id="gia-dinh" t={T('Trân trọng báo tin', 'Our families')} theme={theme} tight>
+              {familyFilled && (
+                <div className="mx-auto grid max-w-[460px] grid-cols-[1fr_1px_1fr] gap-x-4 text-[15px] leading-relaxed min-[420px]:gap-x-6">
+                  {[
+                    { title: 'Nhà Trai', f: config.groomFamily },
+                    null,
+                    { title: 'Nhà Gái', f: config.brideFamily },
+                  ].map((side) =>
+                    side === null ? (
+                      <span key="rule" className="block" style={{ background: theme.line }} aria-hidden="true" />
+                    ) : (
+                      <div key={side.title} className="min-w-0">
+                        <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-[0.24em]" style={{ color: accent, fontFamily: theme.display }}>
+                          {side.title}
+                        </h3>
+                        {(side.f.father || side.f.mother) && (
+                          <p className="text-[13px]" style={{ color: theme.inkSoft }}>
+                            {[side.f.father && 'Ông', side.f.mother && 'Bà'].filter(Boolean).join(' ')}
+                          </p>
+                        )}
+                        {side.f.father && <p className="font-semibold leading-snug">{side.f.father}</p>}
+                        {side.f.mother && <p className="font-semibold leading-snug">{side.f.mother}</p>}
+                        {side.f.address && (
+                          <p className="mt-1.5 text-[13.5px] leading-snug [text-wrap:balance]" style={{ color: theme.inkSoft }}>
+                            {keepAbbr(side.f.address)}
+                          </p>
+                        )}
+                      </div>
+                    ),
+                  )}
                 </div>
               )}
-              <div className="absolute inset-x-0 top-0 flex items-center justify-between px-6 pt-5 text-[13px] font-bold uppercase tracking-[0.16em]" style={{ color: '#ffffff', textShadow: cover ? '0 1px 8px rgba(0,0,0,0.5)' : undefined }}>
-                <span>Số đặc biệt</span>
-                <span className="tabular-nums">{vnDate(mainDate)}</span>
-              </div>
-              <div className="px-6 pb-8 pt-6 text-left">
-                <Ornament kind="masthead" theme={theme} variant="crown" />
-                <h1 className="mt-4 uppercase" style={{ ...namesStyle, fontSize: 'clamp(2.3rem,11vw,3.4rem)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 0.95 }}>
-                  <span className="block">{groom}</span>
-                  <span className="block">
-                    <span className="mr-2 font-normal normal-case" style={{ color: theme.accentText ?? theme.accent, fontFamily: theme.script }}>
-                      &amp;
-                    </span>
-                    {bride}
-                  </span>
-                </h1>
-                <p className="mt-3 text-[16px] font-semibold uppercase tracking-[0.12em] [text-wrap:balance]">{config.headline}</p>
-                <p className="mt-1 text-[15px]" style={{ color: theme.inkSoft }}>
-                  {date.weekday}, {vnDate(mainDate)} · {lunarLine(mainDate)}
-                </p>
-              </div>
-            </header>
-          ) : (
-            <header className="px-6 pb-12 pt-12 text-center sm:px-10" style={{ animation: opened && !embedded ? 'inv-rise 900ms cubic-bezier(0.16,1,0.3,1) both' : undefined }}>
-              <Ornament kind={theme.ornament} theme={theme} variant="crown" />
-              <p className="mx-auto mt-6 max-w-[34ch] text-[14px] uppercase tracking-[0.2em] [text-wrap:balance]" style={{ color: theme.inkSoft, fontFamily: theme.display }}>
-                {config.headline}
+              <p className={`${familyFilled ? 'mt-11' : ''} text-[13px] uppercase leading-relaxed tracking-[0.24em] [text-wrap:balance]`} style={{ color: theme.inkSoft, fontFamily: theme.display }}>
+                {config.headline || 'Trân trọng báo tin lễ thành hôn'} của con chúng tôi
               </p>
-              {cover && theme.frame !== 'full' && <PhotoFrame src={cover} alt={`${groom} và ${bride}`} theme={theme} className="mt-8" />}
-              <h1 className={`mt-8 [text-wrap:balance] ${theme.namesUpper ? 'uppercase' : ''}`} style={namesStyle}>
-                <span className="block">{groom}</span>
-                <span className="my-1 block text-[0.5em]" style={{ color: theme.accentText ?? theme.accent, fontFamily: theme.script }}>
+              <p className={`mt-4 [text-wrap:balance] ${theme.namesUpper ? 'uppercase' : ''}`} style={{ ...namesStyle, color: theme.namesIn === 'script' ? accent : theme.ink }}>
+                <Name>{groom}</Name>
+                <span className="mx-2 inline-block text-[0.55em]" style={{ color: accent, fontFamily: theme.script }}>
                   &amp;
                 </span>
-                <span className="block">{bride}</span>
-              </h1>
-              {/* Classic date block: weekday | day | month & year */}
-              <div className="mx-auto mt-9 grid max-w-[340px] grid-cols-[1fr_auto_1fr] items-center gap-4" style={{ fontFamily: theme.display }}>
-                <div className="border-y py-2 text-[15px] uppercase tracking-[0.12em]" style={{ borderColor: theme.line }}>
-                  {date.weekday}
-                </div>
-                <div className="text-[clamp(3rem,15vw,4.2rem)] font-semibold leading-none tabular-nums" style={{ color: theme.accentText ?? theme.accent }}>
-                  {String(date.day).padStart(2, '0')}
-                </div>
-                <div className="border-y py-2 text-[15px] uppercase tracking-[0.12em]" style={{ borderColor: theme.line }}>
-                  Tháng {date.month}
-                  <span className="block tabular-nums">{date.year}</span>
-                </div>
-              </div>
-              <p className="mt-4 text-[15px] italic" style={{ color: theme.inkSoft }}>
-                ({lunarLine(mainDate)})
+                <Name>{bride}</Name>
               </p>
-            </header>
+              <div className="mx-auto mt-10 max-w-[420px] rounded-[calc(var(--inv-r)+4px)] px-5 py-7" style={{ background: theme.panel === theme.paper ? 'transparent' : `${theme.panel}`, color: theme.layout.events === 'panel' && theme.panelInk ? theme.panelInk : theme.ink, border: `1px solid ${theme.line}66` }}>
+                <p className="text-[14px] uppercase tracking-[0.26em]" style={{ fontFamily: theme.display, opacity: 0.85 }}>
+                  Trân trọng kính mời
+                </p>
+                <p className="mt-2 text-[clamp(2rem,9vw,2.6rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.script, color: theme.layout.events === 'panel' && theme.panelInk ? theme.line : accent }}>
+                  {guest || 'Quý khách'}
+                </p>
+                {config.message && <p className="mx-auto mt-4 max-w-[36ch] text-[16px] leading-relaxed [text-wrap:pretty]">{config.message}</p>}
+              </div>
+            </Section>
           )}
 
-          {config.quote && (
-            <p className="mx-auto max-w-[36ch] px-8 pb-4 text-center text-[17px] italic leading-relaxed [text-wrap:balance]" style={{ color: theme.inkSoft }}>
+          {/* ── A photo between the wording and the schedule ── */}
+          <Interlude theme={theme} src={interludeSrc} alt={`${groom} và ${bride}`} quote={config.quote} />
+          {(!interludeSrc || theme.layout.interlude === 'none') && config.quote && (
+            <p className="mx-auto max-w-[36ch] px-8 py-6 text-center text-[17px] italic leading-relaxed [text-wrap:balance]" style={{ color: theme.inkSoft }}>
               “{config.quote}”
             </p>
           )}
 
-          {/* ── Families + invitation wording ── */}
-          {sections.family && (
-            <Section id="gia-dinh" theme={theme} tight>
-              {familyFilled && (
-                <div className="mx-auto grid max-w-[460px] grid-cols-1 gap-y-7 text-[16px] leading-relaxed min-[480px]:grid-cols-2 min-[480px]:gap-x-6 min-[480px]:text-[15px]">
-                  {[
-                    { title: 'Nhà Trai', f: config.groomFamily },
-                    { title: 'Nhà Gái', f: config.brideFamily },
-                  ].map(({ title, f }) => (
-                    <div key={title}>
-                      <h3 className="mb-2 text-[17px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.accentText ?? theme.accent, fontFamily: theme.display }}>
-                        {title}
-                      </h3>
-                      {f.father && <p><Name>{`Ông ${f.father}`}</Name></p>}
-                      {f.mother && <p><Name>{`Bà ${f.mother}`}</Name></p>}
-                      {f.address && (
-                        <p className="mt-1 text-[14px] [text-wrap:balance]" style={{ color: theme.inkSoft }}>
-                          {keepAbbr(f.address)}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className={familyFilled ? 'mt-10' : ''}>
-                <p className="text-[15px] uppercase tracking-[0.2em]" style={{ color: theme.inkSoft, fontFamily: theme.display }}>
-                  Trân trọng kính mời
-                </p>
-                <p className="mt-2 text-[clamp(1.9rem,8vw,2.5rem)] leading-tight" style={{ fontFamily: theme.script, color: theme.accentText ?? theme.accent }}>
-                  {guest || 'Quý khách'}
-                </p>
-                {config.message && <p className="mx-auto mt-4 max-w-[38ch] text-[16px] leading-relaxed [text-wrap:pretty]">{config.message}</p>}
-              </div>
-            </Section>
-          )}
-
-          {sections.countdown && (
-            <Section id="dem-nguoc" title="Đếm ngược ngày vui" theme={theme} tight>
-              <Countdown target={mainDate} theme={theme} />
-            </Section>
-          )}
-
           {/* ── Events ── */}
           {sections.events && events.length > 0 && (
-            <Section id="su-kien" title="Lịch trình ngày cưới" theme={theme}>
-              <ol className="space-y-10">
-                {events.map((e) => {
-                  const p = vnParts(e.startsAt);
-                  const map = invitationMapLink(e);
-                  const where = [e.venueName, e.address].filter(Boolean).join(', ');
-                  return (
-                    <li key={e.id}>
-                      <h3 className="text-[15px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.accentText ?? theme.accent, fontFamily: theme.display }}>
-                        {e.title || INVITATION_EVENT_LABELS[e.kind]}
-                      </h3>
-                      <p className="mt-2 text-[clamp(2.4rem,11vw,3rem)] font-semibold leading-none tabular-nums" style={{ fontFamily: theme.display }}>
-                        {vnTime(e.startsAt)}
-                      </p>
-                      <p className="mt-2 text-[16px]">
-                        {p.weekday}, ngày {vnDate(e.startsAt)}
-                      </p>
-                      <p className="text-[14px]" style={{ color: theme.inkSoft }}>
-                        ({lunarShort(e.startsAt)})
-                      </p>
-                      {e.venueName && <p className="mt-3 text-[17px] font-semibold">{e.venueName}</p>}
-                      {e.address && <p className="mx-auto max-w-[34ch] text-[15px] leading-relaxed" style={{ color: theme.inkSoft }}>{keepAbbr(e.address)}</p>}
-                      {e.note && <p className="mt-1 text-[14px] italic" style={{ color: theme.inkSoft }}>{e.note}</p>}
-                      <div className="mt-4 flex flex-wrap justify-center gap-2.5">
-                        {map && (
-                          <a href={map} target="_blank" rel="noopener noreferrer" className={primaryButton}>
-                            <MapPin className="h-4 w-4" /> Chỉ đường
-                          </a>
-                        )}
-                        <a
-                          href={calendarLink(`${e.title} · ${groom} & ${bride}`, e.startsAt, where, config.message)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex min-h-[48px] items-center gap-2 rounded-[var(--inv-btn-r)] border px-6 text-[15px] font-semibold transition hover:brightness-110"
-                          style={{ borderColor: theme.accent, color: theme.ink }}
-                        >
-                          <CalendarPlus className="h-4 w-4" /> Lưu vào lịch
-                        </a>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
+            <Section id="su-kien" t={T('Thông tin lễ cưới', 'When & where')} theme={theme}>
+              <EventsBlock theme={theme} events={events} couple={`${groom} & ${bride}`} message={config.message} />
               {config.dressCode && (
                 <p className="mt-10 text-[15px]" style={{ color: theme.inkSoft }}>
                   Trang phục gợi ý: <span style={{ color: theme.ink }}>{config.dressCode}</span>
@@ -609,21 +539,35 @@ export function InvitationView(props: InvitationViewProps) {
             </Section>
           )}
 
+          {/* ── Calendar + countdown ── */}
+          {sections.countdown && (
+            <Section id="dem-nguoc" t={T('Ngày chung đôi', 'Save the date')} theme={theme} tight>
+              <MonthCalendar theme={theme} iso={mainDate} />
+              <div className="mt-8">
+                <Countdown target={mainDate} theme={theme} />
+              </div>
+            </Section>
+          )}
+
           {/* ── Story ── */}
           {sections.story && config.story.length > 0 && (
-            <Section id="chuyen-tinh" title="Chuyện của chúng mình" theme={theme}>
+            <Section id="chuyen-tinh" t={T('Chuyện của chúng mình', 'Our story')} theme={theme}>
               <ol className="relative mx-auto max-w-[420px] text-left">
                 <span className="absolute bottom-2 left-[7px] top-2 w-px" style={{ background: theme.line }} aria-hidden="true" />
                 {config.story.map((s) => (
-                  <li key={s.id} className="relative pb-8 pl-9 last:pb-0">
+                  <li key={s.id} className="relative pb-9 pl-9 last:pb-0">
                     <span className="absolute left-0 top-1.5 h-[15px] w-[15px] rounded-full border-2" style={{ borderColor: theme.accent, background: theme.paper }} aria-hidden="true" />
-                    {s.title && <h3 className="text-[19px] font-semibold leading-snug" style={{ fontFamily: theme.display }}>{s.title}</h3>}
                     {s.when && (
-                      <p className="mt-0.5 text-[15px] italic" style={{ color: theme.accentText ?? theme.accent }}>
+                      <p className="text-[13px] uppercase tracking-[0.2em]" style={{ color: accent }}>
                         {s.when}
                       </p>
                     )}
-                    {s.text && <p className="mt-1.5 text-[15px] leading-relaxed [text-wrap:pretty]" style={{ color: theme.inkSoft }}>{s.text}</p>}
+                    {s.title && (
+                      <h3 className="mt-0.5 text-[20px] leading-snug" style={{ fontFamily: theme.display, fontWeight: theme.namesWeight === 400 ? 400 : 600 }}>
+                        {s.title}
+                      </h3>
+                    )}
+                    {s.text && <p className="mt-1.5 text-[15.5px] leading-relaxed [text-wrap:pretty]" style={{ color: theme.inkSoft }}>{s.text}</p>}
                   </li>
                 ))}
               </ol>
@@ -632,26 +576,14 @@ export function InvitationView(props: InvitationViewProps) {
 
           {/* ── Album ── */}
           {sections.album && props.photos.length > 0 && (
-            <Section id="album" title="Album ảnh cưới" theme={theme}>
-              <div className="grid grid-cols-2 gap-2">
-                {props.photos.slice(0, 12).map((ph, i) => (
-                  <button
-                    key={ph.id}
-                    type="button"
-                    onClick={() => setLightbox(i)}
-                    className={`group overflow-hidden rounded-[var(--inv-r)] ${i === 0 ? 'col-span-2 aspect-[4/3]' : 'aspect-[3/4]'}`}
-                    aria-label={`Xem ảnh ${i + 1}${ph.caption ? `: ${ph.caption}` : ''}`}
-                  >
-                    <img src={ph.url} alt={ph.caption ?? `Ảnh cưới ${i + 1}`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
-                  </button>
-                ))}
-              </div>
+            <Section id="album" t={T('Album ảnh cưới', 'Gallery')} theme={theme}>
+              <Album theme={theme} photos={props.photos} onOpen={setLightbox} />
             </Section>
           )}
 
           {/* ── 3D hall ── */}
           {sections.hall && props.hallUrl && (
-            <Section id="sanh-3d" title="Sảnh cưới 3D trực tuyến" theme={theme}>
+            <Section id="sanh-3d" t={T('Sảnh cưới 3D', 'Online')} theme={theme}>
               {props.venueThumb && (
                 <div className="overflow-hidden rounded-[var(--inv-r)]" style={{ border: `1px solid ${theme.line}` }}>
                   <img src={props.venueThumb} alt="Sảnh cưới 3D của cô dâu chú rể" loading="lazy" className="block aspect-[16/10] w-full object-cover" />
@@ -667,19 +599,19 @@ export function InvitationView(props: InvitationViewProps) {
           )}
 
           {sections.rsvp && (
-            <Section id="xac-nhan" title="Xác nhận tham dự" theme={theme}>
+            <Section id="xac-nhan" t={T('Xác nhận tham dự', 'RSVP')} theme={theme}>
               <RsvpForm slug={slug} demo={demo} guestName={guest} deadline={config.rsvpDeadline ? vnDate(config.rsvpDeadline) : ''} />
             </Section>
           )}
 
           {sections.wishes && (
-            <Section id="loi-chuc" title="Gửi lời chúc" theme={theme}>
+            <Section id="loi-chuc" t={T('Gửi lời chúc', 'Wishes')} theme={theme}>
               <WishesSection slug={slug} demo={demo} guestName={guest} initial={props.initialWishes} />
             </Section>
           )}
 
           {sections.gift && (props.gift.enabled || demo) && (
-            <Section id="mung-cuoi" title="Hộp mừng cưới" theme={theme}>
+            <Section id="mung-cuoi" t={T('Hộp mừng cưới', 'Gift')} theme={theme}>
               <p className="mx-auto mb-6 max-w-[38ch] text-[16px] leading-relaxed [text-wrap:pretty]">
                 Sự hiện diện của bạn là món quà quý nhất. Nếu ở xa không đến được, bạn có thể gửi lời mừng qua mã QR dưới đây.
               </p>
@@ -688,12 +620,17 @@ export function InvitationView(props: InvitationViewProps) {
           )}
 
           {/* ── Thank you ── */}
+          {theme.layout.closing === 'photo' && closingSrc && <ClosingPhoto theme={theme} src={closingSrc} thanks={config.thankYou} couple={`${groom} & ${bride}`} />}
           <footer className="px-6 pb-14 pt-10 text-center sm:px-10">
-            <Ornament kind={theme.ornament} theme={theme} variant="divider" />
-            {config.thankYou && <p className="mx-auto mt-6 max-w-[36ch] text-[16px] leading-relaxed [text-wrap:pretty]">{config.thankYou}</p>}
-            <p className="mt-5 text-[clamp(2rem,9vw,2.8rem)] leading-tight" style={{ fontFamily: theme.script, color: theme.accentText ?? theme.accent }}>
-              {groom} &amp; {bride}
-            </p>
+            {!(theme.layout.closing === 'photo' && closingSrc) && (
+              <>
+                <Ornament kind={theme.ornament} theme={theme} variant="divider" />
+                {config.thankYou && <p className="mx-auto mt-6 max-w-[36ch] text-[16px] leading-relaxed [text-wrap:pretty]">{config.thankYou}</p>}
+                <p className="mt-5 text-[clamp(2rem,9vw,2.8rem)] leading-tight" style={{ fontFamily: theme.script, color: accent }}>
+                  {groom} &amp; {bride}
+                </p>
+              </>
+            )}
             {!embedded && (
               <div className="mt-7 flex justify-center">
                 <button type="button" onClick={share} className="inline-flex min-h-[48px] items-center gap-2 rounded-[var(--inv-btn-r)] border px-6 text-[15px] font-semibold" style={{ borderColor: theme.accent }}>
@@ -708,6 +645,7 @@ export function InvitationView(props: InvitationViewProps) {
         </div>
       </main>
 
+      {!embedded && opened && <HeartButton theme={theme} />}
       {!embedded && opened && config.music.mode !== 'OFF' && (
         <button
           type="button"

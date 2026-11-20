@@ -27,7 +27,7 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const FACES = [
   // Site-wide (layout.tsx / tailwind: font-sans, font-display)
   { family: 'Be Vietnam Pro', weights: [300, 400, 500, 600, 700], vars: ['--font-sans', '--f-be-vietnam'], fallback: 'system-ui, sans-serif' },
-  { family: 'Cormorant Garamond', weights: [600, 700], vars: ['--font-display'], fallback: 'Georgia, serif' },
+  { family: 'Cormorant Garamond', weights: [400, 500, 600, 700], italic: true, vars: ['--font-display', '--f-cormorant'], fallback: 'Georgia, serif' },
   // Online invitation templates (components/invitation/themes.ts)
   { family: 'Noto Serif Display', weights: [400, 600, 700], vars: ['--f-noto-display'] },
   { family: 'Imperial Script', weights: [400], vars: ['--f-imperial'] },
@@ -49,6 +49,9 @@ const FACES = [
   { family: 'Pinyon Script', weights: [400], vars: ['--f-pinyon'] },
   { family: 'The Nautigal', weights: [700], vars: ['--f-nautigal'] },
   { family: 'Alex Brush', weights: [400], vars: ['--f-alex-brush'] },
+  // High-contrast display faces for names and mastheads
+  { family: 'Viaoda Libre', weights: [400], vars: ['--f-viaoda'] },
+  { family: 'Playfair Display', weights: [400, 700, 900], italic: true, vars: ['--f-playfair'] },
 ];
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -73,7 +76,10 @@ let files = 0;
 let bytes = 0;
 
 for (const face of FACES) {
-  const familyParam = `${face.family.replace(/ /g, '+')}:wght@${face.weights.join(';')}`;
+  const axes = face.italic
+    ? `ital,wght@${[...face.weights.map((w) => `0,${w}`), ...face.weights.map((w) => `1,${w}`)].join(';')}`
+    : `wght@${face.weights.join(';')}`;
+  const familyParam = `${face.family.replace(/ /g, '+')}:${axes}`;
   const css = await get(`https://fonts.googleapis.com/css2?family=${familyParam}&display=swap`, 'text');
   const dir = path.join(OUT_DIR, slug(face.family));
   fs.mkdirSync(dir, { recursive: true });

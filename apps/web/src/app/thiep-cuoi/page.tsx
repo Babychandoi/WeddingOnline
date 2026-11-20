@@ -56,7 +56,7 @@ export default function InvitationGalleryPage() {
                 className="absolute top-4 w-[52%] overflow-hidden rounded-[6px] shadow-[0_24px_50px_-20px_rgba(60,20,20,0.6)]"
                 style={{ left: `${6 + i * 21}%`, transform: `rotate(${(i - 1) * 9}deg) translateY(${i === 1 ? -6 : 18}px)`, zIndex: i === 1 ? 3 : 1 }}
               >
-                <CardFace templateId={id} groom={SAMPLE_COUPLE.groomName} bride={SAMPLE_COUPLE.brideName} dateLine="20 · 12 · 2026" />
+                <CardFace templateId={id} groom={SAMPLE_COUPLE.groomName} bride={SAMPLE_COUPLE.brideName} />
               </div>
             ))}
           </div>
