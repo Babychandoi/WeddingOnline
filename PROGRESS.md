@@ -203,6 +203,13 @@
 - [x] Nút tải ảnh ở tab ảnh và Setup phòng cũng dùng chung bộ thu nhỏ ảnh + báo lỗi, cho chọn nhiều ảnh
 - [x] Kiểm chứng: E2E soạn thiệp 15/15 ở khổ điện thoại (tải 3 ảnh, chọn bìa, 2 địa điểm khác nhau, tự lưu, xoá ảnh, tải lại vẫn còn, bìa dùng ảnh thật, nút sửa chỉ hiện cho chủ), E2E thiệp 18/18, E2E chỉ-thiệp 19/19, quét tràn ngang 15 trang không lỗi, `npm test` 11/11
 
+### [x] Nhóm 27: Sửa Thiệp Trực Quan + Tải Ảnh Ngay Khi Tạo Thiệp
+- [x] Trang tạo thiệp `/thiep-cuoi/tao` có phần "Ảnh cưới" (tối đa 12): xem trước từ máy, chọn ảnh bìa bằng ngôi sao, bỏ ảnh; bìa xem trước và các thẻ mẫu đổi sang ảnh của bạn ngay; bấm "Tạo thiệp cưới" thì tải ảnh lên (nút báo "Đang tải ảnh 2/3…"), ảnh bìa đứng đầu album và được đặt làm bìa; ảnh lỗi được báo ở trang soạn thiệp
+- [x] Chế độ "Sửa trực quan" (mặc định) trong trang soạn thiệp: thiệp hiện như khách thấy, mỗi phần có nhãn xanh "✎ Sửa…" (bìa, gia đình & lời mời, câu thơ, các lễ, ngày giờ, chuyện tình, album, các mục, lời cảm ơn), phần trống hiện "＋ Thêm…"; bấm vào thì bảng sửa đúng phần đó trượt lên (điện thoại) hoặc hiện bên phải (máy tính), gõ tới đâu thiệp đổi tới đó và tự lưu; trên điện thoại thiệp tự cuộn để dòng chữ đang gõ nằm ngay trên bảng sửa
+- [x] Thanh công cụ: Đổi mẫu · Ảnh cưới · Các lễ · Nhạc & mục + trạng thái lưu; vẫn giữ "Sửa theo mục" (danh sách như cũ), lựa chọn được nhớ trên máy
+- [x] `InvitationView` nhận `onEditPart`: chỉ ở trang soạn mới bấm được; khách xem thiệp không đổi gì
+- [x] Kiểm chứng: E2E sửa trực quan 19/19 (tạo thiệp kèm 3 ảnh trong đó 1 ảnh 35 MB, bìa đúng ảnh chọn, bấm bìa → sửa tên → bìa đổi ngay và tên cuộn vào tầm nhìn, bấm các lễ → đổi địa điểm, ô trống chuyện tình → thêm cột mốc, tự lưu lên server, máy tính: bảng sửa bên phải, chuyển sang Sửa theo mục), E2E soạn thiệp 15/15, E2E thiệp 18/18, E2E chỉ-thiệp 19/19, quét tràn ngang không lỗi, `npm test` 11/11
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

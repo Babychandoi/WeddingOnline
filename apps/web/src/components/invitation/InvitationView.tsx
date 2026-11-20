@@ -37,6 +37,70 @@ export interface InvitationViewProps {
   demo?: boolean;
   /** Editor preview: no envelope, no music */
   embedded?: boolean;
+  /** Visual editing: every part becomes tappable and reports which part to edit */
+  onEditPart?: (part: EditPart, el: HTMLElement) => void;
+}
+
+export type EditPart = 'cover' | 'family' | 'quote' | 'events' | 'countdown' | 'story' | 'album' | 'replies' | 'closing';
+
+const EDIT_LABEL: Record<EditPart, string> = {
+  cover: 'Sửa bìa: tên, ảnh',
+  family: 'Sửa gia đình, lời mời',
+  quote: 'Sửa câu thơ, ảnh',
+  events: 'Sửa các lễ, địa điểm',
+  countdown: 'Sửa ngày giờ',
+  story: 'Sửa chuyện tình',
+  album: 'Sửa ảnh cưới',
+  replies: 'Bật/tắt các mục',
+  closing: 'Sửa lời cảm ơn',
+};
+
+/** In visual editing, a part of the invitation that opens its editor when tapped */
+function EditSpot({ part, onEdit, children }: { part: EditPart; onEdit?: (part: EditPart, el: HTMLElement) => void; children: React.ReactNode }) {
+  if (!onEdit) return <>{children}</>;
+  const open = (el: HTMLElement) => onEdit(part, el);
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={EDIT_LABEL[part]}
+      data-edit-part={part}
+      className="group/edit relative cursor-pointer outline-none"
+      onClickCapture={(e) => {
+        // Nothing inside (links, forms, lightbox) acts while editing: the tap opens the editor
+        e.preventDefault();
+        e.stopPropagation();
+        open(e.currentTarget);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          open(e.currentTarget);
+        }
+      }}
+    >
+      <div className="pointer-events-none">{children}</div>
+      <span className="pointer-events-none absolute inset-1.5 z-[3] rounded-[12px] border-2 border-dashed border-sky-500/35 transition group-hover/edit:border-sky-500 group-focus-visible/edit:border-sky-500" aria-hidden="true" />
+      <span className="pointer-events-none absolute right-3 top-3 z-[4] inline-flex items-center gap-1 rounded-full bg-sky-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-md" aria-hidden="true">
+        ✎ {EDIT_LABEL[part]}
+      </span>
+    </div>
+  );
+}
+
+/** In visual editing, an empty part shown as an invitation to fill it */
+function EditPlaceholder({ part, text, onEdit }: { part: EditPart; text: string; onEdit?: (part: EditPart, el: HTMLElement) => void }) {
+  if (!onEdit) return null;
+  return (
+    <button
+      type="button"
+      data-edit-part={part}
+      onClick={(e) => onEdit(part, e.currentTarget)}
+      className="mx-6 my-6 flex w-[calc(100%-3rem)] items-center justify-center gap-2 rounded-[12px] border-2 border-dashed border-sky-500/60 bg-sky-50/70 px-4 py-6 text-sm font-bold text-sky-800 hover:bg-sky-50"
+    >
+      ＋ {text}
+    </button>
+  );
 }
 
 const SHAPE: Record<InviteTheme['shape'], { r: string; btn: string }> = {
@@ -349,7 +413,7 @@ function HeartButton({ theme }: { theme: InviteTheme }) {
 /* ───────────────────────── Invitation ───────────────────────── */
 
 export function InvitationView(props: InvitationViewProps) {
-  const { config, slug, demo = false, embedded = false } = props;
+  const { config, slug, demo = false, embedded = false, onEditPart } = props;
   const theme = INVITE_THEMES[config.templateId as InvitationTemplateId] ?? INVITE_THEMES['song-hy-do'];
   const groom = config.groomFullName || props.groomName;
   const bride = config.brideFullName || props.brideName;
@@ -490,10 +554,13 @@ export function InvitationView(props: InvitationViewProps) {
         <CardFrame theme={theme} />
         <div className="relative">
           {/* ── Cover ── */}
-          <InvitationCover theme={theme} data={coverData} animate={opened && !embedded} />
+          <EditSpot part="cover" onEdit={onEditPart}>
+            <InvitationCover theme={theme} data={coverData} animate={opened && !embedded} />
+          </EditSpot>
 
           {/* ── Families + invitation wording ── */}
           {sections.family && (
+            <EditSpot part="family" onEdit={onEditPart}>
             <Section id="gia-dinh" t={T('Trân trọng báo tin', 'Our families')} theme={theme} tight>
               {familyFilled && (
                 <div className="mx-auto grid max-w-[460px] grid-cols-[1fr_1px_1fr] gap-x-4 text-[15px] leading-relaxed min-[420px]:gap-x-6">
@@ -546,18 +613,27 @@ export function InvitationView(props: InvitationViewProps) {
                 {config.message && <p className="mx-auto mt-4 max-w-[36ch] text-[16px] leading-relaxed [text-wrap:pretty]">{config.message}</p>}
               </div>
             </Section>
+            </EditSpot>
           )}
 
           {/* ── A photo between the wording and the schedule ── */}
-          <Interlude theme={theme} src={interludeSrc} alt={`${groom} và ${bride}`} quote={config.quote} />
-          {(!interludeSrc || theme.layout.interlude === 'none') && config.quote && (
-            <p className="mx-auto max-w-[36ch] px-8 py-6 text-center text-[17px] italic leading-relaxed [text-wrap:balance]" style={{ color: theme.inkSoft }}>
-              “{config.quote}”
-            </p>
+          {(interludeSrc && theme.layout.interlude !== 'none') || config.quote ? (
+            <EditSpot part="quote" onEdit={onEditPart}>
+              <Interlude theme={theme} src={interludeSrc} alt={`${groom} và ${bride}`} quote={config.quote} />
+              {(!interludeSrc || theme.layout.interlude === 'none') && config.quote && (
+                <p className="mx-auto max-w-[36ch] px-8 py-6 text-center text-[17px] italic leading-relaxed [text-wrap:balance]" style={{ color: theme.inkSoft }}>
+                  “{config.quote}”
+                </p>
+              )}
+            </EditSpot>
+          ) : (
+            <EditPlaceholder part="quote" text="Thêm câu thơ / lời yêu thương" onEdit={onEditPart} />
           )}
 
           {/* ── Events ── */}
+          {sections.events && events.length === 0 && <EditPlaceholder part="events" text="Thêm lễ cưới: giờ, địa điểm" onEdit={onEditPart} />}
           {sections.events && events.length > 0 && (
+            <EditSpot part="events" onEdit={onEditPart}>
             <Section id="su-kien" t={T('Thông tin lễ cưới', 'When & where')} theme={theme}>
               <EventsBlock theme={theme} events={events} couple={`${groom} & ${bride}`} message={config.message} />
               {config.dressCode && (
@@ -566,20 +642,25 @@ export function InvitationView(props: InvitationViewProps) {
                 </p>
               )}
             </Section>
+            </EditSpot>
           )}
 
           {/* ── Calendar + countdown ── */}
           {sections.countdown && (
+            <EditSpot part="countdown" onEdit={onEditPart}>
             <Section id="dem-nguoc" t={T('Ngày chung đôi', 'Save the date')} theme={theme} tight>
               <MonthCalendar theme={theme} iso={mainDate} />
               <div className="mt-8">
                 <Countdown target={mainDate} theme={theme} />
               </div>
             </Section>
+            </EditSpot>
           )}
 
           {/* ── Story ── */}
+          {sections.story && config.story.length === 0 && <EditPlaceholder part="story" text="Thêm chuyện tình yêu (không bắt buộc)" onEdit={onEditPart} />}
           {sections.story && config.story.length > 0 && (
+            <EditSpot part="story" onEdit={onEditPart}>
             <Section id="chuyen-tinh" t={T('Chuyện của chúng mình', 'Our story')} theme={theme}>
               <ol className="relative mx-auto max-w-[420px] text-left">
                 <span className="absolute bottom-2 left-[7px] top-2 w-px" style={{ background: theme.line }} aria-hidden="true" />
@@ -601,13 +682,17 @@ export function InvitationView(props: InvitationViewProps) {
                 ))}
               </ol>
             </Section>
+            </EditSpot>
           )}
 
           {/* ── Album ── */}
+          {sections.album && props.photos.length === 0 && <EditPlaceholder part="album" text="Thêm ảnh cưới vào album" onEdit={onEditPart} />}
           {sections.album && props.photos.length > 0 && (
+            <EditSpot part="album" onEdit={onEditPart}>
             <Section id="album" t={T('Album ảnh cưới', 'Gallery')} theme={theme}>
               <Album theme={theme} photos={props.photos} onOpen={setLightbox} />
             </Section>
+            </EditSpot>
           )}
 
           {/* ── 3D hall ── */}
@@ -628,15 +713,19 @@ export function InvitationView(props: InvitationViewProps) {
           )}
 
           {sections.rsvp && (
+            <EditSpot part="replies" onEdit={onEditPart}>
             <Section id="xac-nhan" t={T('Xác nhận tham dự', 'RSVP')} theme={theme}>
               <RsvpForm slug={slug} demo={demo} guestName={guest} deadline={config.rsvpDeadline ? vnDate(config.rsvpDeadline) : ''} />
             </Section>
+            </EditSpot>
           )}
 
           {sections.wishes && (
+            <EditSpot part="replies" onEdit={onEditPart}>
             <Section id="loi-chuc" t={T('Gửi lời chúc', 'Wishes')} theme={theme}>
               <WishesSection slug={slug} demo={demo} guestName={guest} initial={props.initialWishes} />
             </Section>
+            </EditSpot>
           )}
 
           {sections.gift && (props.gift.enabled || demo) && (
@@ -649,6 +738,7 @@ export function InvitationView(props: InvitationViewProps) {
           )}
 
           {/* ── Thank you ── */}
+          <EditSpot part="closing" onEdit={onEditPart}>
           {theme.layout.closing === 'photo' && closingSrc && <ClosingPhoto theme={theme} src={closingSrc} thanks={config.thankYou} couple={`${groom} & ${bride}`} />}
           <footer className="px-6 pb-14 pt-10 text-center sm:px-10">
             {!(theme.layout.closing === 'photo' && closingSrc) && (
@@ -671,6 +761,7 @@ export function InvitationView(props: InvitationViewProps) {
               Thiệp cưới online · <a href="/thiep-cuoi" className="underline underline-offset-4">DamCuoiOnline</a>
             </p>
           </footer>
+          </EditSpot>
         </div>
       </main>
 

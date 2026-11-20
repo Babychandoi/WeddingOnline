@@ -9,11 +9,22 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Check, Loader2, Mail, UserRound } from 'lucide-react';
+import { ArrowLeft, Check, ImagePlus, Loader2, Mail, Star, UserRound, X } from 'lucide-react';
 import { INVITATION_STYLE_LABELS, INVITATION_TEMPLATES, isInvitationTemplateId, type InvitationTemplateId, type InvitationTemplateStyle } from '@dco/shared';
 import { OAuthModal } from '@/components/hall/OAuthModal';
 import { CardFace } from '@/components/invitation/CardFace';
 import { styleCount, templatesFor, type StyleFilter } from '@/components/invitation/templateOrder';
+import { uploadWeddingPhoto } from '@/lib/uploadWeddingPhoto';
+
+/** Album size of an invitation-only wedding (matches the photos API) */
+const MAX_PHOTOS = 12;
+
+interface PickedPhoto {
+  id: string;
+  file: File;
+  /** Object URL for the on-page preview */
+  url: string;
+}
 
 const STYLE_CHIPS: Array<[StyleFilter, string]> = [['all', 'Tất cả'], ...(Object.entries(INVITATION_STYLE_LABELS) as Array<[InvitationTemplateStyle, string]>)];
 const PICK_PAGE = 16;
@@ -47,6 +58,34 @@ function CreateInvitation() {
   const [slugEdited, setSlugEdited] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  // Photos chosen before the invitation exists: previewed from the device, uploaded after "Tạo thiệp"
+  const [picked, setPicked] = useState<PickedPhoto[]>([]);
+  const [coverId, setCoverId] = useState<string | null>(null);
+  const [progress, setProgress] = useState('');
+  const pickedRef = React.useRef<PickedPhoto[]>([]);
+  pickedRef.current = picked;
+  useEffect(() => () => pickedRef.current.forEach((p) => URL.revokeObjectURL(p.url)), []);
+
+  const addPicked = (files: FileList | null) => {
+    if (!files?.length) return;
+    const room = MAX_PHOTOS - picked.length;
+    const next = Array.from(files)
+      .filter((file) => file.type.startsWith('image/') || /\.(heic|heif|jpe?g|png|webp)$/i.test(file.name))
+      .slice(0, room)
+      .map((file) => ({ id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 7)}`, file, url: URL.createObjectURL(file) }));
+    if (files.length > room) setError(`Thiệp giữ tối đa ${MAX_PHOTOS} ảnh, mình chỉ lấy ${room} ảnh đầu.`);
+    setPicked((list) => [...list, ...next]);
+    if (!coverId && next[0]) setCoverId(next[0].id);
+  };
+  const removePicked = (id: string) => {
+    const gone = picked.find((p) => p.id === id);
+    if (gone) URL.revokeObjectURL(gone.url);
+    const rest = picked.filter((p) => p.id !== id);
+    setPicked(rest);
+    if (coverId === id) setCoverId(rest[0]?.id ?? null);
+  };
+  const coverPhoto = picked.find((p) => p.id === coverId) ?? picked[0];
+  const extraPhotos = picked.filter((p) => p !== coverPhoto).slice(0, 2).map((p) => p.url);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -107,20 +146,35 @@ function CreateInvitation() {
               : data.message || 'Chưa tạo được thiệp, bạn thử lại nhé.',
         );
       }
-      // Fill the city into the first ceremony right away when given
-      if (city.trim()) {
-        const cfgRes = await fetch(`/api/weddings/${encodeURIComponent(data.wedding.slug)}/invitation`);
+      const newSlug: string = data.wedding.slug;
+      // Upload the chosen photos, cover first so it is also the album's first photo
+      const ordered = coverPhoto ? [coverPhoto, ...picked.filter((p) => p !== coverPhoto)] : picked;
+      let coverUrl = '';
+      let failed = 0;
+      for (const [i, p] of ordered.entries()) {
+        setProgress(`Đang tải ảnh ${i + 1}/${ordered.length}…`);
+        try {
+          const photo = await uploadWeddingPhoto(newSlug, p.file);
+          if (p === coverPhoto) coverUrl = photo.publicUrl;
+        } catch {
+          failed++;
+        }
+      }
+      setProgress('');
+      // Fill the place into the ceremonies and set the cover in one save
+      if (city.trim() || coverUrl) {
+        const cfgRes = await fetch(`/api/weddings/${encodeURIComponent(newSlug)}/invitation`);
         const cfg = await cfgRes.json();
         if (cfgRes.ok && cfg.config) {
           const events = (cfg.config.events as Array<Record<string, unknown>>).map((ev) => ({ ...ev, address: ev.address || city.trim() }));
-          await fetch(`/api/weddings/${encodeURIComponent(data.wedding.slug)}/invitation`, {
+          await fetch(`/api/weddings/${encodeURIComponent(newSlug)}/invitation`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ config: { ...cfg.config, events } }),
+            body: JSON.stringify({ config: { ...cfg.config, events, ...(coverUrl ? { coverPhotoUrl: coverUrl } : {}) } }),
           });
         }
       }
-      router.push(`/dashboard/${data.wedding.slug}?tab=thiep`);
+      router.push(`/dashboard/${newSlug}?tab=thiep${failed ? `&anh_loi=${failed}` : ''}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Chưa tạo được thiệp, bạn thử lại nhé.');
       setSubmitting(false);
@@ -184,6 +238,51 @@ function CreateInvitation() {
             </div>
 
             <fieldset className="mt-7 min-w-0">
+              <legend className={label}>
+                Ảnh cưới <span className="font-normal text-slate-500">(không bắt buộc, tối đa {MAX_PHOTOS} ảnh)</span>
+              </legend>
+              <p className="-mt-1 mb-3 text-xs text-slate-500">Ảnh bìa và album của thiệp. Ảnh lớn tự được thu nhỏ khi tải lên; thêm, đổi, xoá ảnh được cả sau này.</p>
+              {picked.length === 0 ? (
+                <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-rose-300 bg-rose-50/60 px-4 py-7 text-center hover:bg-rose-50">
+                  <ImagePlus className="h-7 w-7 text-rose-600" />
+                  <span className="text-sm font-black text-rose-800">Chọn ảnh cưới</span>
+                  <span className="text-xs text-slate-600">Chọn nhiều ảnh một lúc từ điện thoại hoặc máy tính</span>
+                  <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { addPicked(e.target.files); e.target.value = ''; }} />
+                </label>
+              ) : (
+                <>
+                  <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                    {picked.map((p) => {
+                      const isCover = p === coverPhoto;
+                      return (
+                        <div key={p.id} className={`relative overflow-hidden rounded-xl bg-slate-100 ${isCover ? 'ring-[3px] ring-rose-600' : 'ring-1 ring-slate-200'}`}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={p.url} alt="" className="aspect-[3/4] w-full object-cover" />
+                          {isCover && <span className="absolute left-1 top-1 rounded-full bg-rose-600 px-1.5 py-0.5 text-[9px] font-black text-white">Bìa</span>}
+                          <div className="absolute inset-x-0 bottom-0 flex justify-between bg-gradient-to-t from-black/60 to-transparent p-1 pt-4">
+                            <button type="button" onClick={() => setCoverId(p.id)} disabled={isCover} aria-label="Đặt làm ảnh bìa" title="Đặt làm ảnh bìa" className="grid h-8 w-8 place-items-center rounded-full bg-white/90 text-rose-700 disabled:opacity-40">
+                              <Star className="h-3.5 w-3.5" fill={isCover ? 'currentColor' : 'none'} />
+                            </button>
+                            <button type="button" onClick={() => removePicked(p.id)} aria-label="Bỏ ảnh này" title="Bỏ ảnh này" className="grid h-8 w-8 place-items-center rounded-full bg-white/90 text-slate-700">
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {picked.length < MAX_PHOTOS && (
+                      <label className="flex aspect-[3/4] cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 text-center text-[11px] font-bold text-slate-600 hover:border-rose-400 hover:text-rose-700">
+                        <ImagePlus className="h-5 w-5" /> Thêm
+                        <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { addPicked(e.target.files); e.target.value = ''; }} />
+                      </label>
+                    )}
+                  </div>
+                  <p className="mt-1.5 text-xs text-slate-500">{picked.length}/{MAX_PHOTOS} ảnh · bấm ngôi sao để chọn ảnh bìa</p>
+                </>
+              )}
+            </fieldset>
+
+            <fieldset className="mt-7 min-w-0">
               <legend className={label}>Chọn mẫu thiệp</legend>
               <p className="-mt-1 mb-3 text-xs text-slate-500">Đổi mẫu bất cứ lúc nào sau này, nội dung giữ nguyên.</p>
               <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Lọc mẫu theo phong cách">
@@ -220,7 +319,7 @@ function CreateInvitation() {
                           onClick={() => setTemplateId(t.id)}
                           className={`group overflow-hidden rounded-xl border-2 bg-white text-left transition ${templateId === t.id ? 'border-rose-600 ring-2 ring-rose-200' : 'border-transparent hover:border-rose-200'}`}
                         >
-                          <CardFace templateId={t.id} groom={groomName.trim() || 'Minh Quân'} bride={brideName.trim() || 'Thu Hà'} date={isoDate} />
+                          <CardFace templateId={t.id} groom={groomName.trim() || 'Minh Quân'} bride={brideName.trim() || 'Thu Hà'} date={isoDate} cover={coverPhoto?.url} extras={coverPhoto ? extraPhotos : undefined} />
                           <span className="flex items-center justify-between gap-1 px-1.5 py-1.5 text-[11px] font-semibold text-slate-700">
                             <span className="truncate">{t.nameVi}</span>
                             {templateId === t.id && <Check className="h-3.5 w-3.5 shrink-0 text-rose-600" />}
@@ -267,7 +366,7 @@ function CreateInvitation() {
               className="mt-6 inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-rose-700 text-base font-bold text-white shadow-[0_12px_26px_-12px_rgba(136,19,55,0.8)] transition hover:bg-rose-600 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mail className="h-5 w-5" />}
-              {submitting ? 'Đang tạo thiệp…' : 'Tạo thiệp cưới'}
+              {submitting ? progress || 'Đang tạo thiệp…' : 'Tạo thiệp cưới'}
             </button>
             <p className="mt-3 text-center text-xs text-slate-500">
               Muốn có thêm sảnh cưới 3D cho khách ở xa?{' '}
@@ -280,11 +379,11 @@ function CreateInvitation() {
           {/* Live cover preview */}
           <aside className="min-w-0 lg:sticky lg:top-8">
             <div className="relative mx-auto max-w-[380px] overflow-hidden rounded-[10px] shadow-[0_30px_60px_-28px_rgba(60,20,20,0.6)]">
-              <span className="absolute right-2 top-2 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white">Ảnh minh hoạ</span>
-              <CardFace templateId={templateId} groom={groomName.trim() || 'Minh Quân'} bride={brideName.trim() || 'Thu Hà'} date={isoDate} />
+              {!coverPhoto && <span className="absolute right-2 top-2 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white">Ảnh minh hoạ</span>}
+              <CardFace templateId={templateId} groom={groomName.trim() || 'Minh Quân'} bride={brideName.trim() || 'Thu Hà'} date={isoDate} cover={coverPhoto?.url} extras={coverPhoto ? extraPhotos : undefined} />
             </div>
             <p className="mt-4 text-center text-sm text-slate-600">
-              Bìa thiệp với tên của hai bạn. Ảnh là ảnh minh hoạ: tạo thiệp xong bạn tải ảnh cưới của mình lên để thay.{' '}
+              {coverPhoto ? 'Bìa thiệp với tên và ảnh của hai bạn.' : 'Bìa thiệp với tên của hai bạn. Ảnh là ảnh minh hoạ: chọn ảnh cưới của bạn ở phần Ảnh cưới để thay.'}{' '}
               <Link href={`/thiep-cuoi/${templateId}`} target="_blank" className="font-semibold text-rose-700 underline-offset-4 hover:underline">
                 Xem cả thiệp mẫu
               </Link>
