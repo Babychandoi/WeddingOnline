@@ -193,6 +193,16 @@
 - [x] Sửa tràn ngang trên điện thoại: trang tạo thiệp (hàng chip lọc kéo rộng cả form; ô ngày trên iPhone trông trống vì ngày bị căn giữa ngoài màn hình) và tab Thiết kế sảnh 3D (lưới 480px); CSS chung cho ô ngày/giờ trên iOS; thêm bản quét tràn ngang 15 trang × 375/390px
 - [x] Kiểm chứng: typecheck, `npm test` 11/11, E2E thiệp 18/18 + E2E chỉ-thiệp 19/19, chụp 16 mẫu mới đủ 8 phong cách + thư viện, trang tạo, trang chủ
 
+### [x] Nhóm 26: Soạn Thiệp Dễ Hơn (ảnh cưới, nhiều địa điểm, tự lưu)
+- [x] Ảnh cưới ngay trong trang soạn thiệp: tải nhiều ảnh một lúc (ảnh điện thoại tự thu nhỏ còn ~2000px JPEG, ảnh 35 MB → 639 KB), chọn ảnh bìa bằng ngôi sao, xoá ảnh (API `DELETE /api/weddings/[slug]/photos/[photoId]`, chỉ cô dâu/chú rể/chủ tiệc; xoá ảnh bìa thì thiệp tự bỏ ảnh bìa); đếm x/12
+- [x] Thẻ mẫu và bìa xem trước ghi rõ "Ảnh minh hoạ" khi chưa có ảnh (trước đây ảnh mẫu của cặp đôi khác làm tưởng thiệp có sẵn ảnh không đổi được)
+- [x] "Các lễ & địa điểm": mỗi lễ một thẻ có nhãn rõ (loại lễ, ngày giờ, tên lễ, địa điểm, địa chỉ, link bản đồ, ghi chú), nút "Thêm lễ ở địa điểm khác"; trang tạo thiệp nhắc có thể sửa riêng từng lễ
+- [x] Thanh mục lục dính đầu trang (Ảnh cưới · Tên · Các lễ · Gia đình · Mẫu · Chuyện tình · Nhạc · Khách), khung gửi thiệp gọn lại (link riêng gập trong "Tạo link mời riêng")
+- [x] Tự lưu 1,2 giây sau khi sửa (vẫn có nút Lưu), trạng thái hiện cả trên điện thoại, cảnh báo khi rời trang lúc chưa lưu
+- [x] Cô dâu chú rể mở thiệp của mình thấy nút "Thiệp của bạn · Sửa thiệp" (khách không thấy)
+- [x] Nút tải ảnh ở tab ảnh và Setup phòng cũng dùng chung bộ thu nhỏ ảnh + báo lỗi, cho chọn nhiều ảnh
+- [x] Kiểm chứng: E2E soạn thiệp 15/15 ở khổ điện thoại (tải 3 ảnh, chọn bìa, 2 địa điểm khác nhau, tự lưu, xoá ảnh, tải lại vẫn còn, bìa dùng ảnh thật, nút sửa chỉ hiện cho chủ), E2E thiệp 18/18, E2E chỉ-thiệp 19/19, quét tràn ngang 15 trang không lỗi, `npm test` 11/11
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

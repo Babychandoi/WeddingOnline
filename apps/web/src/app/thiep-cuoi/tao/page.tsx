@@ -179,6 +179,7 @@ function CreateInvitation() {
                   Nơi tổ chức <span className="font-normal text-slate-500">(không bắt buộc)</span>
                 </span>
                 <input className={field} value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ví dụ: Phú Hội, TP. Huế" maxLength={120} />
+                <span className="mt-1 block text-xs text-slate-500">Nhà trai, nhà gái, nhà hàng ở nhiều nơi khác nhau? Sửa riêng địa điểm từng lễ ở bước sau.</span>
               </label>
             </div>
 
@@ -278,11 +279,12 @@ function CreateInvitation() {
 
           {/* Live cover preview */}
           <aside className="min-w-0 lg:sticky lg:top-8">
-            <div className="mx-auto max-w-[380px] overflow-hidden rounded-[10px] shadow-[0_30px_60px_-28px_rgba(60,20,20,0.6)]">
+            <div className="relative mx-auto max-w-[380px] overflow-hidden rounded-[10px] shadow-[0_30px_60px_-28px_rgba(60,20,20,0.6)]">
+              <span className="absolute right-2 top-2 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white">Ảnh minh hoạ</span>
               <CardFace templateId={templateId} groom={groomName.trim() || 'Minh Quân'} bride={brideName.trim() || 'Thu Hà'} date={isoDate} />
             </div>
             <p className="mt-4 text-center text-sm text-slate-600">
-              Bìa thiệp với tên của hai bạn.{' '}
+              Bìa thiệp với tên của hai bạn. Ảnh là ảnh minh hoạ: tạo thiệp xong bạn tải ảnh cưới của mình lên để thay.{' '}
               <Link href={`/thiep-cuoi/${templateId}`} target="_blank" className="font-semibold text-rose-700 underline-offset-4 hover:underline">
                 Xem cả thiệp mẫu
               </Link>

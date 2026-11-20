@@ -35,6 +35,7 @@ import { SceneBuilderEditor } from '../builder/SceneBuilderEditor';
 import { PrintQrTab } from './PrintQrTab';
 import { InvitationEditor } from './InvitationEditor';
 import { RoomSetupEditor } from './RoomSetupEditor';
+import { uploadWeddingPhoto } from '@/lib/uploadWeddingPhoto';
 import { OAuthModal } from '../hall/OAuthModal';
 
 interface DashboardClientProps {
@@ -306,40 +307,16 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
   };
 
   const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const presignRes = await fetch('/api/r2/presign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        slug: wedding.slug,
-        folder: 'gallery',
-        contentType: file.type || 'image/jpeg',
-        byteSize: file.size,
-      }),
-    });
-    const presign = await presignRes.json();
-    if (!presignRes.ok) return;
-
-    await fetch(presign.uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type || 'image/jpeg' },
-      body: file,
-    });
-
-    const saveRes = await fetch(`/api/weddings/${encodeURIComponent(wedding.slug)}/photos`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'PRE_WEDDING_GALLERY',
-        r2ObjectKey: presign.objectKey,
-        publicUrl: presign.publicUrl,
-        caption: file.name,
-      }),
-    });
-    const saved = await saveRes.json();
-    if (saveRes.ok && saved.photo) {
-      setPhotos((prev) => [...prev, saved.photo]);
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    for (const file of files) {
+      try {
+        const photo = await uploadWeddingPhoto(wedding.slug, file);
+        setPhotos((prev) => [...prev, photo]);
+      } catch (err) {
+        window.alert(err instanceof Error ? err.message : 'Chưa tải được ảnh, bạn thử lại nhé.');
+        break;
+      }
     }
   };
 
@@ -719,7 +696,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
               <h3 className="text-base font-bold text-slate-900">Kho Ảnh Cưới 3D &amp; Photobooth</h3>
               <label className="cursor-pointer rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-500">
                 + Tải Ảnh Cưới Mới
-                <input type="file" accept="image/*" onChange={handleUploadPhoto} className="hidden" />
+                <input type="file" accept="image/*" multiple onChange={handleUploadPhoto} className="hidden" />
               </label>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -874,7 +851,14 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
           </div>
         )}
 
-        {tab === 'thiep' && <InvitationEditor wedding={wedding} photos={photos} />}
+        {tab === 'thiep' && (
+          <InvitationEditor
+            wedding={wedding}
+            photos={photos}
+            albumLimit={wedding.invitationOnly ? 12 : TIER_CATALOG[wedding.tier].maxPhotos}
+            onPhotosChange={setPhotos}
+          />
+        )}
 
         {tab === 'printqr' && <PrintQrTab wedding={wedding} />}
 

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { dbRepo } from '@dco/database';
 import { TIER_CATALOG, isVenueId, resolveInvitationConfig } from '@dco/shared';
 import { InvitationView } from '@/components/invitation/InvitationView';
+import { OwnerEditBar } from '@/components/invitation/OwnerEditBar';
 import { BANK_NAMES } from '@/components/invitation/themes';
 import { venueThumbnail } from '@/components/venues/VenueCard';
 import type { InvitationWish } from '@/app/api/invitations/[slug]/wishes/route';
@@ -49,6 +50,8 @@ export default async function InvitationPage({ params, searchParams }: { params:
     .map((p) => ({ id: p.id, url: p.publicUrl, caption: p.caption }));
 
   return (
+    <>
+    <OwnerEditBar slug={wedding.slug} />
     <InvitationView
       slug={wedding.slug}
       groomName={wedding.groomName}
@@ -65,5 +68,6 @@ export default async function InvitationPage({ params, searchParams }: { params:
       venueThumb={venueId && isVenueId(venueId) ? venueThumbnail(venueId) : null}
       initialWishes={wishes}
     />
+    </>
   );
 }

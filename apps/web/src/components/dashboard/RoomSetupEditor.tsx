@@ -200,7 +200,7 @@ export function RoomSetupEditor({
           </div>
           <label className="inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-xl bg-rose-600 px-3.5 text-xs font-bold text-white hover:bg-rose-500">
             <ImagePlus className="h-4 w-4" /> Tải ảnh cưới
-            <input type="file" accept="image/*" onChange={onUploadPhoto} className="hidden" />
+            <input type="file" accept="image/*" multiple onChange={onUploadPhoto} className="hidden" />
           </label>
         </div>
 

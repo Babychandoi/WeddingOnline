@@ -429,6 +429,15 @@ const localJsonRepo = {
                       });
                     },
 
+  async deletePhoto(weddingId: string, photoId: string): Promise<PhotoAssetRecord | null> {
+    return getStore().mutate((db) => {
+      const i = db.photos.findIndex((p) => p.id === photoId && p.weddingId === weddingId);
+      if (i < 0) return null;
+      const [removed] = db.photos.splice(i, 1);
+      return removed;
+    });
+  },
+
   async listPhotos(weddingId: string): Promise < PhotoAssetRecord[] > {
                         return getStore().query((db) =>
                           db.photos.filter((p) => p.weddingId === weddingId).sort((a, b) => a.displayOrder - b.displayOrder)
@@ -963,6 +972,7 @@ const localJsonRepo = {
                                     setMemberModeration: (i: Parameters<typeof localJsonRepo.setMemberModeration>[0]) =>
                                       activeRepo().setMemberModeration(i),
                                     listPhotos: (weddingId: string) => activeRepo().listPhotos(weddingId),
+                                    deletePhoto: (weddingId: string, photoId: string) => activeRepo().deletePhoto(weddingId, photoId),
                                     addPhoto: (i: Parameters<typeof localJsonRepo.addPhoto>[0]) => activeRepo().addPhoto(i),
                                     listGuestbook: (weddingId: string) => activeRepo().listGuestbook(weddingId),
                                     addGuestbookEntry: (i: Parameters<typeof localJsonRepo.addGuestbookEntry>[0]) =>

@@ -542,6 +542,15 @@ export const prismaRepo = {
     return mapMember(updated);
   },
 
+  /** Removes one photo of a wedding; false when it is not that wedding's */
+  async deletePhoto(weddingId: string, photoId: string): Promise<PhotoAssetRecord | null> {
+    const prisma = getPrismaClient();
+    const row = await prisma.photoAsset.findFirst({ where: { id: photoId, weddingId } });
+    if (!row) return null;
+    await prisma.photoAsset.delete({ where: { id: row.id } });
+    return mapPhoto(row);
+  },
+
   async listPhotos(weddingId: string): Promise<PhotoAssetRecord[]> {
     const rows = await getPrismaClient().photoAsset.findMany({
       where: { weddingId },

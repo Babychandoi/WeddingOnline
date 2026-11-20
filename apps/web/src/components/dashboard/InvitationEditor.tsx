@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Copy, ExternalLink, Eye, Loader2, Plus, Save, Trash2, Users } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Copy, ExternalLink, Eye, ImagePlus, Loader2, MapPin, Plus, Save, Star, Trash2, Users } from 'lucide-react';
 import {
   INVITATION_EVENT_LABELS,
   INVITATION_LIMITS,
@@ -18,9 +18,10 @@ import { CardFace } from '@/components/invitation/CardFace';
 import { styleCount, templatesFor } from '@/components/invitation/templateOrder';
 import { InvitationView } from '@/components/invitation/InvitationView';
 import { SAMPLE_WISHES } from '@/components/invitation/sampleInvitation';
+import { deleteWeddingPhoto, uploadWeddingPhoto } from '@/lib/uploadWeddingPhoto';
 
 const input =
-  'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-200';
+  'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base text-slate-900 outline-none placeholder:text-slate-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 sm:text-sm';
 const label = 'mb-1 block text-xs font-bold text-slate-600';
 
 const SECTION_LABELS: Record<InvitationSectionKey, string> = {
@@ -37,6 +38,18 @@ const SECTION_LABELS: Record<InvitationSectionKey, string> = {
 
 const SIDE_LABEL: Record<string, string> = { GROOM_SIDE: 'Nhà trai', BRIDE_SIDE: 'Nhà gái', FRIEND: 'Bạn bè', COLLEAGUE: 'Đồng nghiệp' };
 
+/** Jump links at the top of the editor: the form is long on a phone */
+const NAV: Array<[string, string]> = [
+  ['inv-anh', 'Ảnh cưới'],
+  ['inv-ten', 'Tên & lời mời'],
+  ['inv-le', 'Các lễ & địa điểm'],
+  ['inv-gia-dinh', 'Gia đình'],
+  ['inv-mau', 'Mẫu thiệp'],
+  ['inv-chuyen', 'Chuyện tình'],
+  ['inv-khac', 'Nhạc & mục'],
+  ['inv-khach', 'Khách xác nhận'],
+];
+
 /** ISO instant ⇄ the value of <input type="datetime-local">, read as Vietnam time */
 function toLocalInput(iso: string): string {
   const t = Date.parse(iso);
@@ -49,13 +62,13 @@ function fromLocalInput(v: string): string {
   return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4] - 7, +m[5])).toISOString();
 }
 
-function Group({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
+function Group({ id, title, children, hint }: { id: string; title: string; children: React.ReactNode; hint?: React.ReactNode }) {
   return (
-    <fieldset className="rounded-2xl border border-slate-200 bg-white p-5">
-      <legend className="px-1 text-sm font-black text-slate-900">{title}</legend>
-      {hint && <p className="-mt-1 mb-3 text-xs leading-relaxed text-slate-500">{hint}</p>}
-      <div className="space-y-3">{children}</div>
-    </fieldset>
+    <section id={id} className="scroll-mt-20 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+      <h3 className="text-base font-black text-slate-900">{title}</h3>
+      {hint && <div className="mt-1 text-xs leading-relaxed text-slate-500">{hint}</div>}
+      <div className="mt-4 space-y-3">{children}</div>
+    </section>
   );
 }
 
@@ -63,7 +76,7 @@ function CopyField({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="flex gap-2">
-      <input readOnly value={value} className={`${input} font-mono text-xs`} onFocus={(e) => e.currentTarget.select()} />
+      <input readOnly value={value} className={`${input} min-w-0 font-mono !text-xs`} onFocus={(e) => e.currentTarget.select()} />
       <button
         type="button"
         onClick={() => navigator.clipboard?.writeText(value).then(() => {
@@ -78,17 +91,33 @@ function CopyField({ value }: { value: string }) {
   );
 }
 
-export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDTO; photos: PhotoAssetRecord[] }) {
+type SaveState = 'saved' | 'dirty' | 'saving' | 'error';
+
+export function InvitationEditor({
+  wedding,
+  photos,
+  albumLimit,
+  onPhotosChange,
+}: {
+  wedding: PublicWeddingDTO;
+  photos: PhotoAssetRecord[];
+  /** How many album photos this wedding may keep */
+  albumLimit: number;
+  onPhotosChange: (next: PhotoAssetRecord[]) => void;
+}) {
   const [config, setConfig] = useState<InvitationConfig | null>(null);
   const [rsvps, setRsvps] = useState<InvitationRsvpRecord[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [state, setState] = useState<SaveState>('saved');
   const [loadError, setLoadError] = useState('');
   const [guestForLink, setGuestForLink] = useState('');
   const [origin, setOrigin] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [pickStyle, setPickStyle] = useState<InvitationTemplateStyle | 'all'>('all');
   const [pickShown, setPickShown] = useState(18);
+  const [uploading, setUploading] = useState(0);
+  const [photoError, setPhotoError] = useState('');
+  const latest = useRef<InvitationConfig | null>(null);
+  const timer = useRef<number | null>(null);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -99,12 +128,44 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
       })
       .then((d: { config: InvitationConfig; rsvps: InvitationRsvpRecord[] }) => {
         setConfig(d.config);
+        latest.current = d.config;
         setRsvps(d.rsvps);
       })
       .catch((e: Error) => setLoadError(e.message));
   }, [wedding.slug]);
 
   const gallery = useMemo(() => photos.filter((p) => p.type === 'PRE_WEDDING_GALLERY').sort((a, b) => a.displayOrder - b.displayOrder), [photos]);
+
+  /** Saves what is on screen. The response is not written back while typing: the local text stays as typed */
+  const persist = useCallback(async () => {
+    const body = latest.current;
+    if (!body) return;
+    setState('saving');
+    const res = await fetch(`/api/weddings/${wedding.slug}/invitation`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: body }),
+    }).catch(() => null);
+    if (latest.current !== body) return; // edited again meanwhile: the next save carries it
+    setState(res?.ok ? 'saved' : 'error');
+  }, [wedding.slug]);
+
+  // Autosave a moment after the last change, and warn before leaving with unsaved edits
+  useEffect(() => {
+    if (state !== 'dirty') return;
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => void persist(), 1200);
+    return () => {
+      if (timer.current) window.clearTimeout(timer.current);
+    };
+  }, [state, config, persist]);
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => {
+      if (state === 'dirty' || state === 'saving') e.preventDefault();
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [state]);
 
   if (loadError) return <p className="rounded-2xl bg-rose-50 p-5 text-sm font-semibold text-rose-800">{loadError}</p>;
   if (!config) {
@@ -116,32 +177,61 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
   }
 
   const patch = (p: Partial<InvitationConfig>) => {
-    setConfig({ ...config, ...p });
-    setSaved('idle');
+    const next = { ...config, ...p };
+    latest.current = next;
+    setConfig(next);
+    setState('dirty');
   };
 
-  async function save() {
-    setSaving(true);
-    const res = await fetch(`/api/weddings/${wedding.slug}/invitation`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ config }),
-    }).catch(() => null);
-    setSaving(false);
-    if (!res?.ok) return setSaved('error');
-    const d = (await res.json()) as { config: InvitationConfig };
-    setConfig(d.config);
-    setSaved('ok');
-  }
+  const addPhotos = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setPhotoError('');
+    const room = Math.max(0, albumLimit - gallery.length);
+    const list = Array.from(files).slice(0, room);
+    if (files.length > room) setPhotoError(`Album giữ tối đa ${albumLimit} ảnh, mình chỉ thêm ${room} ảnh đầu.`);
+    let current = photos;
+    setUploading(list.length);
+    for (const file of list) {
+      try {
+        const photo = await uploadWeddingPhoto(wedding.slug, file);
+        current = [...current, photo];
+        onPhotosChange(current);
+      } catch (e) {
+        setPhotoError(e instanceof Error ? e.message : 'Chưa tải được ảnh.');
+      }
+      setUploading((n) => n - 1);
+    }
+  };
+
+  const removePhoto = async (p: PhotoAssetRecord) => {
+    if (!window.confirm('Xoá ảnh này khỏi thiệp và album?')) return;
+    try {
+      await deleteWeddingPhoto(wedding.slug, p.id);
+      onPhotosChange(photos.filter((x) => x.id !== p.id));
+      // The server already clears a removed cover; keep the screen in step without an extra save
+      if (config.coverPhotoUrl === p.publicUrl) {
+        const next = { ...config, coverPhotoUrl: '' };
+        latest.current = next;
+        setConfig(next);
+      }
+    } catch (e) {
+      setPhotoError(e instanceof Error ? e.message : 'Chưa xoá được ảnh.');
+    }
+  };
 
   const inviteUrl = `${origin}/thiep/${wedding.slug}`;
   const personalUrl = guestForLink.trim() ? `${inviteUrl}?khach=${encodeURIComponent(guestForLink.trim())}` : '';
   const attending = rsvps.filter((r) => r.attending);
   const headcount = attending.reduce((n, r) => n + r.headcount, 0);
+  const cover = config.coverPhotoUrl || gallery[0]?.publicUrl || '';
+  const mainDate = config.events.find((e) => e.kind === 'THANH_HON' || e.kind === 'TIEC_CUOI')?.startsAt ?? wedding.weddingDate;
+
+  const status =
+    state === 'saving' ? 'Đang lưu…' : state === 'dirty' ? 'Sắp tự lưu…' : state === 'error' ? 'Chưa lưu được, bấm Lưu' : 'Đã lưu tự động';
 
   const preview = (
     <div className="mx-auto w-[390px] max-w-full overflow-hidden rounded-[36px] border-[10px] border-slate-900 bg-slate-900 shadow-2xl">
-      <div className="h-[720px] overflow-y-auto">
+      <div className="h-[720px] max-h-[80vh] overflow-y-auto">
         <InvitationView
           slug={wedding.slug}
           groomName={wedding.groomName}
@@ -151,7 +241,7 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
           photos={gallery.map((p) => ({ id: p.id, url: p.publicUrl, caption: p.caption }))}
           guestName={guestForLink.trim() || 'Anh Tuấn'}
           gift={{ enabled: wedding.hasBankConfig, bankName: null }}
-          hallUrl={`/w/${wedding.slug}`}
+          hallUrl={wedding.invitationOnly ? null : `/w/${wedding.slug}`}
           venueThumb={null}
           initialWishes={SAMPLE_WISHES}
           demo
@@ -162,87 +252,101 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
   );
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_410px]">
-      <div className="space-y-5">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_410px]">
+      <div className="min-w-0 space-y-5">
         {/* Share */}
-        <div className="rounded-2xl bg-slate-900 p-5 text-white">
+        <div className="rounded-2xl bg-slate-900 p-4 text-white sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-base font-black">Gửi thiệp cho khách</h3>
             <a href={`/thiep/${wedding.slug}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold hover:bg-white/20">
               <ExternalLink className="h-4 w-4" /> Mở thiệp
             </a>
           </div>
-          <p className="mt-1 text-xs text-slate-300">Đường dẫn chung, gửi vào nhóm Zalo hay đăng Facebook:</p>
-          <div className="mt-2 [&_input]:bg-white">{origin && <CopyField value={inviteUrl} />}</div>
-          <label htmlFor="guest-link" className="mt-4 block text-xs text-slate-300">
-            Link mời riêng: nhập tên khách, phong bì sẽ ghi “Kính mời” kèm tên đó
-          </label>
-          <input id="guest-link" value={guestForLink} onChange={(e) => setGuestForLink(e.target.value)} placeholder="Ví dụ: Cô Ba và gia đình" maxLength={60} className={`${input} mt-1.5`} />
-          {personalUrl && (
-            <div className="mt-2 [&_input]:bg-white">
-              <CopyField value={personalUrl} />
-            </div>
-          )}
+          <div className="mt-2.5 [&_input]:bg-white">{origin && <CopyField value={inviteUrl} />}</div>
+          {/* Personal links fold away so the editing starts on the first screen of a phone */}
+          <details className="mt-3 text-xs text-slate-300">
+            <summary className="cursor-pointer font-semibold text-amber-200">Tạo link mời riêng ghi tên từng khách</summary>
+            <label htmlFor="guest-link" className="mt-2 block">
+              Nhập tên khách, phong bì sẽ ghi “Kính mời” kèm tên đó
+            </label>
+            <input id="guest-link" value={guestForLink} onChange={(e) => setGuestForLink(e.target.value)} placeholder="Ví dụ: Cô Ba và gia đình" maxLength={60} className={`${input} mt-1.5`} />
+            {personalUrl && (
+              <div className="mt-2 [&_input]:bg-white">
+                <CopyField value={personalUrl} />
+              </div>
+            )}
+          </details>
         </div>
 
-        <Group title="Mẫu thiệp" hint="Đổi mẫu bất cứ lúc nào, nội dung giữ nguyên.">
-          <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Lọc mẫu theo phong cách">
-            {([['all', 'Tất cả'], ...Object.entries(INVITATION_STYLE_LABELS)] as Array<[InvitationTemplateStyle | 'all', string]>).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={pickStyle === id}
-                onClick={() => {
-                  setPickStyle(id);
-                  setPickShown(18);
-                }}
-                className={`min-h-[36px] rounded-full px-3.5 text-xs font-semibold transition ${pickStyle === id ? 'bg-rose-700 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-slate-400'}`}
-              >
-                {label} <span className="tabular-nums opacity-60">{styleCount(id)}</span>
-              </button>
-            ))}
-          </div>
-          <div className="grid max-h-[560px] grid-cols-3 gap-3 overflow-y-auto p-1 sm:grid-cols-4 lg:grid-cols-6">
-            {[
-              // The current template first, then the chosen style in gallery order
-              ...INVITATION_TEMPLATES.filter((t) => t.id === config.templateId),
-              ...templatesFor(pickStyle).filter((t) => t.id !== config.templateId),
-            ]
-              .slice(0, pickShown)
-              .map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => patch({ templateId: t.id })}
-                aria-pressed={config.templateId === t.id}
-                className={`overflow-hidden rounded-xl text-left ring-offset-2 transition ${config.templateId === t.id ? 'ring-[3px] ring-rose-600' : 'ring-1 ring-slate-200 hover:ring-slate-400'}`}
-              >
-                <CardFace
-                  templateId={t.id}
-                  groom={config.groomFullName}
-                  bride={config.brideFullName}
-                  date={config.events.find((e) => e.kind === 'THANH_HON' || e.kind === 'TIEC_CUOI')?.startsAt ?? wedding.weddingDate}
-                  cover={config.coverPhotoUrl || gallery[0]?.publicUrl}
-                  extras={gallery.filter((p) => p.publicUrl !== (config.coverPhotoUrl || gallery[0]?.publicUrl)).slice(0, 2).map((p) => p.publicUrl)}
-                  className="pointer-events-none"
-                />
-                <span className="block truncate bg-white px-2 py-1.5 text-[11px] font-bold text-slate-800">{t.nameVi}</span>
-              </button>
-            ))}
-            {pickShown < templatesFor(pickStyle).filter((t) => t.id !== config.templateId).length + 1 && (
-              <button
-                type="button"
-                onClick={() => setPickShown((n) => n + 18)}
-                className="col-span-full min-h-[44px] rounded-xl text-sm font-semibold text-rose-800 ring-1 ring-rose-200 transition hover:bg-rose-50"
-              >
-                Xem thêm mẫu
-              </button>
-            )}
-          </div>
+        {/* Jump links */}
+        <nav aria-label="Các phần của thiệp" className="sticky top-0 z-20 -mx-4 flex gap-1.5 overflow-x-auto bg-[#FFFDF8]/95 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-2xl sm:px-2">
+          {NAV.map(([id, text]) => (
+            <a key={id} href={`#${id}`} className="inline-flex min-h-[36px] shrink-0 items-center whitespace-nowrap rounded-full bg-white px-3.5 text-xs font-bold text-slate-700 ring-1 ring-slate-200 hover:ring-rose-300">
+              {text}
+            </a>
+          ))}
+        </nav>
+
+        {/* Photos */}
+        <Group
+          id="inv-anh"
+          title={`Ảnh cưới của bạn (${gallery.length}/${albumLimit})`}
+          hint="Ảnh bìa, khung ảnh trên bìa và album của thiệp đều lấy từ đây. Chưa có ảnh thì thiệp để trống chỗ ảnh (ảnh trên các thẻ mẫu chỉ là ảnh minh hoạ)."
+        >
+          {gallery.length === 0 ? (
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-rose-300 bg-rose-50/60 px-4 py-8 text-center hover:bg-rose-50">
+              <ImagePlus className="h-8 w-8 text-rose-600" />
+              <span className="text-sm font-black text-rose-800">Thêm ảnh cưới</span>
+              <span className="text-xs text-slate-600">Chọn nhiều ảnh một lúc. Ảnh lớn tự được thu nhỏ cho nhẹ.</span>
+              <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { void addPhotos(e.target.files); e.target.value = ''; }} />
+            </label>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-5">
+                {gallery.map((p) => {
+                  const isCover = p.publicUrl === cover;
+                  return (
+                    <div key={p.id} className={`relative overflow-hidden rounded-xl bg-slate-100 ${isCover ? 'ring-[3px] ring-rose-600' : 'ring-1 ring-slate-200'}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.publicUrl} alt={p.caption ?? 'Ảnh cưới'} loading="lazy" className="aspect-[3/4] w-full object-cover" />
+                      {isCover && <span className="absolute left-1.5 top-1.5 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-black text-white">Ảnh bìa</span>}
+                      <div className="absolute inset-x-0 bottom-0 flex justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-1.5 pt-6">
+                        <button
+                          type="button"
+                          onClick={() => patch({ coverPhotoUrl: p.publicUrl })}
+                          disabled={isCover}
+                          aria-label="Đặt làm ảnh bìa"
+                          title="Đặt làm ảnh bìa"
+                          className="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-rose-700 disabled:opacity-40"
+                        >
+                          <Star className="h-4 w-4" fill={isCover ? 'currentColor' : 'none'} />
+                        </button>
+                        <button type="button" onClick={() => void removePhoto(p)} aria-label="Xoá ảnh" title="Xoá ảnh" className="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-slate-700 hover:text-rose-700">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {gallery.length < albumLimit && (
+                  <label className="flex aspect-[3/4] cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 text-center text-xs font-bold text-slate-600 hover:border-rose-400 hover:text-rose-700">
+                    <ImagePlus className="h-6 w-6" /> Thêm ảnh
+                    <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { void addPhotos(e.target.files); e.target.value = ''; }} />
+                  </label>
+                )}
+              </div>
+              <p className="text-xs text-slate-500">Bấm ngôi sao để chọn ảnh bìa. Không chọn thì dùng ảnh đầu tiên.</p>
+            </>
+          )}
+          {uploading > 0 && (
+            <p className="flex items-center gap-2 text-xs font-semibold text-slate-700" role="status">
+              <Loader2 className="h-4 w-4 animate-spin" /> Đang tải {uploading} ảnh…
+            </p>
+          )}
+          {photoError && <p className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800" role="alert">{photoError}</p>}
         </Group>
 
-        <Group title="Tên & lời mời">
+        <Group id="inv-ten" title="Tên & lời mời">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className={label} htmlFor="inv-groom">Tên chú rể trên thiệp</label>
@@ -267,7 +371,87 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
           </div>
         </Group>
 
-        <Group title="Hai bên gia đình" hint="Để trống nếu không muốn in tên bố mẹ.">
+        <Group
+          id="inv-le"
+          title="Các lễ & địa điểm"
+          hint="Mỗi lễ có giờ và địa điểm riêng, ví dụ: Lễ Vu Quy tại nhà gái ở Đà Nẵng, Lễ Thành Hôn tại nhà trai ở Huế, Tiệc cưới ở nhà hàng. Giờ tính theo giờ Việt Nam; bỏ trống link bản đồ thì thiệp tự tìm theo địa chỉ."
+        >
+          {config.events.map((ev, i) => {
+            const setField = (field: keyof typeof ev, value: string) => {
+              const events = [...config.events];
+              events[i] = { ...ev, [field]: value };
+              patch({ events });
+            };
+            return (
+              <div key={ev.id} className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="flex items-center gap-1.5 text-sm font-black text-rose-800">
+                    <MapPin className="h-4 w-4" /> Lễ {i + 1}: {ev.title || INVITATION_EVENT_LABELS[ev.kind]}
+                  </p>
+                  <button type="button" aria-label={`Xoá lễ ${i + 1}`} onClick={() => patch({ events: config.events.filter((_, j) => j !== i) })} className="grid h-10 w-10 place-items-center rounded-xl text-slate-500 hover:bg-rose-100 hover:text-rose-700">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className={label} htmlFor={`ev-kind-${ev.id}`}>Loại lễ</label>
+                    <select
+                      id={`ev-kind-${ev.id}`}
+                      className={input}
+                      value={ev.kind}
+                      onChange={(e) => {
+                        const kind = e.target.value as InvitationEventKind;
+                        const events = [...config.events];
+                        events[i] = { ...ev, kind, title: ev.title === INVITATION_EVENT_LABELS[ev.kind] ? INVITATION_EVENT_LABELS[kind] : ev.title };
+                        patch({ events });
+                      }}
+                    >
+                      {Object.entries(INVITATION_EVENT_LABELS).map(([k, v]) => (
+                        <option key={k} value={k}>{v}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={label} htmlFor={`ev-time-${ev.id}`}>Ngày giờ</label>
+                    <input id={`ev-time-${ev.id}`} type="datetime-local" className={input} value={toLocalInput(ev.startsAt)} onChange={(e) => setField('startsAt', fromLocalInput(e.target.value))} />
+                  </div>
+                </div>
+                {(
+                  [
+                    ['title', 'Tên lễ hiển thị trên thiệp', '', INVITATION_LIMITS.eventTitle],
+                    ['venueName', 'Địa điểm', 'Ví dụ: Tư gia nhà gái, Nhà hàng Hoa Sen', INVITATION_LIMITS.venueName],
+                    ['address', 'Địa chỉ', 'Số nhà, đường, phường, tỉnh/thành', INVITATION_LIMITS.address],
+                    ['mapUrl', 'Link Google Maps (không bắt buộc)', 'https://maps.app.goo.gl/…', INVITATION_LIMITS.url],
+                    ['note', 'Ghi chú (không bắt buộc)', 'Ví dụ: đón khách từ 17:30', INVITATION_LIMITS.note],
+                  ] as const
+                ).map(([field, text, placeholder, max]) => (
+                  <div key={field}>
+                    <label className={label} htmlFor={`ev-${field}-${ev.id}`}>{text}</label>
+                    <input id={`ev-${field}-${ev.id}`} placeholder={placeholder} className={input} value={ev[field]} maxLength={max} onChange={(e) => setField(field, e.target.value)} />
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+          {config.events.length < INVITATION_LIMITS.events && (
+            <button
+              type="button"
+              onClick={() =>
+                patch({
+                  events: [
+                    ...config.events,
+                    { id: invitationItemId('ev'), kind: 'TIEC_CUOI', title: INVITATION_EVENT_LABELS.TIEC_CUOI, startsAt: config.events.at(-1)?.startsAt ?? wedding.weddingDate, venueName: '', address: '', mapUrl: '', note: '' },
+                  ],
+                })
+              }
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 text-sm font-bold text-slate-700 hover:border-rose-400 hover:text-rose-700"
+            >
+              <Plus className="h-4 w-4" /> Thêm lễ ở địa điểm khác
+            </button>
+          )}
+        </Group>
+
+        <Group id="inv-gia-dinh" title="Hai bên gia đình" hint="Để trống nếu không muốn in tên bố mẹ.">
           {(['groomFamily', 'brideFamily'] as const).map((key) => (
             <div key={key} className="grid gap-3 sm:grid-cols-3">
               <p className="text-xs font-black uppercase tracking-wide text-rose-700 sm:col-span-3">{key === 'groomFamily' ? 'Nhà trai' : 'Nhà gái'}</p>
@@ -287,86 +471,71 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
           ))}
         </Group>
 
-        <Group title="Lịch trình ngày cưới" hint="Giờ tính theo giờ Việt Nam. Bỏ trống link bản đồ thì thiệp tự tìm theo địa chỉ.">
-          {config.events.map((ev, i) => (
-            <div key={ev.id} className="space-y-2.5 rounded-xl bg-slate-50 p-3.5">
-              <div className="grid gap-2.5 sm:grid-cols-[1fr_1fr_auto]">
-                <select
-                  aria-label="Loại sự kiện"
-                  className={input}
-                  value={ev.kind}
-                  onChange={(e) => {
-                    const kind = e.target.value as InvitationEventKind;
-                    const events = [...config.events];
-                    events[i] = { ...ev, kind, title: ev.title === INVITATION_EVENT_LABELS[ev.kind] ? INVITATION_EVENT_LABELS[kind] : ev.title };
-                    patch({ events });
-                  }}
+        <Group
+          id="inv-mau"
+          title="Mẫu thiệp"
+          hint={gallery.length ? 'Đổi mẫu bất cứ lúc nào, nội dung giữ nguyên.' : 'Đổi mẫu bất cứ lúc nào, nội dung giữ nguyên. Ảnh trên thẻ là ảnh minh hoạ; thiệp của bạn dùng ảnh bạn tải lên ở phần Ảnh cưới.'}
+        >
+          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Lọc mẫu theo phong cách">
+            {([['all', 'Tất cả'], ...Object.entries(INVITATION_STYLE_LABELS)] as Array<[InvitationTemplateStyle | 'all', string]>).map(([id, text]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={pickStyle === id}
+                onClick={() => {
+                  setPickStyle(id);
+                  setPickShown(18);
+                }}
+                className={`min-h-[36px] shrink-0 whitespace-nowrap rounded-full px-3.5 text-xs font-semibold transition ${pickStyle === id ? 'bg-rose-700 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-slate-400'}`}
+              >
+                {text} <span className="tabular-nums opacity-60">{styleCount(id)}</span>
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+            {[
+              // The current template first, then the chosen style in gallery order
+              ...INVITATION_TEMPLATES.filter((t) => t.id === config.templateId),
+              ...templatesFor(pickStyle).filter((t) => t.id !== config.templateId),
+            ]
+              .slice(0, pickShown)
+              .map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => patch({ templateId: t.id })}
+                  aria-pressed={config.templateId === t.id}
+                  className={`relative overflow-hidden rounded-xl text-left ring-offset-2 transition ${config.templateId === t.id ? 'ring-[3px] ring-rose-600' : 'ring-1 ring-slate-200 hover:ring-slate-400'}`}
                 >
-                  {Object.entries(INVITATION_EVENT_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
-                </select>
-                <input
-                  type="datetime-local"
-                  aria-label="Thời gian"
-                  className={input}
-                  value={toLocalInput(ev.startsAt)}
-                  onChange={(e) => {
-                    const events = [...config.events];
-                    events[i] = { ...ev, startsAt: fromLocalInput(e.target.value) };
-                    patch({ events });
-                  }}
-                />
-                <button type="button" aria-label="Xoá sự kiện" onClick={() => patch({ events: config.events.filter((_, j) => j !== i) })} className="grid h-11 w-11 place-items-center rounded-xl text-slate-500 hover:bg-rose-100 hover:text-rose-700">
-                  <Trash2 className="h-4 w-4" />
+                  <CardFace
+                    templateId={t.id}
+                    groom={config.groomFullName}
+                    bride={config.brideFullName}
+                    date={mainDate}
+                    cover={cover || undefined}
+                    extras={gallery.filter((p) => p.publicUrl !== cover).slice(0, 2).map((p) => p.publicUrl)}
+                    className="pointer-events-none"
+                  />
+                  {!gallery.length && <span className="absolute right-1 top-1 rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-bold text-white">Ảnh minh hoạ</span>}
+                  <span className="block truncate bg-white px-2 py-1.5 text-[11px] font-bold text-slate-800">{t.nameVi}</span>
                 </button>
-              </div>
-              {(
-                [
-                  ['title', 'Tiêu đề hiển thị', INVITATION_LIMITS.eventTitle],
-                  ['venueName', 'Địa điểm (nhà hàng, tư gia…)', INVITATION_LIMITS.venueName],
-                  ['address', 'Địa chỉ', INVITATION_LIMITS.address],
-                  ['mapUrl', 'Link Google Maps (không bắt buộc)', INVITATION_LIMITS.url],
-                  ['note', 'Ghi chú (ví dụ: đón khách từ 17:30)', INVITATION_LIMITS.note],
-                ] as const
-              ).map(([field, placeholder, max]) => (
-                <input
-                  key={field}
-                  aria-label={placeholder}
-                  placeholder={placeholder}
-                  className={input}
-                  value={ev[field]}
-                  maxLength={max}
-                  onChange={(e) => {
-                    const events = [...config.events];
-                    events[i] = { ...ev, [field]: e.target.value };
-                    patch({ events });
-                  }}
-                />
               ))}
-            </div>
-          ))}
-          {config.events.length < INVITATION_LIMITS.events && (
-            <button
-              type="button"
-              onClick={() =>
-                patch({
-                  events: [
-                    ...config.events,
-                    { id: invitationItemId('ev'), kind: 'TIEC_CUOI', title: INVITATION_EVENT_LABELS.TIEC_CUOI, startsAt: config.events.at(-1)?.startsAt ?? wedding.weddingDate, venueName: '', address: '', mapUrl: '', note: '' },
-                  ],
-                })
-              }
-              className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-rose-400 hover:text-rose-700"
-            >
-              <Plus className="h-4 w-4" /> Thêm sự kiện
-            </button>
-          )}
+            {pickShown < templatesFor(pickStyle).filter((t) => t.id !== config.templateId).length + 1 && (
+              <button
+                type="button"
+                onClick={() => setPickShown((n) => n + 18)}
+                className="col-span-full min-h-[44px] rounded-xl text-sm font-semibold text-rose-800 ring-1 ring-rose-200 transition hover:bg-rose-50"
+              >
+                Xem thêm mẫu
+              </button>
+            )}
+          </div>
         </Group>
 
-        <Group title="Chuyện tình yêu" hint="Vài cột mốc ngắn: lần đầu gặp, ngày hẹn hò, lời cầu hôn…">
+        <Group id="inv-chuyen" title="Chuyện tình yêu" hint="Vài cột mốc ngắn: lần đầu gặp, ngày hẹn hò, lời cầu hôn…">
           {config.story.map((s, i) => (
-            <div key={s.id} className="space-y-2.5 rounded-xl bg-slate-50 p-3.5">
+            <div key={s.id} className="space-y-2.5 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
               <div className="grid gap-2.5 sm:grid-cols-[160px_1fr_auto]">
                 <input aria-label="Thời điểm" placeholder="Mùa thu 2019" className={input} value={s.when} maxLength={INVITATION_LIMITS.storyWhen} onChange={(e) => { const story = [...config.story]; story[i] = { ...s, when: e.target.value }; patch({ story }); }} />
                 <input aria-label="Tiêu đề" placeholder="Lần đầu gặp nhau" className={input} value={s.title} maxLength={INVITATION_LIMITS.storyTitle} onChange={(e) => { const story = [...config.story]; story[i] = { ...s, title: e.target.value }; patch({ story }); }} />
@@ -381,28 +550,14 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
             <button
               type="button"
               onClick={() => patch({ story: [...config.story, { id: invitationItemId('st'), when: '', title: '', text: '' }] })}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-rose-400 hover:text-rose-700"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 text-sm font-bold text-slate-700 hover:border-rose-400 hover:text-rose-700"
             >
               <Plus className="h-4 w-4" /> Thêm cột mốc
             </button>
           )}
         </Group>
 
-        <Group title="Ảnh bìa" hint="Chọn từ album ảnh cưới (tải ảnh ở tab Ảnh Cưới Triển Lãm). Không chọn thì dùng ảnh đầu tiên.">
-          {gallery.length === 0 ? (
-            <p className="text-xs text-slate-500">Chưa có ảnh nào. Thiệp vẫn đẹp với bìa chữ và hoạ tiết.</p>
-          ) : (
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-              {gallery.map((p) => (
-                <button key={p.id} type="button" aria-pressed={config.coverPhotoUrl === p.publicUrl} onClick={() => patch({ coverPhotoUrl: config.coverPhotoUrl === p.publicUrl ? '' : p.publicUrl })} className={`overflow-hidden rounded-lg ${config.coverPhotoUrl === p.publicUrl ? 'ring-[3px] ring-rose-600' : 'ring-1 ring-slate-200'}`}>
-                  <img src={p.publicUrl} alt={p.caption ?? 'Ảnh cưới'} className="aspect-square w-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-        </Group>
-
-        <Group title="Nhạc nền">
+        <Group id="inv-khac" title="Nhạc nền & các mục trên thiệp">
           <div className="grid gap-2 sm:grid-cols-3">
             {(
               [
@@ -411,7 +566,7 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
                 ['OFF', 'Không phát nhạc'],
               ] as const
             ).map(([mode, text]) => (
-              <button key={mode} type="button" aria-pressed={config.music.mode === mode} onClick={() => patch({ music: { ...config.music, mode } })} className={`rounded-xl px-3 py-2.5 text-xs font-bold ${config.music.mode === mode ? 'bg-rose-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+              <button key={mode} type="button" aria-pressed={config.music.mode === mode} onClick={() => patch({ music: { ...config.music, mode } })} className={`min-h-[44px] rounded-xl px-3 text-xs font-bold ${config.music.mode === mode ? 'bg-rose-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
                 {text}
               </button>
             ))}
@@ -419,22 +574,18 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
           {config.music.mode === 'URL' && (
             <input aria-label="Link file nhạc" className={input} placeholder="https://…/bai-hat.mp3 (bạn cần có quyền dùng bài hát)" value={config.music.url} maxLength={INVITATION_LIMITS.url} onChange={(e) => patch({ music: { mode: 'URL', url: e.target.value } })} />
           )}
-        </Group>
-
-        <Group title="Các mục trên thiệp">
-          <div className="grid gap-2 sm:grid-cols-3">
-            {(Object.keys(SECTION_LABELS) as InvitationSectionKey[]).map((k) => (
-              <label key={k} className="flex cursor-pointer items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-700">
-                <input type="checkbox" className="h-4 w-4 accent-rose-700" checked={config.sections[k]} onChange={(e) => patch({ sections: { ...config.sections, [k]: e.target.checked } })} />
-                {SECTION_LABELS[k]}
-              </label>
-            ))}
+          <div className="grid gap-2 pt-2 sm:grid-cols-3">
+            {(Object.keys(SECTION_LABELS) as InvitationSectionKey[])
+              .filter((k) => !(k === 'hall' && wedding.invitationOnly))
+              .map((k) => (
+                <label key={k} className="flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-xl bg-slate-50 px-3 text-xs font-bold text-slate-700">
+                  <input type="checkbox" className="h-4 w-4 accent-rose-700" checked={config.sections[k]} onChange={(e) => patch({ sections: { ...config.sections, [k]: e.target.checked } })} />
+                  {SECTION_LABELS[k]}
+                </label>
+              ))}
           </div>
           {config.sections.gift && !wedding.hasBankConfig && <p className="text-xs text-amber-700">Hộp mừng cưới chỉ hiện khi đã có tài khoản ngân hàng (tab Cài Đặt) và phòng ở Gói Hạnh Phúc hoặc Viên Mãn.</p>}
-        </Group>
-
-        <Group title="Thông tin thêm">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 pt-2 sm:grid-cols-2">
             <div>
               <label className={label} htmlFor="inv-deadline">Hạn xác nhận tham dự</label>
               <input id="inv-deadline" type="date" className={input} value={config.rsvpDeadline ? toLocalInput(config.rsvpDeadline).slice(0, 10) : ''} onChange={(e) => patch({ rsvpDeadline: e.target.value ? fromLocalInput(`${e.target.value}T23:59`) : '' })} />
@@ -451,9 +602,9 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
         </Group>
 
         {/* RSVPs */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <section id="inv-khach" className="scroll-mt-20 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="flex items-center gap-2 text-sm font-black text-slate-900">
+            <h3 className="flex items-center gap-2 text-base font-black text-slate-900">
               <Users className="h-4 w-4 text-rose-700" /> Khách xác nhận tham dự
             </h3>
             <p className="text-xs font-bold text-slate-600">
@@ -490,18 +641,18 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
               </table>
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Save bar */}
-        <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-2xl bg-white/95 p-3 shadow-lg ring-1 ring-slate-200 backdrop-blur">
-          <button type="button" onClick={() => setShowPreview((v) => !v)} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 xl:hidden">
-            <Eye className="h-4 w-4" /> {showPreview ? 'Ẩn xem trước' : 'Xem trước'}
+        {/* Save bar: changes save on their own; the button saves right away */}
+        <div className="sticky bottom-3 z-10 flex items-center justify-between gap-2 rounded-2xl bg-white/95 p-2.5 shadow-lg ring-1 ring-slate-200 backdrop-blur">
+          <button type="button" onClick={() => setShowPreview((v) => !v)} className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-xl px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 xl:hidden">
+            <Eye className="h-4 w-4" /> {showPreview ? 'Ẩn' : 'Xem trước'}
           </button>
-          <p className="hidden text-xs text-slate-500 xl:block" role="status">
-            {saved === 'ok' ? 'Đã lưu. Khách mở thiệp sẽ thấy ngay.' : saved === 'error' ? 'Chưa lưu được, thử lại nhé.' : 'Nhớ bấm Lưu thiệp sau khi sửa.'}
+          <p className={`min-w-0 flex-1 truncate text-xs font-semibold ${state === 'error' ? 'text-rose-700' : state === 'saved' ? 'text-emerald-700' : 'text-slate-500'}`} role="status">
+            {status}
           </p>
-          <button type="button" onClick={save} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-rose-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-600 disabled:opacity-60">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved === 'ok' ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />} Lưu thiệp
+          <button type="button" onClick={() => void persist()} disabled={state === 'saving'} className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl bg-rose-700 px-4 text-sm font-bold text-white hover:bg-rose-600 disabled:opacity-60">
+            {state === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : state === 'saved' ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />} Lưu
           </button>
         </div>
         {showPreview && <div className="xl:hidden">{preview}</div>}
