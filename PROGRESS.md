@@ -167,6 +167,11 @@
 - [x] Sảnh chờ 2 cột kiểu "tạo nhân vật": bên trái xem nhân vật 3D toàn thân (kéo xoay, cuộn phóng to, Toàn thân/Gương mặt, Tự xoay, Ngẫu nhiên, Đặt lại, thử Vẫy tay/Vỗ tay/Reo hò/Nâng ly), bên phải lưới chọn người có chú thích + nút "Mang nhân vật vào sảnh cưới" ghim đáy; "Hình vẽ tự phối" xem trước được khi đổi áo/tóc; điện thoại: khung xem ở trên, nút vào sảnh ghim cuối màn hình
 - [x] Kiểm chứng: E2E trên stack cục bộ (tạo phòng, 4 ảnh, lưu setup, chặn id lạ, cắt chú thích 40 ký tự, cần đăng nhập, vào sảnh xem sân khấu/cổng), ảnh chụp cận cô dâu chú rể; test 2 trình duyệt trên production: thấy đúng nhân vật, đi, vẫy tay, vỗ tay đồng bộ hai chiều
 
+### [x] Nhóm 22: Font Tự Lưu Trữ (build không cần mạng)
+- [x] Bỏ `next/font/google`: `scripts/fetch-fonts.mjs` tải sẵn 23 font (bộ chữ Việt + Latin, 58 file, ~1,2 MB) vào `apps/web/public/fonts` và sinh `apps/web/src/app/fonts.css` (giữ unicode-range nên trình duyệt chỉ tải phần cần dùng; giữ nguyên các biến `--font-sans`, `--font-display`, `--f-*`)
+- [x] Lý do: Google thỉnh thoảng trả link font dạng `/l/font?kit=…` không có đuôi file làm `next build` trong Docker hỏng ngẫu nhiên khi deploy
+- [x] Thêm/đổi font: sửa danh sách trong script rồi chạy `node scripts/fetch-fonts.mjs`
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

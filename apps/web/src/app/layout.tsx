@@ -1,20 +1,7 @@
 import type { Metadata, Viewport } from 'next';
-import { Be_Vietnam_Pro, Cormorant_Garamond } from 'next/font/google';
+// Self-hosted fonts (scripts/fetch-fonts.mjs): the build never downloads from Google
+import './fonts.css';
 import './globals.css';
-
-const displayFont = Cormorant_Garamond({
-  subsets: ['vietnamese', 'latin'],
-  weight: ['600', '700'],
-  variable: '--font-display',
-  display: 'swap',
-});
-
-const sansFont = Be_Vietnam_Pro({
-  subsets: ['vietnamese', 'latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-sans',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
@@ -36,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-      <html lang="vi" className={`${displayFont.variable} ${sansFont.variable}`}>
+      <html lang="vi">
         <body className="font-sans antialiased selection:bg-rose-200 selection:text-rose-950">
           {children}
         </body>
