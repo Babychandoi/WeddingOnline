@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Copy, Gift, Loader2, Minus, Plus, Send } from 'lucide-react';
+import { Check, Copy, Gift, HeartHandshake, Loader2, Minus, Plus, Send, X } from 'lucide-react';
 import type { InvitationWish } from '@/app/api/invitations/[slug]/wishes/route';
 import { formatVnd } from './format';
 
@@ -14,17 +14,35 @@ const SIDE_OPTIONS: Array<{ value: Side; label: string }> = [
 ];
 const SIDE_LABEL: Record<Side, string> = { GROOM_SIDE: 'Nhà trai', BRIDE_SIDE: 'Nhà gái', FRIEND: 'Bạn bè', COLLEAGUE: 'Đồng nghiệp' };
 
-export const fieldClass =
-  'w-full rounded-[var(--inv-r)] border border-[color:var(--inv-line)] bg-[var(--inv-panel)] px-4 py-3 text-[16px] text-[color:var(--inv-ink)] placeholder:text-[color:var(--inv-ink-soft)] placeholder:opacity-80 outline-none transition focus:border-[color:var(--inv-accent)] focus:ring-1 focus:ring-[color:var(--inv-accent)]';
+/** Field look comes from the template's skin (underline, soft, boxed); see formSkinCss */
+export const fieldClass = 'inv-field';
 export const primaryButton =
   'inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[var(--inv-btn-r)] bg-[var(--inv-accent)] px-7 text-[15px] font-semibold text-[color:var(--inv-on-accent)] shadow-[var(--inv-btn-shadow)] transition hover:brightness-110 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55';
-const labelClass = 'mb-1.5 block text-[14px] font-medium text-[color:var(--inv-ink-soft)]';
+const labelClass = 'inv-label';
 
 function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor: string }) {
   return (
     <label htmlFor={htmlFor} className={labelClass}>
       {children}
     </label>
+  );
+}
+
+/** Whose guest: a row of chips, one tap, no dropdown */
+function SideChips({ id, value, onChange, label }: { id: string; value: Side; onChange: (s: Side) => void; label: string }) {
+  return (
+    <div role="radiogroup" aria-labelledby={`${id}-label`}>
+      <span id={`${id}-label`} className={labelClass}>
+        {label}
+      </span>
+      <div className="grid grid-cols-2 gap-2 min-[460px]:grid-cols-4">
+        {SIDE_OPTIONS.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)} className="inv-chip justify-center">
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -73,7 +91,7 @@ export function RsvpForm({ slug, demo, guestName, deadline }: { slug: string; de
 
   if (done !== null) {
     return (
-      <div className="rounded-[var(--inv-r)] border border-[color:var(--inv-line)] bg-[var(--inv-panel)] px-6 py-8 text-center" role="status">
+      <div className="inv-card px-6 py-9 text-center" role="status">
         <Check className="mx-auto h-9 w-9 text-[color:var(--inv-accent-text)]" />
         <p className="mt-3 text-[18px] font-semibold">{done ? 'Cảm ơn bạn! Hẹn gặp bạn trong ngày vui.' : 'Cảm ơn bạn đã báo. Cô dâu chú rể sẽ nhớ đến bạn.'}</p>
         {demo && <p className="mt-2 text-[14px] text-[color:var(--inv-ink-soft)]">Thiệp mẫu: câu trả lời không được gửi đi.</p>}
@@ -82,67 +100,49 @@ export function RsvpForm({ slug, demo, guestName, deadline }: { slug: string; de
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 text-left" noValidate>
+    <form onSubmit={submit} className="inv-form space-y-5 text-left" noValidate>
       <div>
         <Label htmlFor="rsvp-name">Tên của bạn</Label>
         <input id="rsvp-name" className={fieldClass} value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="name" />
       </div>
       <div role="radiogroup" aria-label="Bạn có đến được không" className="grid grid-cols-2 gap-3">
         {[
-          { v: true, label: 'Mình sẽ đến' },
-          { v: false, label: 'Tiếc quá, bận rồi' },
+          { v: true, label: 'Mình sẽ đến', sub: 'Chắc chắn có mặt', Icon: HeartHandshake },
+          { v: false, label: 'Tiếc quá', sub: 'Mình bận mất rồi', Icon: X },
         ].map((o) => (
-          <button
-            key={String(o.v)}
-            type="button"
-            role="radio"
-            aria-checked={attending === o.v}
-            onClick={() => setAttending(o.v)}
-            className={`min-h-[52px] rounded-[var(--inv-r)] border px-2 text-[15px] font-semibold leading-tight transition ${
-              attending === o.v
-                ? 'border-[color:var(--inv-accent)] bg-[var(--inv-accent)] text-[color:var(--inv-on-accent)]'
-                : 'border-[color:var(--inv-line)] bg-[var(--inv-panel)] text-[color:var(--inv-ink)] hover:border-[color:var(--inv-accent)]'
-            }`}
-          >
-            {o.label}
+          <button key={String(o.v)} type="button" role="radio" aria-checked={attending === o.v} onClick={() => setAttending(o.v)} className="inv-choice">
+            <o.Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 text-left">
+              <span className="block text-[15px] font-semibold leading-tight">{o.label}</span>
+              <span className="mt-0.5 block text-[12.5px] leading-tight opacity-75">{o.sub}</span>
+            </span>
           </button>
         ))}
       </div>
       {attending && (
-        <div className="flex items-center justify-between rounded-[var(--inv-r)] border border-[color:var(--inv-line)] bg-[var(--inv-panel)] px-4 py-2.5">
+        <div className="inv-row flex items-center justify-between gap-3">
           <span className="text-[15px]">Số người đi cùng (kể cả bạn)</span>
           <div className="flex items-center gap-3">
-            <button type="button" aria-label="Bớt một người" onClick={() => setCount((c) => Math.max(1, c - 1))} className="grid h-11 w-11 place-items-center rounded-full border border-[color:var(--inv-line)] hover:border-[color:var(--inv-accent)]">
+            <button type="button" aria-label="Bớt một người" onClick={() => setCount((c) => Math.max(1, c - 1))} className="inv-step">
               <Minus className="h-4 w-4" />
             </button>
             <span className="w-6 text-center text-[18px] font-semibold tabular-nums" aria-live="polite">
               {count}
             </span>
-            <button type="button" aria-label="Thêm một người" onClick={() => setCount((c) => Math.min(10, c + 1))} className="grid h-11 w-11 place-items-center rounded-full border border-[color:var(--inv-line)] hover:border-[color:var(--inv-accent)]">
+            <button type="button" aria-label="Thêm một người" onClick={() => setCount((c) => Math.min(10, c + 1))} className="inv-step">
               <Plus className="h-4 w-4" />
             </button>
           </div>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label htmlFor="rsvp-side">Bạn là khách của</Label>
-          <select id="rsvp-side" className={fieldClass} value={side} onChange={(e) => setSide(e.target.value as Side)}>
-            {SIDE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <Label htmlFor="rsvp-phone">Số điện thoại</Label>
-          <input id="rsvp-phone" className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" placeholder="Không bắt buộc" maxLength={20} />
-        </div>
+      <SideChips id="rsvp-side" value={side} onChange={setSide} label="Bạn là khách của" />
+      <div>
+        <Label htmlFor="rsvp-phone">Số điện thoại</Label>
+        <input id="rsvp-phone" className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" placeholder="Không bắt buộc" maxLength={20} />
       </div>
       <div>
         <Label htmlFor="rsvp-note">Nhắn cô dâu chú rể</Label>
-        <input id="rsvp-note" className={fieldClass} value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} placeholder="Ví dụ: mình ăn chay" />
+        <textarea id="rsvp-note" rows={2} className={`${fieldClass} resize-none`} value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} placeholder="Ví dụ: mình ăn chay, đi cùng em bé…" />
       </div>
       {error && (
         <p className="text-[14px] font-medium text-[color:var(--inv-accent-text)]" role="alert">
@@ -191,26 +191,15 @@ export function WishesSection({ slug, demo, guestName, initial }: { slug: string
 
   return (
     <div className="text-left">
-      <form onSubmit={submit} className="space-y-3" noValidate>
-        <div className="grid grid-cols-[1fr_auto] gap-3">
-          <div>
-            <Label htmlFor="wish-name">Tên của bạn</Label>
-            <input id="wish-name" className={fieldClass} value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" />
-          </div>
-          <div>
-            <Label htmlFor="wish-side">Khách của</Label>
-            <select id="wish-side" className={fieldClass} value={side} onChange={(e) => setSide(e.target.value as Side)}>
-              {SIDE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
+      <form onSubmit={submit} className="inv-form space-y-5" noValidate>
+        <div>
+          <Label htmlFor="wish-name">Tên của bạn</Label>
+          <input id="wish-name" className={fieldClass} value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" />
         </div>
+        <SideChips id="wish-side" value={side} onChange={setSide} label="Bạn là khách của" />
         <div>
           <Label htmlFor="wish-message">Lời chúc</Label>
-          <textarea id="wish-message" className={`${fieldClass} min-h-[110px] resize-y`} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={500} placeholder="Chúc hai bạn trăm năm hạnh phúc…" />
+          <textarea id="wish-message" rows={4} className={`${fieldClass} min-h-[120px] resize-y`} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={500} placeholder="Chúc hai bạn trăm năm hạnh phúc…" />
         </div>
         {error && (
           <p className="text-[14px] font-medium text-[color:var(--inv-accent-text)]" role="alert">
@@ -224,10 +213,10 @@ export function WishesSection({ slug, demo, guestName, initial }: { slug: string
         </div>
       </form>
 
-      <ul className="mt-8 space-y-3" aria-label="Lời chúc của mọi người">
+      <ul className="inv-wishes mt-10" aria-label="Lời chúc của mọi người">
         {wishes.length === 0 && <li className="py-6 text-center text-[15px] text-[color:var(--inv-ink-soft)]">Chưa có lời chúc nào. Bạn hãy là người đầu tiên!</li>}
         {wishes.slice(0, shown).map((w) => (
-          <li key={w.id} className="rounded-[var(--inv-r)] border border-[color:var(--inv-line)] bg-[var(--inv-panel)] px-4 py-3.5">
+          <li key={w.id} className="inv-wish">
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-[15px] font-semibold">
                 {w.name}
@@ -278,7 +267,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
           setTimeout(() => setCopied(false), 1600);
         });
       }}
-      className="inline-flex min-h-[40px] items-center gap-1 rounded-[var(--inv-btn-r)] border border-[color:var(--inv-line)] px-3 text-[13px] font-semibold hover:border-[color:var(--inv-accent)]"
+      className="inv-chip !min-h-[38px] !px-3 text-[13px]"
     >
       {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied ? 'Đã chép' : 'Chép'}
     </button>
@@ -325,7 +314,7 @@ export function GiftBox({ slug, demo, guestName, bankName }: { slug: string; dem
   if (qr) {
     if (status === 'VERIFIED') {
       return (
-        <div className="rounded-[var(--inv-r)] border border-[color:var(--inv-line)] bg-[var(--inv-panel)] px-6 py-8 text-center" role="status">
+        <div className="inv-card px-6 py-9 text-center" role="status">
           <Gift className="mx-auto h-10 w-10 text-[color:var(--inv-accent-text)]" />
           <p className="mt-3 text-[18px] font-semibold">Cô dâu chú rể đã nhận được lời mừng của bạn.</p>
           <p className="mt-1 text-[15px] text-[color:var(--inv-ink-soft)]">Lời chúc của bạn đã lên bức tường lời chúc. Cảm ơn bạn!</p>
@@ -333,7 +322,7 @@ export function GiftBox({ slug, demo, guestName, bankName }: { slug: string; dem
       );
     }
     return (
-      <div className="rounded-[var(--inv-r)] border border-[color:var(--inv-line)] bg-[var(--inv-panel)] px-5 py-6 text-center">
+      <div className="inv-card px-5 py-7 text-center">
         <img src={qr.qrDataUrl} alt="Mã VietQR mừng cưới" className="mx-auto h-56 w-56 rounded-[var(--inv-r)] bg-white p-2" />
         <p className="mt-3 text-[14px] text-[color:var(--inv-ink-soft)]">Mở ứng dụng ngân hàng và quét mã. Nội dung chuyển khoản đã có sẵn trong mã.</p>
         <dl className="mx-auto mt-5 max-w-sm space-y-2.5 text-left text-[15px]">
@@ -377,7 +366,7 @@ export function GiftBox({ slug, demo, guestName, bankName }: { slug: string; dem
   }
 
   return (
-    <form onSubmit={create} className="space-y-4 text-left" noValidate>
+    <form onSubmit={create} className="inv-form space-y-5 text-left" noValidate>
       <div>
         <Label htmlFor="gift-name">Tên người gửi</Label>
         <input id="gift-name" className={fieldClass} value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" />
@@ -388,16 +377,14 @@ export function GiftBox({ slug, demo, guestName, bankName }: { slug: string; dem
       </div>
       <fieldset>
         <legend className={labelClass}>Số tiền gợi ý (có thể sửa trong ứng dụng ngân hàng)</legend>
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 min-[460px]:grid-cols-4">
           {AMOUNTS.map((a) => (
             <button
               key={a}
               type="button"
               aria-pressed={amount === a}
               onClick={() => setAmount(amount === a ? null : a)}
-              className={`min-h-[46px] rounded-[var(--inv-r)] border text-[15px] font-semibold tabular-nums transition ${
-                amount === a ? 'border-[color:var(--inv-accent)] bg-[var(--inv-accent)] text-[color:var(--inv-on-accent)]' : 'border-[color:var(--inv-line)] bg-[var(--inv-panel)] hover:border-[color:var(--inv-accent)]'
-              }`}
+              className="inv-chip justify-center tabular-nums"
             >
               {formatVnd(a)}
             </button>
@@ -420,3 +407,63 @@ export function GiftBox({ slug, demo, guestName, bankName }: { slug: string; dem
     </form>
   );
 }
+
+/* ───────────────────────── Skins ───────────────────────── */
+
+const CHEVRON =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23888' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
+
+/**
+ * Form look per template. "line": underlined fields, editorial (square templates); "soft": white
+ * pillowy fields with a glow on focus (romantic templates); "box": quiet framed fields.
+ * Field colours are mixed from the theme so nothing is drawn in full-strength ink.
+ */
+export const formSkinCss = `
+.inv-root .inv-label { display:block; margin-bottom:8px; font-size:13.5px; font-weight:500; color:var(--inv-ink-soft); }
+.inv-root .inv-field { display:block; width:100%; min-height:52px; font:inherit; font-size:16px; line-height:1.45; color:var(--inv-ink); outline:none; -webkit-appearance:none; appearance:none;
+  background:var(--inv-field-bg); border:1px solid var(--inv-field-line); border-radius:var(--inv-field-r); padding:13px 16px;
+  transition:border-color .2s, box-shadow .2s, background-color .2s; }
+.inv-root .inv-field::placeholder { color:var(--inv-ink-soft); opacity:.62; }
+.inv-root .inv-field:hover { border-color:color-mix(in srgb, var(--inv-accent) 45%, var(--inv-field-line)); }
+.inv-root .inv-field:focus { border-color:var(--inv-accent); box-shadow:0 0 0 4px color-mix(in srgb, var(--inv-accent) 15%, transparent); }
+.inv-root select.inv-field { background-image:${CHEVRON}; background-repeat:no-repeat; background-position:right 16px center; padding-right:42px; }
+
+.inv-root .inv-choice { display:flex; align-items:center; gap:12px; min-height:64px; padding:12px 14px; text-align:left; color:var(--inv-ink);
+  background:var(--inv-field-bg); border:1px solid var(--inv-field-line); border-radius:var(--inv-field-r); transition:all .2s; }
+.inv-root .inv-choice:hover { border-color:color-mix(in srgb, var(--inv-accent) 55%, var(--inv-field-line)); }
+.inv-root .inv-choice[aria-checked="true"] { color:var(--inv-accent-text); border-color:var(--inv-accent);
+  background:color-mix(in srgb, var(--inv-accent) 9%, var(--inv-field-bg)); box-shadow:inset 0 0 0 1px var(--inv-accent); }
+
+.inv-root .inv-chip { display:inline-flex; align-items:center; gap:6px; min-height:42px; padding:0 16px; font-size:14.5px; font-weight:500; color:var(--inv-ink);
+  background:var(--inv-field-bg); border:1px solid var(--inv-field-line); border-radius:var(--inv-chip-r); transition:all .2s; }
+.inv-root .inv-chip:hover { border-color:color-mix(in srgb, var(--inv-accent) 55%, var(--inv-field-line)); }
+.inv-root .inv-chip[aria-checked="true"], .inv-root .inv-chip[aria-pressed="true"] { color:var(--inv-on-accent); background:var(--inv-accent); border-color:var(--inv-accent); }
+
+.inv-root .inv-row { min-height:60px; padding:8px 8px 8px 16px; background:var(--inv-field-bg); border:1px solid var(--inv-field-line); border-radius:var(--inv-field-r); }
+.inv-root .inv-step { display:grid; place-items:center; width:42px; height:42px; border-radius:999px; color:var(--inv-accent-text);
+  border:1px solid var(--inv-field-line); background:var(--inv-paper); transition:all .2s; }
+.inv-root .inv-step:hover { border-color:var(--inv-accent); }
+
+.inv-root .inv-card { background:var(--inv-field-bg); border:1px solid var(--inv-field-line); border-radius:calc(var(--inv-field-r) + 4px); }
+.inv-root .inv-wishes { display:grid; gap:12px; }
+.inv-root .inv-wish { position:relative; padding:16px 18px 16px 46px; background:var(--inv-field-bg); border:1px solid var(--inv-field-line); border-radius:calc(var(--inv-field-r) + 2px); }
+.inv-root .inv-wish::before { content:"\\201C"; position:absolute; left:14px; top:6px; font-family:var(--inv-display), serif; font-size:40px; line-height:1; color:var(--inv-accent-text); opacity:.55; }
+
+/* soft: white, pillowy, a little shadow */
+.inv-root[data-skin="soft"] .inv-field, .inv-root[data-skin="soft"] .inv-choice, .inv-root[data-skin="soft"] .inv-row, .inv-root[data-skin="soft"] .inv-wish, .inv-root[data-skin="soft"] .inv-card
+  { box-shadow:0 1px 2px rgba(60,20,30,.04), 0 8px 22px -16px rgba(60,20,30,.28); }
+.inv-root[data-skin="soft"] .inv-field:focus { box-shadow:0 0 0 4px color-mix(in srgb, var(--inv-accent) 16%, transparent); }
+
+/* line: editorial underlines, uppercase labels */
+.inv-root[data-skin="line"] .inv-label { font-size:11.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; margin-bottom:2px; }
+.inv-root[data-skin="line"] .inv-field { background:transparent; border-width:0 0 1px; border-radius:0; padding:10px 0 9px; min-height:46px; }
+.inv-root[data-skin="line"] select.inv-field { background-position:right 2px center; }
+.inv-root[data-skin="line"] .inv-field:focus { box-shadow:0 1px 0 0 var(--inv-accent); }
+.inv-root[data-skin="line"] textarea.inv-field { border-width:1px; padding:12px 14px; }
+.inv-root[data-skin="line"] .inv-choice { background:transparent; border-radius:0; }
+.inv-root[data-skin="line"] .inv-row { background:transparent; border-width:1px 0; border-radius:0; padding-left:0; padding-right:0; }
+.inv-root[data-skin="line"] .inv-wish { background:transparent; border-width:0 0 1px; border-radius:0; padding:14px 0 18px 34px; }
+.inv-root[data-skin="line"] .inv-wish::before { left:0; top:4px; }
+.inv-root[data-skin="line"] .inv-wishes { gap:0; border-top:1px solid var(--inv-field-line); }
+.inv-root[data-skin="line"] .inv-card { background:transparent; }
+`;

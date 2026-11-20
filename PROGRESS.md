@@ -185,6 +185,13 @@
 - [x] Menu trang chủ có "Thiệp Cưới"; nút "Tạo thiệp miễn phí" và "Dùng mẫu này" dẫn tới trang tạo thiệp; vẫn có lối "Tạo sảnh cưới 3D kèm thiệp"
 - [x] Kiểm chứng: E2E 19/19 (menu, điền form, link tự sinh, mẫu chọn sẵn, vào dashboard đúng tab, chỉ 2 tab, không đồng hồ dùng thử, mục 3D tắt, nơi tổ chức điền vào lịch lễ, link sảnh chuyển sang thiệp, chặn vào sảnh, lời chúc + RSVP hoạt động)
 
+### [x] Nhóm 25: 100 Mẫu Thiệp + Form Mềm Hơn (patch `0002-Online-invitations-100-templates-softer-form-fields`)
+- [x] 88 mẫu mới (giữ nguyên id 12 mẫu cũ), 8 phong cách: truyền thống 19, lãng mạn 18, hiện đại 15, thiên nhiên 15, sang trọng 11, cổ điển 8, dễ thương 8, tối giản 6; 14 kiểu bìa mới (tem thư, vé máy bay, báo Hỷ, poster phim, ba vòm cửa, "I love you", lịch tháng, khung lá…); 63 ảnh Unsplash mới + 3 cành bạch đàn tách nền
+- [x] Form RSVP/lời chúc/mừng cưới theo từng mẫu (gạch chân, ô trắng mềm hoặc ô viền nhạt), 2 thẻ "Mình sẽ đến / Tiếc quá", chip chọn bên khách, thẻ lời chúc có ngoặc kép
+- [x] Patch 0001 (1) trùng với 0001 đã áp dụng ở Nhóm 23 (chỉ khác dòng tiêu đề) nên không áp dụng lại
+- [x] Chỉnh thêm: thư viện, trang tạo thiệp và trang soạn thiệp chỉ vẽ 16–24 bìa mỗi lượt + nút "Xem thêm mẫu" (thay vì vẽ cả 100 bìa có ảnh cùng lúc); trang tạo thiệp có chip lọc phong cách kèm số lượng, mẫu đang chọn luôn đứng đầu; chip lọc vuốt ngang trên điện thoại; nút "Thả tim" chỉ hiện khi đã cuộn qua bìa, nút nhạc mờ hơn trên bìa (không che ảnh); sửa nhận biết cuộn trang (trang cuộn bằng `<body>`); trang chủ trưng 4 mẫu khác kiểu (Song Hỷ, Tem Thư Hỷ, I Love You, Vé Ra Đảo)
+- [x] Kiểm chứng: typecheck, `npm test` 11/11, E2E thiệp 18/18 + E2E chỉ-thiệp 19/19, chụp 16 mẫu mới đủ 8 phong cách + thư viện, trang tạo, trang chủ
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

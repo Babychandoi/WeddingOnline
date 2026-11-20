@@ -10,9 +10,13 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Check, Loader2, Mail, UserRound } from 'lucide-react';
-import { INVITATION_TEMPLATES, isInvitationTemplateId, type InvitationTemplateId } from '@dco/shared';
+import { INVITATION_STYLE_LABELS, INVITATION_TEMPLATES, isInvitationTemplateId, type InvitationTemplateId, type InvitationTemplateStyle } from '@dco/shared';
 import { OAuthModal } from '@/components/hall/OAuthModal';
 import { CardFace } from '@/components/invitation/CardFace';
+import { styleCount, templatesFor, type StyleFilter } from '@/components/invitation/templateOrder';
+
+const STYLE_CHIPS: Array<[StyleFilter, string]> = [['all', 'Tất cả'], ...(Object.entries(INVITATION_STYLE_LABELS) as Array<[InvitationTemplateStyle, string]>)];
+const PICK_PAGE = 16;
 
 /** "Minh Quân" + "Thu Hà" → "quan-ha" (no diacritics, đ → d) */
 function slugPart(name: string): string {
@@ -37,6 +41,8 @@ function CreateInvitation() {
   const [city, setCity] = useState('');
   const initial = query.get('mau');
   const [templateId, setTemplateId] = useState<InvitationTemplateId>(isInvitationTemplateId(initial) ? initial : 'song-hy-do');
+  const [pickStyle, setPickStyle] = useState<StyleFilter>('all');
+  const [pickShown, setPickShown] = useState(PICK_PAGE);
   const [slug, setSlug] = useState('');
   const [slugEdited, setSlugEdited] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -176,27 +182,63 @@ function CreateInvitation() {
               </label>
             </div>
 
-            <fieldset className="mt-7">
+            <fieldset className="mt-7 min-w-0">
               <legend className={label}>Chọn mẫu thiệp</legend>
               <p className="-mt-1 mb-3 text-xs text-slate-500">Đổi mẫu bất cứ lúc nào sau này, nội dung giữ nguyên.</p>
-              <div role="radiogroup" aria-label="Mẫu thiệp" className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
-                {INVITATION_TEMPLATES.map((t) => (
+              <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Lọc mẫu theo phong cách">
+                {STYLE_CHIPS.map(([id, text]) => (
                   <button
-                    key={t.id}
+                    key={id}
                     type="button"
-                    role="radio"
-                    aria-checked={templateId === t.id}
-                    onClick={() => setTemplateId(t.id)}
-                    className={`group overflow-hidden rounded-xl border-2 bg-white text-left transition ${templateId === t.id ? 'border-rose-600 ring-2 ring-rose-200' : 'border-transparent hover:border-rose-200'}`}
+                    role="tab"
+                    aria-selected={pickStyle === id}
+                    onClick={() => {
+                      setPickStyle(id);
+                      setPickShown(PICK_PAGE);
+                    }}
+                    className={`min-h-[36px] shrink-0 whitespace-nowrap rounded-full px-3.5 text-xs font-semibold transition ${pickStyle === id ? 'bg-rose-700 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-slate-400'}`}
                   >
-                    <CardFace templateId={t.id} groom={groomName.trim() || 'Minh Quân'} bride={brideName.trim() || 'Thu Hà'} date={isoDate} />
-                    <span className="flex items-center justify-between gap-1 px-1.5 py-1.5 text-[11px] font-semibold text-slate-700">
-                      <span className="truncate">{t.nameVi}</span>
-                      {templateId === t.id && <Check className="h-3.5 w-3.5 shrink-0 text-rose-600" />}
-                    </span>
+                    {text} <span className="tabular-nums opacity-60">{styleCount(id)}</span>
                   </button>
                 ))}
               </div>
+              {(() => {
+                // The chosen template always stays first, whatever the filter
+                const chosen = INVITATION_TEMPLATES.find((t) => t.id === templateId);
+                const list = templatesFor(pickStyle).filter((t) => t.id !== templateId);
+                const ordered = chosen ? [chosen, ...list] : list;
+                return (
+                  <>
+                    <div role="radiogroup" aria-label="Mẫu thiệp" className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
+                      {ordered.slice(0, pickShown).map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={templateId === t.id}
+                          onClick={() => setTemplateId(t.id)}
+                          className={`group overflow-hidden rounded-xl border-2 bg-white text-left transition ${templateId === t.id ? 'border-rose-600 ring-2 ring-rose-200' : 'border-transparent hover:border-rose-200'}`}
+                        >
+                          <CardFace templateId={t.id} groom={groomName.trim() || 'Minh Quân'} bride={brideName.trim() || 'Thu Hà'} date={isoDate} />
+                          <span className="flex items-center justify-between gap-1 px-1.5 py-1.5 text-[11px] font-semibold text-slate-700">
+                            <span className="truncate">{t.nameVi}</span>
+                            {templateId === t.id && <Check className="h-3.5 w-3.5 shrink-0 text-rose-600" />}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    {pickShown < ordered.length && (
+                      <button
+                        type="button"
+                        onClick={() => setPickShown((n) => n + PICK_PAGE)}
+                        className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl text-sm font-semibold text-rose-800 ring-1 ring-rose-200 transition hover:bg-rose-50"
+                      >
+                        Xem thêm mẫu <span className="ml-1 tabular-nums opacity-60">({ordered.length - pickShown})</span>
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </fieldset>
 
             <label className="mt-7 block">

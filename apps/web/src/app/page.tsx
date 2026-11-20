@@ -16,7 +16,8 @@ import { INVITATION_TEMPLATES, TIER_CATALOG, VENUE_THEMES, getVenueTheme, type I
 import { VenueCard } from '@/components/venues/VenueCard';
 import { CardFace } from '@/components/invitation/CardFace';
 
-const HOME_INVITATIONS: InvitationTemplateId[] = ['song-hy-do', 'sen-hong', 'mau-nuoc', 'baroque-vang'];
+// One traditional, one stamp, one romantic, one travel: the range of the 100 templates at a glance
+const HOME_INVITATIONS: InvitationTemplateId[] = ['song-hy-do', 'tem-hy', 'i-love-you', 've-ra-dao'];
 
 /** Vietnamese spaces featured on the landing page; the full catalogue lives at /khong-gian */
 const FEATURED_VENUES = [

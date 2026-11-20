@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Heart, Music2, Share2, Sparkles, VolumeX, X 
 import type { InvitationConfig, InvitationTemplateId } from '@dco/shared';
 import type { InvitationWish } from '@/app/api/invitations/[slug]/wishes/route';
 import { INVITATION_FONT_VARS } from './fonts';
-import { GiftBox, RsvpForm, WishesSection, primaryButton } from './InvitationForms';
+import { GiftBox, RsvpForm, WishesSection, formSkinCss, primaryButton } from './InvitationForms';
 import { Ornament, Seal } from './Ornaments';
 import { INVITE_THEMES, type InviteTheme } from './themes';
 import { MusicBox } from './musicBox';
@@ -65,6 +65,10 @@ function CardFrame({ theme }: { theme: InviteTheme }) {
   );
 }
 
+export function skinOf(t: InviteTheme): 'line' | 'soft' | 'box' {
+  return t.skin ?? (t.shape === 'square' ? 'line' : t.shape === 'soft' ? 'soft' : 'box');
+}
+
 function themeVars(t: InviteTheme): React.CSSProperties {
   return {
     '--inv-ground': t.ground,
@@ -79,6 +83,10 @@ function themeVars(t: InviteTheme): React.CSSProperties {
     '--inv-on-accent': t.onAccent,
     '--inv-line': t.line,
     '--inv-panel': t.field ?? t.panel,
+    '--inv-field-bg': t.field ?? (isDark(t.paper) ? `color-mix(in srgb, #ffffff 6%, ${t.paper})` : `color-mix(in srgb, #ffffff 74%, ${t.paper})`),
+    '--inv-field-line': skinOf(t) === 'line' ? `color-mix(in srgb, ${t.ink} 26%, ${t.paper})` : `color-mix(in srgb, ${t.line} 72%, ${t.paper})`,
+    '--inv-field-r': { line: '0px', soft: '16px', box: '8px' }[skinOf(t)],
+    '--inv-chip-r': { line: '0px', soft: '999px', box: '6px' }[skinOf(t)],
     '--inv-display': t.display,
     '--inv-script': t.script,
     '--inv-body': t.body,
@@ -313,7 +321,7 @@ function HeartButton({ theme }: { theme: InviteTheme }) {
     setTimeout(() => setBursts((b) => b.filter((x) => x !== id)), 2200);
   };
   return (
-    <div className="fixed bottom-[84px] right-5 z-40">
+    <div className="fixed bottom-[76px] right-4 z-40 animate-[inv-pop_300ms_ease-out_both] motion-reduce:animate-none">
       {bursts.map((id) => (
         <span key={id} className="pointer-events-none absolute bottom-6 left-1/2" aria-hidden="true">
           {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -375,6 +383,20 @@ export function InvitationView(props: InvitationViewProps) {
   const [lightbox, setLightbox] = useState<number | null>(null);
 
   useEffect(() => setHydrated(true), []);
+  // The cover is the photo: keep it clear of floating buttons until the guest scrolls into the card
+  const [pastCover, setPastCover] = useState(false);
+  useEffect(() => {
+    if (embedded) return;
+    // The site scrolls the <body> (globals.css sets overflow-x on html and body), so listen in the capture phase
+    // to scrolls of any element and read whichever offset moved
+    const check = () => {
+      const y = Math.max(window.scrollY, document.documentElement.scrollTop, document.body.scrollTop);
+      setPastCover(y > window.innerHeight * 0.55);
+    };
+    check();
+    document.addEventListener('scroll', check, { passive: true, capture: true });
+    return () => document.removeEventListener('scroll', check, { capture: true });
+  }, [embedded]);
   useEffect(() => () => music.current?.dispose(), []);
 
   const startMusic = useCallback(async () => {
@@ -415,12 +437,16 @@ export function InvitationView(props: InvitationViewProps) {
   const T = (title: string, kicker: string): SectionTitle => ({ title, kicker, index: ++n });
 
   return (
-    <div className={`${INVITATION_FONT_VARS} inv-root min-h-screen ${hydrated ? 'inv-js' : ''} ${embedded ? '' : 'sm:px-0 sm:py-10'}`} style={{ ...themeVars(theme), background: theme.ground, color: theme.ink, fontFamily: theme.body }}>
-      <style>{`
+    <div data-skin={skinOf(theme)} className={`${INVITATION_FONT_VARS} inv-root min-h-screen ${hydrated ? 'inv-js' : ''} ${embedded ? '' : 'sm:px-0 sm:py-10'}`} style={{ ...themeVars(theme), background: theme.ground, color: theme.ink, fontFamily: theme.body }}>
+      <style
+        // raw CSS: as a text child React would escape the quotes inside url("…") and content: "…"
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes inv-fall { 0% { transform: translate3d(0,-20px,0) rotate(0deg); } 100% { transform: translate3d(var(--drift),110vh,0) rotate(540deg); } }
         @keyframes inv-rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
         @keyframes inv-zoom { from { transform: scale(1.12); } to { transform: scale(1); } }
         @keyframes inv-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+        @keyframes inv-pop { from { opacity: 0; transform: translateY(10px) scale(0.85); } to { opacity: 1; transform: none; } }
         @keyframes inv-heart { 0% { opacity: 0; transform: translate(-50%, 0) scale(0.4); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--hx)), -150px) scale(1.15); } }
         @keyframes inv-cue { 0%, 100% { transform: translateY(0); opacity: 0.55; } 50% { transform: translateY(6px); opacity: 1; } }
         .inv-cover-in [data-a] { animation: inv-rise 1100ms cubic-bezier(0.16,1,0.3,1) both; animation-delay: calc(var(--d, 0) * 160ms + 250ms); }
@@ -431,11 +457,14 @@ export function InvitationView(props: InvitationViewProps) {
         .inv-root :focus-visible { outline: 2px solid ${theme.accent}; outline-offset: 3px; }
         .inv-root input, .inv-root textarea { caret-color: ${theme.accent}; }
         .inv-root select option { color: #1a1a1a; }
+        ${formSkinCss}
         @media (prefers-reduced-motion: reduce) {
           .inv-root *, .inv-root *::before, .inv-root *::after { animation: none !important; }
           .inv-js .inv-reveal { opacity: 1; transform: none; transition: none; }
         }
-      `}</style>
+      `,
+        }}
+      />
 
       {!embedded && !opened && (
         <Envelope
@@ -645,15 +674,15 @@ export function InvitationView(props: InvitationViewProps) {
         </div>
       </main>
 
-      {!embedded && opened && <HeartButton theme={theme} />}
+      {!embedded && opened && pastCover && <HeartButton theme={theme} />}
       {!embedded && opened && config.music.mode !== 'OFF' && (
         <button
           type="button"
           onClick={toggleMusic}
           aria-label={playing ? 'Tắt nhạc' : 'Bật nhạc'}
           aria-pressed={playing}
-          className="fixed bottom-5 right-5 z-40 grid h-12 w-12 place-items-center rounded-full shadow-[0_8px_20px_-6px_rgba(0,0,0,0.5)]"
-          style={{ background: theme.accent, color: theme.onAccent }}
+          className={`fixed bottom-4 right-4 z-40 grid place-items-center rounded-full shadow-[0_8px_20px_-6px_rgba(0,0,0,0.5)] backdrop-blur transition-all duration-300 ${pastCover ? 'h-12 w-12' : 'h-11 w-11 opacity-80 hover:opacity-100'}`}
+          style={{ background: pastCover ? theme.accent : `color-mix(in srgb, ${theme.accent} 70%, transparent)`, color: theme.onAccent }}
         >
           {playing ? <Music2 className="h-5 w-5 motion-safe:animate-[spin_6s_linear_infinite]" /> : <VolumeX className="h-5 w-5" />}
         </button>

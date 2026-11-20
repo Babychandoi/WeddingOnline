@@ -5,14 +5,17 @@ import { Check, Copy, ExternalLink, Eye, Loader2, Plus, Save, Trash2, Users } fr
 import {
   INVITATION_EVENT_LABELS,
   INVITATION_LIMITS,
+  INVITATION_STYLE_LABELS,
   INVITATION_TEMPLATES,
   invitationItemId,
   type InvitationConfig,
   type InvitationEventKind,
   type InvitationSectionKey,
+  type InvitationTemplateStyle,
 } from '@dco/shared';
 import type { InvitationRsvpRecord, PhotoAssetRecord, PublicWeddingDTO } from '@dco/database';
 import { CardFace } from '@/components/invitation/CardFace';
+import { styleCount, templatesFor } from '@/components/invitation/templateOrder';
 import { InvitationView } from '@/components/invitation/InvitationView';
 import { SAMPLE_WISHES } from '@/components/invitation/sampleInvitation';
 
@@ -84,6 +87,8 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
   const [guestForLink, setGuestForLink] = useState('');
   const [origin, setOrigin] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [pickStyle, setPickStyle] = useState<InvitationTemplateStyle | 'all'>('all');
+  const [pickShown, setPickShown] = useState(18);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -181,8 +186,31 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
         </div>
 
         <Group title="Mẫu thiệp" hint="Đổi mẫu bất cứ lúc nào, nội dung giữ nguyên.">
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-            {INVITATION_TEMPLATES.map((t) => (
+          <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Lọc mẫu theo phong cách">
+            {([['all', 'Tất cả'], ...Object.entries(INVITATION_STYLE_LABELS)] as Array<[InvitationTemplateStyle | 'all', string]>).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={pickStyle === id}
+                onClick={() => {
+                  setPickStyle(id);
+                  setPickShown(18);
+                }}
+                className={`min-h-[36px] rounded-full px-3.5 text-xs font-semibold transition ${pickStyle === id ? 'bg-rose-700 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-slate-400'}`}
+              >
+                {label} <span className="tabular-nums opacity-60">{styleCount(id)}</span>
+              </button>
+            ))}
+          </div>
+          <div className="grid max-h-[560px] grid-cols-3 gap-3 overflow-y-auto p-1 sm:grid-cols-4 lg:grid-cols-6">
+            {[
+              // The current template first, then the chosen style in gallery order
+              ...INVITATION_TEMPLATES.filter((t) => t.id === config.templateId),
+              ...templatesFor(pickStyle).filter((t) => t.id !== config.templateId),
+            ]
+              .slice(0, pickShown)
+              .map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -202,6 +230,15 @@ export function InvitationEditor({ wedding, photos }: { wedding: PublicWeddingDT
                 <span className="block truncate bg-white px-2 py-1.5 text-[11px] font-bold text-slate-800">{t.nameVi}</span>
               </button>
             ))}
+            {pickShown < templatesFor(pickStyle).filter((t) => t.id !== config.templateId).length + 1 && (
+              <button
+                type="button"
+                onClick={() => setPickShown((n) => n + 18)}
+                className="col-span-full min-h-[44px] rounded-xl text-sm font-semibold text-rose-800 ring-1 ring-rose-200 transition hover:bg-rose-50"
+              >
+                Xem thêm mẫu
+              </button>
+            )}
           </div>
         </Group>
 
