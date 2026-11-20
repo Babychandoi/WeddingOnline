@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { dbRepo, toPublicWedding } from '@dco/database';
 import { STARTER_TEMPLATES } from '@dco/shared';
 import { HallExperience } from '@/components/hall/HallExperience';
@@ -23,6 +23,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function WeddingRoomPage({ params }: { params: { slug: string } }) {
   const wedding = await dbRepo.getWeddingBySlug(params.slug);
   if (!wedding) notFound();
+  // An invitation-only wedding has no 3D hall: its link opens the invitation
+  if (wedding.invitationOnly) redirect(`/w/${wedding.slug}/invite`);
 
   const [photos, guestbook, bouquetCatches] = await Promise.all([
     dbRepo.listPhotos(wedding.id),

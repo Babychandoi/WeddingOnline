@@ -178,6 +178,13 @@
 - [x] Patch gốc thêm 3 font bằng `next/font` → chuyển sang font tự lưu trữ: Viaoda Libre, Playfair Display, Cormorant Garamond (thêm chữ nghiêng) trong `scripts/fetch-fonts.mjs`
 - [x] Kiểm chứng: typecheck, `npm test`, E2E thiệp 18/18, chụp 12 mẫu trên điện thoại
 
+### [x] Nhóm 24: Chỉ Tạo Thiệp Cưới (đám cưới offline, không sảnh 3D)
+- [x] Trang `/thiep-cuoi/tao`: tên cô dâu chú rể, ngày cưới, nơi tổ chức, chọn mẫu (bìa xem trước đổi theo tên), đường dẫn tự sinh → vào thẳng tab thiệp trong dashboard
+- [x] Cột mới `Wedding.invitationOnly` (cần `npm run db:push`): miễn phí, không có đồng hồ 24h nên thiệp không hết hạn (lời chúc, xác nhận tham dự luôn mở); mục "Sảnh cưới 3D" trong thiệp tắt sẵn; link sảnh `/w/[slug]` mở thiệp; API vào sảnh trả 403; album 12 ảnh
+- [x] Dashboard của thiệp: chỉ tab Thiệp Cưới Online + Ảnh Cưới Cho Thiệp, chép link `/thiep/[slug]`, ẩn Mở Sảnh 3D / Nâng Cấp / Sổ Kỷ Niệm
+- [x] Menu trang chủ có "Thiệp Cưới"; nút "Tạo thiệp miễn phí" và "Dùng mẫu này" dẫn tới trang tạo thiệp; vẫn có lối "Tạo sảnh cưới 3D kèm thiệp"
+- [x] Kiểm chứng: E2E 19/19 (menu, điền form, link tự sinh, mẫu chọn sẵn, vào dashboard đúng tab, chỉ 2 tab, không đồng hồ dùng thử, mục 3D tắt, nơi tổ chức điền vào lịch lễ, link sảnh chuyển sang thiệp, chặn vào sảnh, lời chúc + RSVP hoạt động)
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

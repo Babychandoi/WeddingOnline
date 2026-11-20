@@ -42,7 +42,10 @@ export async function POST(req: NextRequest) {
       weddingDate?: string;
       /** Invitation template picked in the gallery before signing up */
       invitationTemplateId?: string;
+      /** Only an online invitation (offline wedding): free, no 3D hall, never expires */
+      invitationOnly?: boolean;
     };
+    const invitationOnly = body.invitationOnly === true;
 
     const slug = (body.slug || '')
       .toLowerCase()
@@ -55,7 +58,7 @@ export async function POST(req: NextRequest) {
     }
 
     const tier: WeddingTier =
-      body.tier === 'HAPPINESS' || body.tier === 'VIP_FULFILLMENT' ? body.tier : 'TRIAL_24H';
+      !invitationOnly && (body.tier === 'HAPPINESS' || body.tier === 'VIP_FULFILLMENT') ? body.tier : 'TRIAL_24H';
     const templateId: TemplateId = isVenueId(body.templateId) ? body.templateId : DEFAULT_VENUE_ID;
 
     const weddingDate = body.weddingDate
@@ -71,11 +74,20 @@ export async function POST(req: NextRequest) {
       tier,
       templateId,
       weddingDate,
+      invitationOnly,
     });
 
-    if (isInvitationTemplateId(body.invitationTemplateId)) {
+    if (isInvitationTemplateId(body.invitationTemplateId) || invitationOnly) {
+      const base = resolveInvitationConfig(null, wedding);
       await dbRepo.updateWedding(wedding.id, {
-        invitationConfig: sanitizeInvitationConfig({ templateId: body.invitationTemplateId }, resolveInvitationConfig(null, wedding)),
+        invitationConfig: sanitizeInvitationConfig(
+          {
+            templateId: isInvitationTemplateId(body.invitationTemplateId) ? body.invitationTemplateId : base.templateId,
+            // No 3D hall behind an invitation-only wedding
+            sections: invitationOnly ? { ...base.sections, hall: false } : base.sections,
+          },
+          base,
+        ),
       });
     }
 

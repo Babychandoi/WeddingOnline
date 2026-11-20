@@ -60,7 +60,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
 }) => {
   const [wedding, setWedding] = useState(initialWedding);
   const [photos, setPhotos] = useState(initialPhotos);
-  const [tab, setTab] = useState<'builder' | 'settings' | 'photos' | 'members' | 'thiep' | 'setup' | 'printqr' | 'ledger'>(initialTab ?? 'builder');
+  const [tab, setTab] = useState<'builder' | 'settings' | 'photos' | 'members' | 'thiep' | 'setup' | 'printqr' | 'ledger'>(initialTab ?? (initialWedding.invitationOnly ? 'thiep' : 'builder'));
   // One copy of the hall layout shared by the builder and the room setup tab
   const [layoutState, setLayoutState] = useState(layout);
   const [authUser, setAuthUser] = useState<{ id: string; displayName: string } | null>(null);
@@ -369,7 +369,9 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
   const handleCopyInviteLink = async () => {
     if (typeof window === 'undefined') return;
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/w/${wedding.slug}/invite`);
+      await navigator.clipboard.writeText(
+        wedding.invitationOnly ? `${window.location.origin}/thiep/${wedding.slug}` : `${window.location.origin}/w/${wedding.slug}/invite`,
+      );
       setCopiedInvite(true);
       setTimeout(() => setCopiedInvite(false), 2000);
     } catch {
@@ -449,7 +451,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700">
-                {TIER_CATALOG[wedding.tier].nameVi} • {wedding.status}
+                {wedding.invitationOnly ? 'Thiệp cưới online · miễn phí' : `${TIER_CATALOG[wedding.tier].nameVi} • ${wedding.status}`}
               </span>
               {authUser && (
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700">
@@ -459,7 +461,15 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
             </div>
             <h1 className="mt-2 font-serif text-2xl font-bold text-slate-900 sm:text-3xl">{wedding.title}</h1>
             <p className="text-xs text-slate-500">
-              Link mời khách: <strong>/w/{wedding.slug}</strong>
+              {wedding.invitationOnly ? (
+                <>
+                  Link thiệp: <strong>/thiep/{wedding.slug}</strong>
+                </>
+              ) : (
+                <>
+                  Link mời khách: <strong>/w/{wedding.slug}</strong>
+                </>
+              )}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -477,7 +487,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
             >
               <Mail className="h-4 w-4" /> Xem thiệp cưới
             </Link>
-            {wedding.tier !== 'VIP_FULFILLMENT' && (
+            {wedding.tier !== 'VIP_FULFILLMENT' && !wedding.invitationOnly && (
               <button
                 type="button"
                 onClick={() => {
@@ -490,18 +500,22 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
                 <Rocket className="h-4 w-4" /> Nâng Cấp Gói
               </button>
             )}
+            {!wedding.invitationOnly && (
             <Link
               href={`/dashboard/${wedding.slug}/print`}
               className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-800 transition hover:bg-slate-50"
             >
               <Printer className="h-4 w-4" /> Sổ Kỷ Niệm PDF
             </Link>
+            )}
+            {!wedding.invitationOnly && (
             <Link
               href={`/w/${wedding.slug}`}
               className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-bold text-white shadow transition hover:bg-rose-500"
             >
               <ExternalLink className="h-4 w-4" /> Mở Sảnh 3D
             </Link>
+            )}
             <button
               type="button"
               onClick={handleLogout}
@@ -526,7 +540,10 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
               { id: 'printqr', label: 'Thiệp Mời & Mã QR In Ấn', icon: QrCode },
               { id: 'ledger', label: 'Sổ Mừng Cưới Riêng Tư', icon: Wallet },
             ] as const
-          ).map((item) => {
+          )
+            // An invitation-only wedding has no 3D hall: just the invitation and its photos
+            .filter((item) => !wedding.invitationOnly || item.id === 'thiep' || item.id === 'photos')
+            .map((item) => {
             const Icon = item.icon;
             return (
               <button
@@ -538,7 +555,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
                     : 'bg-white text-slate-700 hover:bg-slate-100'
                   }`}
               >
-                <Icon className="h-4 w-4" /> {item.label}
+                <Icon className="h-4 w-4" /> {wedding.invitationOnly && item.id === 'photos' ? 'Ảnh Cưới Cho Thiệp' : item.label}
               </button>
             );
           })}

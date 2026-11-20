@@ -24,7 +24,7 @@ export default function TemplateDemoPage({ params, searchParams }: { params: { t
           <Link href="/thiep-cuoi#mau-thiep" className="inline-flex min-h-[44px] items-center rounded-full px-3 font-semibold hover:bg-white/10">
             Mẫu khác
           </Link>
-          <Link href={`/create?thiep=${meta.id}`} className="inline-flex min-h-[44px] items-center rounded-full bg-white px-4 font-bold text-slate-950 hover:bg-amber-50">
+          <Link href={`/thiep-cuoi/tao?mau=${meta.id}`} className="inline-flex min-h-[44px] items-center rounded-full bg-white px-4 font-bold text-slate-950 hover:bg-amber-50">
             Dùng mẫu này
           </Link>
         </span>
@@ -51,7 +51,7 @@ export default function TemplateDemoPage({ params, searchParams }: { params: { t
           <Link href="/thiep-cuoi#mau-thiep" className="inline-flex min-h-[44px] items-center rounded-full px-3 font-semibold hover:bg-white/10">
             Mẫu khác
           </Link>
-          <Link href={`/create?thiep=${meta.id}`} className="inline-flex min-h-[44px] items-center rounded-full bg-white px-4 font-bold text-slate-950 hover:bg-amber-50">
+          <Link href={`/thiep-cuoi/tao?mau=${meta.id}`} className="inline-flex min-h-[44px] items-center rounded-full bg-white px-4 font-bold text-slate-950 hover:bg-amber-50">
             Dùng mẫu này
           </Link>
         </span>

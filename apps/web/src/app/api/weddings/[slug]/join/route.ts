@@ -15,6 +15,9 @@ export async function POST(
     return NextResponse.json({ error: 'WEDDING_NOT_FOUND' }, { status: 404 });
   }
 
+  if (wedding.invitationOnly) {
+    return NextResponse.json({ error: 'INVITATION_ONLY', message: 'Đám cưới này chỉ có thiệp cưới online, không có sảnh 3D.' }, { status: 403 });
+  }
   if (wedding.status === 'EXPIRED_TRIAL') {
     return NextResponse.json({ error: 'TRIAL_EXPIRED' }, { status: 403 });
   }

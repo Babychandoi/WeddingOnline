@@ -101,6 +101,8 @@ model Wedding {
   ceremonyConfig     Json?
   /// Online invitation (thiệp cưới online): template, content, sections — see @dco/shared invitation.ts
   invitationConfig   Json?
+  /// Invitation only: an online invitation for an offline wedding, no 3D hall, never expires
+  invitationOnly     Boolean       @default(false)
 
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt

@@ -47,7 +47,7 @@ export async function POST(
       return NextResponse.json({ error: 'HOST_ONLY' }, { status: 403 });
     }
     const galleryCount = existingPhotos.filter((p) => p.type === 'PRE_WEDDING_GALLERY').length;
-    if (galleryCount >= TIER_CATALOG[wedding.tier].maxPhotos) {
+    if (galleryCount >= (wedding.invitationOnly ? 12 : TIER_CATALOG[wedding.tier].maxPhotos)) {
       return NextResponse.json({ error: 'PHOTO_QUOTA_EXCEEDED' }, { status: 403 });
     }
   } else {

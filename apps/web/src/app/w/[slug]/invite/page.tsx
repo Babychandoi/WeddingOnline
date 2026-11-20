@@ -61,7 +61,7 @@ export default async function InvitationPage({ params, searchParams }: { params:
         enabled: TIER_CATALOG[wedding.tier].allowVietQr && Boolean(wedding.bankBin && wedding.bankAccountNo),
         bankName: wedding.bankBin ? BANK_NAMES[wedding.bankBin] ?? null : null,
       }}
-      hallUrl={wedding.status === 'EXPIRED_TRIAL' ? null : `/w/${wedding.slug}`}
+      hallUrl={wedding.status === 'EXPIRED_TRIAL' || wedding.invitationOnly ? null : `/w/${wedding.slug}`}
       venueThumb={venueId && isVenueId(venueId) ? venueThumbnail(venueId) : null}
       initialWishes={wishes}
     />

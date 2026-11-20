@@ -58,6 +58,8 @@ export interface WeddingRecord {
   ceremonyConfig: CeremonyConfig | null;
   /** Raw stored invitation JSON; read it through resolveInvitationConfig() from @dco/shared */
   invitationConfig?: unknown;
+  /** Online invitation for an offline wedding: no 3D hall, no trial expiry */
+  invitationOnly?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -229,6 +231,7 @@ export interface PublicWeddingDTO {
   hasBankConfig: boolean;
   bankAccountName: string | null;
   ceremonyConfig: CeremonyConfig | null;
+  invitationOnly: boolean;
 }
 
 export function toPublicWedding(w: WeddingRecord): PublicWeddingDTO {
@@ -248,6 +251,7 @@ export function toPublicWedding(w: WeddingRecord): PublicWeddingDTO {
     maxConcurrentUsers: w.maxConcurrentUsers,
     videoEmbedUrl: w.videoEmbedUrl,
     videoIsLive: w.videoIsLive,
+    invitationOnly: Boolean(w.invitationOnly),
     hasBankConfig: Boolean(w.bankBin && w.bankAccountNo),
     bankAccountName: w.bankAccountName,
     ceremonyConfig: w.ceremonyConfig,

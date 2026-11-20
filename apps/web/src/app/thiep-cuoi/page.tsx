@@ -36,10 +36,10 @@ export default function InvitationGalleryPage() {
               Thiệp cưới online, mở ra như thiệp thật
             </h1>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-700 sm:text-lg">
-              Chọn một trong {INVITATION_TEMPLATES.length} mẫu, điền tên hai bên gia đình, giờ làm lễ và địa điểm. Gửi qua Zalo hay Facebook, khách chạm để mở phong bì có ghi tên mình.
+              Chọn một trong {INVITATION_TEMPLATES.length} mẫu, điền tên hai bên gia đình, giờ làm lễ và địa điểm. Gửi qua Zalo hay Facebook, khách chạm để mở phong bì có ghi tên mình. Dùng cho đám cưới tổ chức ngoài đời: miễn phí, không cần sảnh 3D, thiệp không hết hạn.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/create" className="inline-flex min-h-[52px] items-center rounded-full bg-rose-800 px-7 text-base font-bold text-amber-50 shadow-[0_10px_24px_-10px_rgba(136,19,55,0.7)] hover:bg-rose-700">
+              <Link href="/thiep-cuoi/tao" className="inline-flex min-h-[52px] items-center rounded-full bg-rose-800 px-7 text-base font-bold text-amber-50 shadow-[0_10px_24px_-10px_rgba(136,19,55,0.7)] hover:bg-rose-700">
                 Tạo thiệp miễn phí
               </Link>
               <a href="#mau-thiep" className="inline-flex min-h-[52px] items-center rounded-full px-6 text-base font-bold text-rose-900 ring-1 ring-rose-900/25 hover:ring-rose-900/60">

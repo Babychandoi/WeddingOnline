@@ -228,6 +228,7 @@ const localJsonRepo = {
                   tier: WeddingTier;
                   templateId: TemplateId;
                   weddingDate: string;
+                  invitationOnly?: boolean;
                 }): Promise < { wedding: WeddingRecord; scene: WeddingSceneRecord } > {
                   return getStore().mutate((db) => {
                     if (db.weddings.some((w) => w.slug === input.slug)) {
@@ -236,7 +237,7 @@ const localJsonRepo = {
                     const now = new Date();
                     const nowIso = now.toISOString();
                     const weddingId = newId('wed');
-                    const isTrial = input.tier === 'TRIAL_24H';
+                    const isTrial = input.tier === 'TRIAL_24H' && !input.invitationOnly;
                     const weddingDateMs = new Date(input.weddingDate).getTime();
                     const archiveAt = new Date(weddingDateMs + 7 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -251,7 +252,8 @@ const localJsonRepo = {
                       status: isTrial ? 'TRIAL_ACTIVE' : 'DRAFT',
                       weddingDate: input.weddingDate,
                       trialExpiresAt: isTrial ? new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString() : null,
-                      archiveAt: isTrial ? null : archiveAt,
+                      archiveAt: isTrial || input.invitationOnly ? null : archiveAt,
+                      invitationOnly: Boolean(input.invitationOnly),
                       archivedAt: null,
                       pinHash: null,
                       maxConcurrentUsers: TIER_CATALOG[input.tier].maxCcu,

@@ -97,6 +97,7 @@ function mapWedding(w: PrismaWedding): WeddingRecord {
     webhookSecretHash: w.webhookSecretHash,
     ceremonyConfig: (w.ceremonyConfig as unknown as CeremonyConfig | null) ?? null,
     invitationConfig: w.invitationConfig ?? null,
+    invitationOnly: w.invitationOnly,
     createdAt: w.createdAt.toISOString(),
     updatedAt: w.updatedAt.toISOString(),
   };
@@ -314,15 +315,17 @@ export const prismaRepo = {
     tier: WeddingTier;
     templateId: TemplateId;
     weddingDate: string;
+    /** Invitation only: no trial clock, the invitation stays open */
+    invitationOnly?: boolean;
   }): Promise<{ wedding: WeddingRecord; scene: WeddingSceneRecord }> {
     const prisma = getPrismaClient();
     const existing = await prisma.wedding.findUnique({ where: { slug: input.slug } });
     if (existing) throw new Error('SLUG_ALREADY_EXISTS');
 
     const now = new Date();
-    const isTrial = input.tier === 'TRIAL_24H';
+    const isTrial = input.tier === 'TRIAL_24H' && !input.invitationOnly;
     const weddingDate = new Date(input.weddingDate);
-    const archiveAt = isTrial
+    const archiveAt = isTrial || input.invitationOnly
       ? null
       : new Date(weddingDate.getTime() + 7 * 24 * 60 * 60 * 1000);
     const tpl = STARTER_TEMPLATES[input.templateId] ?? STARTER_TEMPLATES.luxury_ballroom;
@@ -341,6 +344,7 @@ export const prismaRepo = {
           trialExpiresAt: isTrial ? new Date(now.getTime() + 24 * 60 * 60 * 1000) : null,
           archiveAt,
           maxConcurrentUsers: TIER_CATALOG[input.tier].maxCcu,
+          invitationOnly: Boolean(input.invitationOnly),
           ceremonyConfig: { autoBouquetToss: true } as Prisma.InputJsonValue,
         },
       });

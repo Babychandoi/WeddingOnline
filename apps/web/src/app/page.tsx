@@ -81,6 +81,9 @@ export default function HomePage() {
           </Link>
 
           <div className="hidden items-center gap-6 text-xs font-semibold text-slate-700 md:flex">
+            <Link href="/thiep-cuoi" className="transition hover:text-rose-700">
+              Thiệp Cưới
+            </Link>
             <a href="#khong-gian" className="transition hover:text-rose-700">
               Không Gian 3D
             </a>
@@ -245,21 +248,21 @@ export default function HomePage() {
               {INVITATION_TEMPLATES.length} Mẫu Thiệp Cưới Online Miễn Phí
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
-              Phong bì ghi tên từng khách, ngày âm lịch, xác nhận tham dự, sổ lời chúc và hộp mừng cưới
-              VietQR cho khách ở xa. Mọi gói phòng cưới đều tạo được thiệp.
+              Đám cưới tổ chức ngoài đời cũng dùng được: không cần sảnh 3D, miễn phí, thiệp không hết hạn.
+              Phong bì ghi tên từng khách, ngày âm lịch, chỉ đường, xác nhận tham dự và sổ lời chúc.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
-                href="/thiep-cuoi"
+                href="/thiep-cuoi/tao"
                 className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-rose-700 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-rose-800"
               >
-                Xem {INVITATION_TEMPLATES.length} mẫu thiệp <ArrowRight className="h-4 w-4" />
+                Tạo thiệp miễn phí <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
-                href="/thiep-cuoi/song-hy-do"
+                href="/thiep-cuoi"
                 className="inline-flex min-h-[44px] items-center rounded-full border border-rose-200 bg-white px-5 text-sm font-bold text-rose-700 transition hover:bg-rose-50"
               >
-                Mở thử một thiệp
+                Xem {INVITATION_TEMPLATES.length} mẫu thiệp
               </Link>
             </div>
           </div>
