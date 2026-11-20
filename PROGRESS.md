@@ -164,6 +164,7 @@
 - [x] Gắn ảnh cưới vào từng vị trí trong sảnh: màn hình LED sân khấu (mặc định ảnh đầu album, có thể tắt), bảng chào mừng ở cổng (ảnh + câu chào), từng giá ảnh dọc lối đi (ảnh + chú thích); ảnh được cắt vừa khung, không còn bị kéo méo
 - [x] Lưu trong `layout.meta.mediaSlotId/customLabel` và `ceremonyConfig.bridePersonId/groomPersonId` (không đổi DB); API kiểm tra người hợp lệ và cắt độ dài chữ
 - [x] Cô dâu chú rể (NPC và chủ phòng nhập vai) hiện bằng người đã chọn; luôn được tải kể cả khi điện thoại đã chạm giới hạn mô hình
+- [x] Sảnh chờ 2 cột kiểu "tạo nhân vật": bên trái xem nhân vật 3D toàn thân (kéo xoay, cuộn phóng to, Toàn thân/Gương mặt, Tự xoay, Ngẫu nhiên, Đặt lại, thử Vẫy tay/Vỗ tay/Reo hò/Nâng ly), bên phải lưới chọn người có chú thích + nút "Mang nhân vật vào sảnh cưới" ghim đáy; "Hình vẽ tự phối" xem trước được khi đổi áo/tóc; điện thoại: khung xem ở trên, nút vào sảnh ghim cuối màn hình
 - [x] Kiểm chứng: E2E trên stack cục bộ (tạo phòng, 4 ảnh, lưu setup, chặn id lạ, cắt chú thích 40 ký tự, cần đăng nhập, vào sảnh xem sân khấu/cổng), ảnh chụp cận cô dâu chú rể; test 2 trình duyệt trên production: thấy đúng nhân vật, đi, vẫy tay, vỗ tay đồng bộ hai chiều
 
 ## Các Bước Tiếp Theo Khi Go-Live

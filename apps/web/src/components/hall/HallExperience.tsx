@@ -24,6 +24,12 @@ import {
   VolumeX,
   Wine,
   X,
+  Dices,
+  PartyPopper,
+  RotateCcw,
+  RotateCw,
+  ScanFace,
+  User,
 } from 'lucide-react';
 import type { GuestbookEntryRecord, PhotoAssetRecord, PublicWeddingDTO } from '@dco/database';
 import {
@@ -48,6 +54,13 @@ const VenueScene = dynamic(
   () => import('../three/VenueScene').then((mod) => mod.VenueScene),
   { ssr: false }
 );
+
+// Lobby character preview (3D, browser only)
+const AvatarPreview = dynamic(() => import('../three/AvatarPreview'), {
+  ssr: false,
+  loading: () => <div className="grid h-full place-items-center text-xs text-slate-500">Đang dựng nhân vật 3D…</div>,
+});
+
 
 interface HallExperienceProps {
   wedding: PublicWeddingDTO;
@@ -115,6 +128,15 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
   // A real, motion-captured person by default; '' = the stylised figure with outfit/hair choices
   const [personId, setPersonIdState] = useState('female_party_02');
   const [personFilter, setPersonFilter] = useState<'all' | 'f' | 'm'>('all');
+  const [previewAnim, setPreviewAnim] = useState('idle');
+  const [previewFocus, setPreviewFocus] = useState<'body' | 'face'>('body');
+  const [previewSpin, setPreviewSpin] = useState(true);
+  const previewTimer = useRef<number | null>(null);
+  const tryAction = useCallback((anim: string) => {
+    setPreviewAnim(anim);
+    if (previewTimer.current) window.clearTimeout(previewTimer.current);
+    previewTimer.current = window.setTimeout(() => setPreviewAnim('idle'), 3200);
+  }, []);
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem('dco_person');
@@ -510,216 +532,253 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
     );
   }
 
-  // Pre-Entry Avatar Customizer
+  // Pre-entry character creator: big 3D preview on one side, choices on the other
   if (!connected) {
+    const shownPeople = PEOPLE.filter((p) => personFilter === 'all' || p.body === personFilter);
+    const lookLabel = personId
+      ? PEOPLE.find((p) => p.id === personId)?.label ?? 'Nhân vật thật'
+      : `${OUTFIT_LABELS[outfitId] || outfitId} • ${HAIR_STYLES.find((h) => h.id === hairId)?.label || 'Tóc Tự Nhiên'}`;
+    const toolBtn =
+      'pointer-events-auto inline-flex min-h-[38px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-white/90 px-2.5 text-[11px] font-bold text-slate-800 shadow-sm backdrop-blur transition hover:bg-white sm:px-3 sm:text-xs';
     return (
-            <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-rose-50 via-[#FFFDF8] to-amber-50 p-4">
-              <div className="dco-fade-up w-full max-w-2xl rounded-3xl border border-amber-200 bg-white p-6 shadow-2xl sm:p-8">
-                <div className="mb-6 flex flex-wrap items-center justify-between gap-2 border-b border-amber-100 pb-4">
-                  <div>
-                    <span className="inline-block rounded-full bg-rose-100 px-3 py-1 text-[11px] font-bold text-rose-700">
-                      {TIER_CATALOG[wedding.tier].nameVi}
-                    </span>
-                    <h1 className="mt-2 font-serif text-2xl font-bold text-slate-900 sm:text-3xl">
-                      {wedding.title}
-                    </h1>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {isPlaza
-                        ? 'Truy cập ẩn danh trong 5 giây — Không cần tài khoản, không thu phí.'
-                        : `Đã xác thực: ${authUser?.displayName || '...'}`}
-                    </p>
-                  </div>
-                  {!isPlaza && authUser && (
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
-                    >
-                      <LogOut className="h-3.5 w-3.5" /> Đổi tài khoản
-                    </button>
-                  )}
-                </div>
+      <div className="min-h-screen bg-[#FFFDF8] lg:grid lg:h-screen lg:grid-cols-[minmax(0,1fr)_minmax(400px,460px)] lg:overflow-hidden">
+        {/* ── Preview ── */}
+        <section aria-label="Xem trước nhân vật" className="relative h-[56vh] min-h-[340px] bg-gradient-to-b from-[#fff8f1] via-[#fbefe7] to-[#f1dccf] lg:h-screen">
+          <AvatarPreview
+            personId={personId}
+            outfitId={outfitId}
+            hairId={hairId}
+            hairColor={hairColor}
+            displayName={displayName.trim() || 'Khách Quý'}
+            anim={previewAnim}
+            focus={previewFocus}
+            spin={previewSpin}
+            onUserRotate={() => setPreviewSpin(false)}
+          />
 
-                {/* Live Chibi Identity Preview Card */}
-                <div className="mb-5 flex items-center gap-4 rounded-2xl border border-amber-200/80 bg-[#FFFDF8] p-4">
-                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-amber-300 bg-rose-50 shadow-inner">
-                    {personId ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`/assets/people/${personId}.webp`} alt="" className="h-full w-full object-cover object-top" />
-                    ) : (
-                      <div className="h-6 w-6 rounded-full border-2 border-white shadow" style={{ backgroundColor: hairColor }} title="Màu tóc đã chọn" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-slate-900">
-                      {displayName.trim() || 'Khách Quý'}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-600">
-                      {personId
-                        ? PEOPLE.find((p) => p.id === personId)?.label ?? 'Nhân vật thật'
-                        : `${OUTFIT_LABELS[outfitId] || outfitId} • ${HAIR_STYLES.find((h) => h.id === hairId)?.label || 'Tóc Tự Nhiên'}`}
-                    </p>
-                  </div>
-                  {!isPlaza && (
-                    <Link
-                      href={`/w/${wedding.slug}/invite`}
-                      className="hidden items-center gap-1 rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 sm:inline-flex"
-                    >
-                      <Mail className="h-3.5 w-3.5" /> Thiệp 2D
-                    </Link>
-                  )}
-                </div>
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 sm:p-4">
+            <div role="radiogroup" aria-label="Góc nhìn" className="pointer-events-auto flex rounded-full bg-white/90 p-1 shadow-sm backdrop-blur">
+              {(
+                [
+                  ['body', 'Toàn thân', User],
+                  ['face', 'Gương mặt', ScanFace],
+                ] as const
+              ).map(([f, label, Icon]) => (
+                <button
+                  key={f}
+                  type="button"
+                  role="radio"
+                  aria-checked={previewFocus === f}
+                  onClick={() => setPreviewFocus(f)}
+                  className={`inline-flex min-h-[34px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[11px] font-bold transition sm:px-3 sm:text-xs ${previewFocus === f ? 'bg-rose-600 text-white' : 'text-slate-700 hover:bg-rose-50'}`}
+                >
+                  <Icon className="h-3.5 w-3.5" /> {label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1.5">
+              <button type="button" onClick={() => setPreviewSpin((v) => !v)} aria-pressed={previewSpin} aria-label="Tự xoay" title="Tự xoay" className={toolBtn}>
+                <RotateCw className={`h-3.5 w-3.5 ${previewSpin ? 'text-rose-600' : ''}`} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const pool = shownPeople.filter((p) => p.id !== personId);
+                  if (pool.length) setPersonId(pool[Math.floor(Math.random() * pool.length)].id);
+                }}
+                className={toolBtn}
+              >
+                <Dices className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Ngẫu nhiên</span>
+              </button>
+              <button
+                type="button"
+                aria-label="Đặt lại"
+                title="Đặt lại"
+                onClick={() => {
+                  setPersonId('female_party_02');
+                  setPersonFilter('all');
+                  setPreviewFocus('body');
+                  setPreviewSpin(true);
+                  setPreviewAnim('idle');
+                }}
+                className={toolBtn}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="chibi-display-name" className="mb-1 block text-xs font-semibold text-slate-700">
-                      Tên hiển thị trong sảnh
-                    </label>
-                    <input
-                      id="chibi-display-name"
-                      type="text"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Nhập tên của bạn..."
-                      className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-rose-500"
-                    />
-                  </div>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-3 sm:p-4">
+            <p className="text-[11px] font-medium text-slate-600">Kéo để xoay · Cuộn để phóng to</p>
+            <div className="flex max-w-full gap-1.5 overflow-x-auto px-1">
+              {(
+                [
+                  ['wave', 'Vẫy tay', Hand],
+                  ['clap', 'Vỗ tay', Sparkles],
+                  ['cheers', 'Reo hò', PartyPopper],
+                  ['drink', 'Nâng ly', Wine],
+                ] as const
+              ).map(([anim, label, Icon]) => (
+                <button
+                  key={anim}
+                  type="button"
+                  onClick={() => tryAction(anim)}
+                  aria-pressed={previewAnim === anim}
+                  className={`${toolBtn} ${previewAnim === anim ? '!bg-rose-600 !text-white' : ''}`}
+                >
+                  <Icon className="h-3.5 w-3.5" /> {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
 
-                  {!isPlaza && (
-                    <div>
-                      <span className="mb-1 block text-xs font-semibold text-slate-700">Vai vế khách mời</span>
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                        {(
-                          [
-                            ['GROOM_SIDE', 'Họ Nhà Trai'],
-                            ['BRIDE_SIDE', 'Họ Nhà Gái'],
-                            ['FRIEND', 'Bạn Bè'],
-                            ['COLLEAGUE', 'Đồng Nghiệp'],
-                          ] as const
-                    ).map(([val, label]) => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => setSide(val)}
-                        className={`rounded-xl border py-2 text-xs font-semibold transition ${
-                          side === val
-                            ? 'border-rose-600 bg-rose-50 text-rose-700'
-                            : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+        {/* ── Choices ── */}
+        <section aria-label="Chọn nhân vật" className="flex flex-col border-amber-100 bg-[#FFFDF8] lg:h-screen lg:border-l">
+          <div className="flex-1 px-4 pb-28 pt-5 sm:px-6 lg:overflow-y-auto lg:pb-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <span className="inline-block rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-bold text-rose-700">{TIER_CATALOG[wedding.tier].nameVi}</span>
+                <h1 className="mt-1.5 font-serif text-2xl font-bold leading-tight text-slate-900">{wedding.title}</h1>
+                <p className="mt-0.5 truncate text-xs text-slate-500">
+                  {isPlaza ? 'Vào ẩn danh, không cần tài khoản.' : `Đã xác thực: ${authUser?.displayName || '...'}`}
+                </p>
+              </div>
+              {!isPlaza && authUser && (
+                <button type="button" onClick={handleLogout} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50">
+                  <LogOut className="h-3.5 w-3.5" /> Đổi tài khoản
+                </button>
               )}
+            </div>
 
-              <div>
-                <div className="mb-1.5 flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-slate-700">Nhân vật của bạn</span>
-                  <div role="radiogroup" aria-label="Lọc nhân vật" className="flex gap-1">
-                    {(
-                      [
-                        ['all', 'Tất cả'],
-                        ['f', 'Nữ'],
-                        ['m', 'Nam'],
-                      ] as const
-                    ).map(([val, label]) => (
-                      <button
-                        key={val}
-                        type="button"
-                        role="radio"
-                        aria-checked={personFilter === val}
-                        onClick={() => setPersonFilter(val)}
-                        className={`min-h-[32px] rounded-full px-3 text-[11px] font-bold transition ${personFilter === val ? 'bg-slate-900 text-amber-100' : 'text-slate-600 hover:bg-slate-100'}`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div role="radiogroup" aria-label="Chọn nhân vật" className="grid max-h-[248px] grid-cols-4 gap-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-1.5 sm:grid-cols-6">
-                  {PEOPLE.filter((p) => personFilter === 'all' || p.body === personFilter).map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={personId === p.id}
-                      aria-label={p.label ?? p.id}
-                      title={p.label}
-                      onClick={() => setPersonId(p.id)}
-                      className={`overflow-hidden rounded-lg border-2 bg-white transition ${personId === p.id ? 'border-rose-600 ring-2 ring-rose-200' : 'border-transparent hover:border-rose-200'}`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={`/assets/people/${p.id}.webp`} alt="" loading="lazy" className="aspect-square w-full object-cover object-top" />
-                    </button>
-                  ))}
+            {/* Name and side */}
+            <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
+              <label className="block">
+                <span className="sr-only">Tên hiển thị trong sảnh</span>
+                <input
+                  id="chibi-display-name"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Tên hiển thị trong sảnh"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-rose-500"
+                />
+              </label>
+              {!isPlaza && (
+                <label className="block">
+                  <span className="sr-only">Vai vế khách mời</span>
+                  <select
+                    value={side}
+                    onChange={(e) => setSide(e.target.value as GuestSide)}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-rose-500"
+                  >
+                    <option value="GROOM_SIDE">Họ nhà trai</option>
+                    <option value="BRIDE_SIDE">Họ nhà gái</option>
+                    <option value="FRIEND">Bạn bè</option>
+                    <option value="COLLEAGUE">Đồng nghiệp</option>
+                  </select>
+                </label>
+              )}
+            </div>
+
+            {/* People */}
+            <div className="mt-5 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-bold leading-tight text-slate-900">Chọn người đại diện</h2>
+              <div role="radiogroup" aria-label="Lọc nhân vật" className="flex gap-1">
+                {(
+                  [
+                    ['all', 'Tất cả'],
+                    ['f', 'Nữ'],
+                    ['m', 'Nam'],
+                  ] as const
+                ).map(([val, label]) => (
                   <button
+                    key={val}
                     type="button"
                     role="radio"
-                    aria-checked={personId === ''}
-                    onClick={() => setPersonId('')}
-                    className={`flex aspect-square flex-col items-center justify-center rounded-lg border-2 bg-white px-1 text-center text-[10px] font-bold leading-tight text-slate-600 transition ${personId === '' ? 'border-rose-600 ring-2 ring-rose-200' : 'border-dashed border-slate-300 hover:border-rose-200'}`}
+                    aria-checked={personFilter === val}
+                    onClick={() => setPersonFilter(val)}
+                    className={`min-h-[32px] whitespace-nowrap rounded-full px-3 text-[11px] font-bold transition ${personFilter === val ? 'bg-slate-900 text-amber-100' : 'text-slate-600 hover:bg-slate-100'}`}
                   >
-                    Hình vẽ tự phối
+                    {label}
                   </button>
-                </div>
-                <p className="mt-1 text-[11px] text-slate-500">Người thật có dáng đi, ngồi, vẫy tay, vỗ tay và nâng ly như thật. Chọn &quot;Hình vẽ tự phối&quot; để mặc áo dài và chọn kiểu tóc.</p>
+                ))}
               </div>
+            </div>
+            <div role="radiogroup" aria-label="Nhân vật" className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {shownPeople.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={personId === p.id}
+                  aria-label={p.label ?? p.id}
+                  onClick={() => setPersonId(p.id)}
+                  className={`overflow-hidden rounded-2xl border-2 bg-gradient-to-b from-white to-[#f6ece6] text-left transition ${personId === p.id ? 'border-rose-600 shadow-md ring-2 ring-rose-200' : 'border-transparent hover:border-rose-200'}`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/assets/people/${p.id}.webp`} alt="" loading="lazy" className="aspect-square w-full object-cover object-top" />
+                  <span className="block truncate px-1.5 py-1 text-center text-[11px] font-semibold text-slate-700">{p.label}</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={personId === ''}
+                onClick={() => setPersonId('')}
+                className={`flex flex-col items-center justify-center gap-1 rounded-2xl border-2 bg-white px-2 text-center transition ${personId === '' ? 'border-rose-600 shadow-md ring-2 ring-rose-200' : 'border-dashed border-slate-300 hover:border-rose-200'}`}
+              >
+                <Sparkles className="h-5 w-5 text-rose-500" />
+                <span className="text-[11px] font-bold leading-tight text-slate-700">Hình vẽ tự phối</span>
+                <span className="text-[10px] leading-tight text-slate-500">Áo dài, tóc tự chọn</span>
+              </button>
+            </div>
 
-              {!personId && (
-              <>
-              <div>
-                <span className="mb-1 block text-xs font-semibold text-slate-700">Trang phục</span>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {(
-                    [
-                      ['ao_dai_guest', 'Áo Dài Hồng'],
-                      ['vest_suit', 'Vest Lịch Lãm'],
-                      ['evening_dress', 'Đầm Dạ Hội'],
-                      ['smart_casual', 'Sơ Mi Trẻ Trung'],
-                    ] as const
-                  ).map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setOutfitId(id)}
-                      className={`rounded-xl border py-2 text-xs font-semibold transition ${
-                        outfitId === id
-                          ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm'
-                          : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+            {/* Mix-and-match options for the drawn figure */}
+            {!personId && (
+              <div className="mt-5 space-y-4 rounded-2xl border border-amber-200 bg-white p-4">
                 <div>
-                  <span className="mb-1 block text-xs font-semibold text-slate-700">Kiểu tóc</span>
-                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                  <span className="mb-1.5 block text-xs font-bold text-slate-700">Trang phục</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        ['ao_dai_guest', 'Áo Dài Hồng'],
+                        ['vest_suit', 'Vest Lịch Lãm'],
+                        ['evening_dress', 'Đầm Dạ Hội'],
+                        ['smart_casual', 'Sơ Mi Trẻ Trung'],
+                      ] as const
+                    ).map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        aria-pressed={outfitId === id}
+                        onClick={() => setOutfitId(id)}
+                        className={`min-h-[40px] rounded-xl border text-xs font-semibold transition ${outfitId === id ? 'border-rose-600 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="mb-1.5 block text-xs font-bold text-slate-700">Kiểu tóc</span>
+                  <div className="grid grid-cols-3 gap-1.5">
                     {HAIR_STYLES.map((style) => (
                       <button
                         key={style.id}
                         type="button"
+                        aria-pressed={hairId === style.id}
                         onClick={() => setHairId(style.id)}
-                        className={`rounded-xl border px-2.5 py-1.5 text-[11px] font-semibold transition ${
-                          hairId === style.id
-                            ? 'border-rose-600 bg-rose-50 text-rose-800'
-                            : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                        }`}
+                        className={`min-h-[36px] rounded-xl border px-2 text-[11px] font-semibold transition ${hairId === style.id ? 'border-rose-600 bg-rose-50 text-rose-800' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}
                       >
                         {style.label}
                       </button>
                     ))}
                   </div>
                 </div>
-
                 <div>
-                  <span className="mb-1 block text-xs font-semibold text-slate-700">Màu tóc</span>
-                  <div className="flex items-center gap-2 pt-1">
+                  <span className="mb-1.5 block text-xs font-bold text-slate-700">Màu tóc</span>
+                  <div className="flex items-center gap-2">
                     {HAIR_COLORS.map((c) => (
                       <button
                         key={c.hex}
@@ -727,70 +786,66 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                         onClick={() => setHairColor(c.hex)}
                         title={c.label}
                         aria-label={c.label}
+                        aria-pressed={hairColor === c.hex}
                         style={{ backgroundColor: c.hex }}
-                        className={`h-7 w-7 rounded-full border-2 transition ${hairColor === c.hex
-                            ? 'scale-110 border-rose-600 ring-2 ring-rose-300'
-                            : 'border-white shadow'
-                          }`}
+                        className={`h-8 w-8 rounded-full border-2 transition ${hairColor === c.hex ? 'scale-110 border-rose-600 ring-2 ring-rose-300' : 'border-white shadow'}`}
                       />
                     ))}
                   </div>
                 </div>
               </div>
-
-              </>
-              )}
-
-              {!isPlaza && wedding.hasPin && (
-                <div>
-                  <label htmlFor="hall-pin" className="mb-1 block text-xs font-semibold text-slate-700">
-                    Mã PIN Phòng (4 số)
-                  </label>
-                  <input
-                    id="hall-pin"
-                    type="password"
-                    maxLength={4}
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value)}
-                    placeholder="Nhập mã PIN từ thiệp mời..."
-                    className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-rose-500"
-                  />
-                </div>
-              )}
-
-              {joinError && (
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
-                    {joinError}
-                  </div>
             )}
 
-                  <button
-                    type="button"
-                    onClick={() => connectToHall()}
-                    disabled={joining}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-600 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-rose-500 disabled:opacity-60"
-                  >
-                    {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    {joining ? 'Đang bước vào sảnh 3D...' : 'Bước Vào Sảnh Cưới 3D'}
-                  </button>
+            {!isPlaza && wedding.hasPin && (
+              <label className="mt-5 block">
+                <span className="mb-1 block text-xs font-bold text-slate-700">Mã PIN phòng (4 số)</span>
+                <input
+                  id="hall-pin"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value)}
+                  placeholder="Mã PIN trên thiệp mời"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-rose-500"
+                />
+              </label>
+            )}
 
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs text-slate-500">
-                        <Link href="/" className="hover:text-rose-700 hover:underline">
-                          ← Trang chủ
-                        </Link>
-                        {!isPlaza && (
-                            <Link
-                              href={`/dashboard/${wedding.slug}`}
-                              className="font-semibold text-rose-600 hover:underline"
-                            >
-                              Quản trị sảnh (Cô Dâu / Chú Rể) →
-                            </Link>
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+              <Link href="/" className="hover:text-rose-700 hover:underline">
+                ← Trang chủ
+              </Link>
+              {!isPlaza && (
+                <span className="flex gap-3">
+                  <Link href={`/w/${wedding.slug}/invite`} className="inline-flex items-center gap-1 font-semibold text-rose-600 hover:underline">
+                    <Mail className="h-3.5 w-3.5" /> Thiệp cưới
+                  </Link>
+                  <Link href={`/dashboard/${wedding.slug}`} className="font-semibold text-rose-600 hover:underline">
+                    Quản trị sảnh →
+                  </Link>
+                </span>
               )}
-                          </div>
+            </div>
           </div>
-                  </div>
-                </div>
-              );
+
+          {/* Enter: pinned to the bottom of the panel (the screen on phones) */}
+          <div className="fixed inset-x-0 bottom-0 z-10 border-t border-amber-100 bg-[#FFFDF8]/95 p-3 backdrop-blur lg:static lg:bg-[#FFFDF8] lg:p-4">
+            {joinError && <p className="mb-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">{joinError}</p>}
+            <button
+              type="button"
+              onClick={() => connectToHall()}
+              disabled={joining}
+              className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-rose-600 text-sm font-bold text-white shadow-lg transition hover:bg-rose-500 disabled:opacity-60"
+            >
+              {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {joining ? 'Đang bước vào sảnh…' : 'Mang nhân vật vào sảnh cưới'}
+            </button>
+            <p className="mt-1.5 truncate text-center text-[11px] text-slate-500 lg:hidden">{lookLabel}</p>
+          </div>
+        </section>
+      </div>
+    );
   }
 
               return (
