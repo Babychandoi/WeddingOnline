@@ -144,8 +144,8 @@ export const SceneBuilderEditor: React.FC<SceneBuilderEditorProps> = ({
   const cellPx = 8; // 60 * 8 = 480px crisp grid canvas
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-      <div className="rounded-3xl border border-amber-200 bg-white p-4 shadow-sm">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="min-w-0 rounded-3xl border border-amber-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-base font-bold text-slate-900">
@@ -160,7 +160,7 @@ export const SceneBuilderEditor: React.FC<SceneBuilderEditorProps> = ({
             <select
               value={layout.templateId}
               onChange={(e) => handleTemplateSwitch(e.target.value as TemplateId)}
-              className="max-w-[260px] rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800"
+              className="min-w-0 max-w-[260px] rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800"
             >
               {VENUE_REGIONS.map((region) => (
                 <optgroup key={region.id} label={region.nameVi}>

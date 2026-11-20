@@ -154,8 +154,8 @@ function CreateInvitation() {
           )}
         </div>
 
-        <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-start">
-          <form onSubmit={submit} className="rounded-3xl border border-amber-200 bg-white p-5 shadow-sm sm:p-8">
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-start">
+          <form onSubmit={submit} className="min-w-0 rounded-3xl border border-amber-200 bg-white p-5 shadow-sm sm:p-8">
             <h1 className="font-serif text-3xl font-bold leading-tight text-rose-950 sm:text-4xl">Tạo thiệp cưới online</h1>
             <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-slate-600">
               Dành cho đám cưới tổ chức ngoài đời: gửi thiệp qua Zalo, Facebook, khách mở ra xem giờ, địa điểm, chỉ đường, xác nhận tham dự và gửi lời chúc. Miễn phí, không cần sảnh 3D, thiệp mở mãi không hết hạn.
@@ -172,7 +172,7 @@ function CreateInvitation() {
               </label>
               <label className="block">
                 <span className={label}>Ngày cưới</span>
-                <input type="date" className={field} value={weddingDate} onChange={(e) => setWeddingDate(e.target.value)} required />
+                <input type="date" className={`${field} block min-h-[50px]`} value={weddingDate} onChange={(e) => setWeddingDate(e.target.value)} required />
               </label>
               <label className="block">
                 <span className={label}>
@@ -277,7 +277,7 @@ function CreateInvitation() {
           </form>
 
           {/* Live cover preview */}
-          <aside className="lg:sticky lg:top-8">
+          <aside className="min-w-0 lg:sticky lg:top-8">
             <div className="mx-auto max-w-[380px] overflow-hidden rounded-[10px] shadow-[0_30px_60px_-28px_rgba(60,20,20,0.6)]">
               <CardFace templateId={templateId} groom={groomName.trim() || 'Minh Quân'} bride={brideName.trim() || 'Thu Hà'} date={isoDate} />
             </div>

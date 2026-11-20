@@ -190,6 +190,7 @@
 - [x] Form RSVP/lời chúc/mừng cưới theo từng mẫu (gạch chân, ô trắng mềm hoặc ô viền nhạt), 2 thẻ "Mình sẽ đến / Tiếc quá", chip chọn bên khách, thẻ lời chúc có ngoặc kép
 - [x] Patch 0001 (1) trùng với 0001 đã áp dụng ở Nhóm 23 (chỉ khác dòng tiêu đề) nên không áp dụng lại
 - [x] Chỉnh thêm: thư viện, trang tạo thiệp và trang soạn thiệp chỉ vẽ 16–24 bìa mỗi lượt + nút "Xem thêm mẫu" (thay vì vẽ cả 100 bìa có ảnh cùng lúc); trang tạo thiệp có chip lọc phong cách kèm số lượng, mẫu đang chọn luôn đứng đầu; chip lọc vuốt ngang trên điện thoại; nút "Thả tim" chỉ hiện khi đã cuộn qua bìa, nút nhạc mờ hơn trên bìa (không che ảnh); sửa nhận biết cuộn trang (trang cuộn bằng `<body>`); trang chủ trưng 4 mẫu khác kiểu (Song Hỷ, Tem Thư Hỷ, I Love You, Vé Ra Đảo)
+- [x] Sửa tràn ngang trên điện thoại: trang tạo thiệp (hàng chip lọc kéo rộng cả form; ô ngày trên iPhone trông trống vì ngày bị căn giữa ngoài màn hình) và tab Thiết kế sảnh 3D (lưới 480px); CSS chung cho ô ngày/giờ trên iOS; thêm bản quét tràn ngang 15 trang × 375/390px
 - [x] Kiểm chứng: typecheck, `npm test` 11/11, E2E thiệp 18/18 + E2E chỉ-thiệp 19/19, chụp 16 mẫu mới đủ 8 phong cách + thư viện, trang tạo, trang chủ
 
 ## Các Bước Tiếp Theo Khi Go-Live

@@ -107,3 +107,28 @@ body {
     animation: none !important;
   }
 }
+/*
+ * iOS Safari: native date / time inputs ignore width:100% (they keep their own minimum width and
+ * can push a form wider than the phone) and centre the value, so a wide field looks empty.
+ * Scoped to iOS: desktop browsers keep their native calendar button.
+ */
+input[type='date'],
+input[type='datetime-local'],
+input[type='time'] {
+  min-width: 0;
+  max-width: 100%;
+}
+@supports (-webkit-touch-callout: none) {
+  input[type='date'],
+  input[type='datetime-local'],
+  input[type='time'] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+  }
+  input[type='date']::-webkit-date-and-time-value,
+  input[type='datetime-local']::-webkit-date-and-time-value,
+  input[type='time']::-webkit-date-and-time-value {
+    text-align: left;
+  }
+}
