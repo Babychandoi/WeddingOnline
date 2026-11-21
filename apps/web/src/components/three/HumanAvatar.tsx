@@ -15,6 +15,8 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import type { MotionStore } from '@dco/shared';
 import { RealPerson, type PersonMotion } from './RealPerson';
+import { wineFill, wineGlass } from './realGeometry';
+import { glass, liquid } from './realMaterials';
 
 export interface AvatarRenderProps {
   id: string;
@@ -454,13 +456,13 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
       target.armAx = target.armBx = -1.05;
       target.armAz = target.armBz = -0.42 + k * 0.2;
       target.elbowA = target.elbowB = -0.95;
-    } else if (anim === 'cheers') {
+    } else if (anim === 'cheers' || anim === 'drink') {
       gesture = true;
-      target.armAx = -2.85;
-      target.elbowA = -0.15;
-      target.armBx = -0.9;
-      target.elbowB = -1.3;
-      target.bodyY += Math.abs(Math.sin(t * 6)) * 0.03;
+      target.armAx = anim === 'drink' ? -1.45 : -2.65;
+      target.elbowA = anim === 'drink' ? -1.15 : -0.35;
+      target.armBx = -0.45;
+      target.elbowB = -0.65;
+      target.bodyY += Math.abs(Math.sin(t * 6)) * 0.025;
     } else if (anim === 'jump_catch' && !seated) {
       gesture = true;
       const hop = Math.abs(Math.sin(t * 6));
@@ -560,6 +562,12 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
         <mesh geometry={g.sphereLow} material={mat(sleeve === forearm ? sleeve : forearm, 0.65)} scale={elbowR} />
         <mesh geometry={fem ? g.foreArmF : g.foreArmM} material={mat(forearm, 0.65)} position={[0, -0.125, 0]} />
         <mesh geometry={g.sphere} material={mat(skin, 0.6)} position={[0, -0.29, 0.006]} scale={fem ? [0.022, 0.052, 0.036] : [0.026, 0.06, 0.042]} />
+        {sideSign === 1 && (anim === 'cheers' || anim === 'drink') && (
+          <group position={[0, -0.31, 0.045]} rotation={[Math.PI * 0.62, 0, 0]} scale={1.08}>
+            <mesh geometry={wineGlass()} material={glass('#f8fbff')} castShadow={false} />
+            <mesh geometry={wineFill()} material={liquid('#d99b26')} castShadow={false} />
+          </group>
+        )}
       </group>
     </group>
   );

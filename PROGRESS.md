@@ -298,6 +298,8 @@
   - Thêm `surfaceRepeatCache` tái sử dụng texture 2K cùng tỉ lệ lặp thay vì `.clone()` upload lại lên VRAM mỗi lần
   - Giảm kích thước canvas tạm `surfaceTextures.ts` từ `512×512` (23.000 nét vẽ CPU) xuống `256×256` (5.400 nét) — nhanh hơn 4 lần khi khởi tạo
   - Trì hoãn nhẹ `140ms` cho các model cây/đá lớn ngoài rìa (`usePhModel`) để khung hình sảnh chính mở tức thì; mở rộng `Cache-Control` 24h/7d cho toàn bộ `/assets/venue-references`, `/invitation-samples`, `/fonts` trên Cloudflare Edge
+- [x] **Ly rượu/champagne 3D trên tay khi bấm "Nâng ly" (`drink` / `cheers`)** (`RealPerson.tsx`, `HumanAvatar.tsx`):
+  - Gắn ly pha lê có rượu champagne vàng (`wineGlass` + `wineFill` + `glass` + `liquid`) bám chính xác giữa ngón cái (`Bip01_R_Finger02`) và ngón trỏ/giữa (`Bip01_R_Finger21`) trên bàn tay phải của cả 51 nhân vật người thật lẫn nhân vật tự phối
 
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)

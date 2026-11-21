@@ -15,6 +15,8 @@ import { PEOPLE, type PersonInfo } from '@dco/shared';
 import { loadGltfCached } from './GlbAssetMesh';
 import { IS_HANDHELD } from './deviceTier';
 import { detailNormal, detailRoughness } from './pbr';
+import { wineFill, wineGlass } from './realGeometry';
+import { glass, liquid } from './realMaterials';
 
 export const PEOPLE_BASE = '/assets/people';
 export const personUrl = (id: string) => `${PEOPLE_BASE}/${id}.glb`;
@@ -234,16 +236,77 @@ export function RealPerson({
     }
   });
 
+  const holdingGlass = anim === 'drink' || anim === 'cheers';
   if (!object) return <>{fallback}</>;
-  if (attire === 'gown') {
+  if (attire === 'gown' || holdingGlass) {
     return (
       <group>
         <primitive object={object} />
-        <BridalGown person={object} />
+        {attire === 'gown' && <BridalGown person={object} />}
+        {holdingGlass && <ToastGlass person={object} />}
       </group>
     );
   }
   return <primitive object={object} />;
+}
+
+/* ───────────────────────── Handheld toast glass ───────────────────────── */
+
+/**
+ * Crystal wine/champagne glass held between the right thumb and index/middle fingers
+ * whenever the guest plays the "Nâng ly" (drink / cheers) animation.
+ */
+function ToastGlass({ person }: { person: THREE.Object3D }) {
+  const root = useRef<THREE.Group>(null);
+  const cup = useRef<THREE.Group>(null);
+  const bones = useMemo(
+    () => ({
+      finger:
+        person.getObjectByName('Bip01_R_Finger21') ??
+        person.getObjectByName('Bip01_R_Finger11') ??
+        person.getObjectByName('Bip01_R_Finger1') ??
+        person.getObjectByName('Bip01_R_Hand'),
+      thumb:
+        person.getObjectByName('Bip01_R_Finger02') ??
+        person.getObjectByName('Bip01_R_Finger01') ??
+        person.getObjectByName('Bip01_R_Finger0'),
+      hand: person.getObjectByName('Bip01_R_Hand'),
+    }),
+    [person],
+  );
+  const vFinger = useMemo(() => new THREE.Vector3(), []);
+  const vThumb = useMemo(() => new THREE.Vector3(), []);
+  const glassGeo = useMemo(() => wineGlass(), []);
+  const fillGeo = useMemo(() => wineFill(), []);
+  const glassMat = useMemo(() => glass('#f8fbff'), []);
+  const wineMat = useMemo(() => liquid('#d99b26'), []);
+
+  useFrame(() => {
+    const r = root.current;
+    const c = cup.current;
+    if (!r || !c) return;
+    if (bones.finger && bones.thumb) {
+      bones.finger.getWorldPosition(vFinger);
+      bones.thumb.getWorldPosition(vThumb);
+      vFinger.add(vThumb).multiplyScalar(0.5);
+      r.worldToLocal(vFinger);
+      // Grip the upper stem / base of the bowl (y ≈ 0.085 of the 20 cm glass)
+      c.position.set(vFinger.x, vFinger.y - 0.085, vFinger.z);
+    } else if (bones.hand) {
+      bones.hand.getWorldPosition(vFinger);
+      r.worldToLocal(vFinger);
+      c.position.set(vFinger.x, vFinger.y - 0.06, vFinger.z + 0.04);
+    }
+  });
+
+  return (
+    <group ref={root}>
+      <group ref={cup} scale={1.12}>
+        <mesh geometry={glassGeo} material={glassMat} castShadow={false} />
+        <mesh geometry={fillGeo} material={wineMat} castShadow={false} />
+      </group>
+    </group>
+  );
 }
 
 /* ───────────────────────── Bridal gown ───────────────────────── */
