@@ -1409,7 +1409,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
           </Canvas>
           </SceneLabelsContext.Provider>
           {!isPreview && (
-            <div className="pointer-events-auto absolute left-3 top-14 z-10 flex items-center gap-1 rounded-full border border-white/15 bg-slate-900/75 px-2.5 py-1 text-[10px] font-medium text-slate-200 shadow backdrop-blur-sm sm:top-[6.5rem]">
+            <div className="pointer-events-auto absolute left-3 top-14 z-10 flex items-center gap-1 rounded-full border border-white/15 bg-slate-900/75 px-2.5 py-1 text-[10px] font-medium text-slate-200 shadow backdrop-blur-sm sm:bottom-3 sm:top-auto">
               <span className="text-slate-400">Đồ họa:</span>
               {(['auto', 'high', 'low'] as const).map((mode) => (
                 <button

@@ -310,7 +310,7 @@
   - Bổ sung rõ 2 dòng tính năng có dấu tích xanh trên cả 3 gói: **`Chat cá nhân 1-1, chat chung, cụng ly & bắt hoa cưới`** và **`Bắn pháo hoa 3D chúc mừng rực rỡ toàn sảnh`**
 - [x] **Sửa 2 lỗi phát hiện khi QA trình duyệt trực tiếp trên `poiplegal.online`** (`OAuthModal.tsx`, `VenueScene.tsx`):
   - Khởi tạo `googleConfigured` bằng `null` thay vì `false` để không nháy dòng cảnh báo `Chưa điền GOOGLE_CLIENT_ID` trong lúc `/api/health` đang tải
-  - Dời thanh **Đồ họa: Tự động / Cao / Tiết kiệm pin** xuống `sm:top-[6.5rem]` để không đè lên thanh đi nhanh **Cổng Hoa / Sân Khấu / Bàn Tiệc** trên máy tính
+  - Dời thanh **Đồ họa: Tự động / Cao / Tiết kiệm pin** xuống góc dưới trái trên máy tính (`sm:bottom-3 sm:top-auto`) để không đè lên cả thanh **Cổng Hoa / Sân Khấu / Bàn Tiệc** lẫn bảng **ĐIỀU KHIỂN OWNER** của Chủ tiệc/Cô dâu/Chú rể
 - [x] **Ẩn mục "Đối Tác Studio" (`/partner`) với người dùng thường** (`apps/web/src/app/page.tsx`, `apps/web/src/app/partner/page.tsx`): chỉ hiển thị liên kết/khối **Đối Tác Studio** trên trang chủ và cho phép truy cập `/partner` khi tài khoản **Admin** đã đăng nhập (`getAdminSession()`)
 
 ## Các Bước Tiếp Theo Khi Go-Live
