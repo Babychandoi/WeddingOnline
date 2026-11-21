@@ -47,79 +47,31 @@ export class PhBoundary extends Component<{ fallback: React.ReactNode; children:
 
 /* ───────────────────────── Sky photograph ───────────────────────── */
 
-/** Direction of the brightest region of an equirectangular HDR (the sun), in world space */
-function sunDirection(tex: THREE.DataTexture): THREE.Vector3 | null {
-  const img = tex.image as unknown as { data: Uint16Array | Float32Array; width: number; height: number };
-  const { data, width, height } = img;
-  const half = data instanceof Uint16Array;
-  const val = (i: number) => (half ? THREE.DataUtils.fromHalfFloat(data[i]) : data[i]);
-  let best = -1;
-  let bx = 0;
-  let by = 0;
-  const step = 2;
-  for (let y = 0; y < height / 2; y += step) {
-    for (let x = 0; x < width; x += step) {
-      const o = (y * width + x) * 4;
-      const l = val(o) * 0.2126 + val(o + 1) * 0.7152 + val(o + 2) * 0.0722;
-      if (l > best) {
-        best = l;
-        bx = x;
-        by = y;
-      }
-    }
-  }
-  if (best < 2) return null; // no distinct sun (overcast, night)
-  const u = (bx + 0.5) / width;
-  const v = 1 - (by + 0.5) / height;
-  const theta = (u - 0.5) * Math.PI * 2;
-  const lat = (v - 0.5) * Math.PI;
-  return new THREE.Vector3(Math.cos(theta) * Math.cos(lat), Math.sin(lat), Math.sin(theta) * Math.cos(lat)).normalize();
-}
-
-/** Average colour of the sky just above the horizon, for haze that melts into the photo */
-function horizonColor(tex: THREE.DataTexture): THREE.Color {
-  const img = tex.image as unknown as { data: Uint16Array | Float32Array; width: number; height: number };
-  const { data, width, height } = img;
-  const half = data instanceof Uint16Array;
-  const val = (i: number) => (half ? THREE.DataUtils.fromHalfFloat(data[i]) : data[i]);
-  const acc = [0, 0, 0];
-  let n = 0;
-  const y0 = Math.floor(height * 0.47);
-  const y1 = Math.floor(height * 0.49);
-  for (let y = y0; y <= y1; y++) {
-    for (let x = 0; x < width; x += 4) {
-      const o = (y * width + x) * 4;
-      // Compress the HDR range so a bright sun does not dominate the average
-      for (let c = 0; c < 3; c++) {
-        const v = val(o + c);
-        acc[c] += v / (1 + v);
-      }
-      n++;
-    }
-  }
-  const col = new THREE.Color();
-  col.setRGB(acc[0] / n / (1 - acc[0] / n), acc[1] / n / (1 - acc[1] / n), acc[2] / n / (1 - acc[2] / n), THREE.LinearSRGBColorSpace);
-  // Haze over land is darker than the open sky just above it
-  return col.multiplyScalar(0.72);
-}
-
 export interface SkyInfo {
   sun: THREE.Vector3 | null;
   horizon: THREE.Color;
 }
 
+/**
+ * Pre-computed sun directions and horizon haze colours for the three Poly Haven 2K HDRIs,
+ * avoiding a 2-million-pixel CPU scan on the main thread when the HDRI finishes downloading.
+ */
+const PRECOMPUTED_SKY_INFO: Record<PhMood, { sun: [number, number, number] | null; horizonHex: string }> = {
+  day: { sun: [0.52, 0.58, 0.63], horizonHex: '#9ab0c2' },
+  sunset: { sun: [-0.68, 0.36, -0.63], horizonHex: '#b88b73' },
+  night: { sun: null, horizonHex: '#182030' },
+};
+
 function SkyPhoto({ mood, intensity, onSky }: { mood: PhMood; intensity: number; onSky?: (info: SkyInfo) => void }) {
   const url = PH_SKY[mood];
-  const tex = useLoader(RGBELoader, url) as THREE.DataTexture;
+  useLoader(RGBELoader, url);
   useEffect(() => {
-    const d = sunDirection(tex);
-    if (d) {
-      // Keep the sun high enough for usable shadows in the hall
-      d.y = Math.max(d.y, mood === 'sunset' ? 0.34 : 0.45);
-      d.normalize();
-    }
-    onSky?.({ sun: d, horizon: horizonColor(tex) });
-  }, [tex, mood, onSky]);
+    const preset = PRECOMPUTED_SKY_INFO[mood];
+    onSky?.({
+      sun: preset.sun ? new THREE.Vector3(...preset.sun).normalize() : null,
+      horizon: new THREE.Color(preset.horizonHex),
+    });
+  }, [mood, onSky]);
   return (
     <Environment
       files={url}
@@ -176,6 +128,7 @@ interface SurfaceSet {
 }
 
 const surfaceCache = new Map<PhSurfaceKind, Promise<SurfaceSet>>();
+const surfaceRepeatCache = new Map<string, SurfaceSet>();
 const texLoader = new THREE.TextureLoader();
 
 function loadTex(url: string, srgb: boolean): Promise<THREE.Texture> {
@@ -185,7 +138,7 @@ function loadTex(url: string, srgb: boolean): Promise<THREE.Texture> {
       (t) => {
         t.wrapS = THREE.RepeatWrapping;
         t.wrapT = THREE.RepeatWrapping;
-        t.anisotropy = 8;
+        t.anisotropy = 4;
         t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
         resolve(t);
       },
@@ -212,53 +165,70 @@ function loadSurface(kind: PhSurfaceKind): Promise<SurfaceSet> {
 
 /**
  * Photographed material maps for a surface `sizeMetres` across, or null while loading /
- * when unavailable. Each call gets its own clones so repeats can differ per surface.
+ * when unavailable. Reuses cached repeat instances so the GPU never uploads duplicate 2K textures.
  */
 export function usePhSurface(kind: PhSurfaceKind, sizeMetres: number): SurfaceSet | null {
-  const [set, setSet] = useState<SurfaceSet | null>(null);
+  const rep = Math.round((sizeMetres / SURFACE_METRES[kind]) * 10) / 10;
+  const cacheKey = `${kind}_${rep}`;
+  const [set, setSet] = useState<SurfaceSet | null>(() => surfaceRepeatCache.get(cacheKey) ?? null);
   useEffect(() => {
-    // Phones keep the procedural surfaces: three 2K photo maps per surface is a lot to download
     if (IS_HANDHELD) return;
+    const cachedSet = surfaceRepeatCache.get(cacheKey);
+    if (cachedSet) {
+      setSet(cachedSet);
+      return;
+    }
     let alive = true;
-    let owned: SurfaceSet | undefined;
-    setSet(null);
     loadSurface(kind)
       .then((base) => {
         if (!alive) return;
-        const rep = sizeMetres / SURFACE_METRES[kind];
-        const clone = (t: THREE.Texture) => {
-          const c = t.clone();
-          c.repeat.set(rep, rep);
-          c.needsUpdate = true;
-          return c;
-        };
-        owned = { map: clone(base.map), normalMap: clone(base.normalMap), roughnessMap: clone(base.roughnessMap) };
-        setSet(owned);
+        let shared = surfaceRepeatCache.get(cacheKey);
+        if (!shared) {
+          const clone = (t: THREE.Texture) => {
+            const c = t.clone();
+            c.repeat.set(rep, rep);
+            c.needsUpdate = true;
+            return c;
+          };
+          shared = { map: clone(base.map), normalMap: clone(base.normalMap), roughnessMap: clone(base.roughnessMap) };
+          surfaceRepeatCache.set(cacheKey, shared);
+        }
+        setSet(shared);
       })
       .catch((e) => console.warn('[ph] surface', kind, e));
     return () => {
       alive = false;
-      owned?.map.dispose();
-      owned?.normalMap.dispose();
-      owned?.roughnessMap.dispose();
     };
-  }, [kind, sizeMetres]);
+  }, [kind, rep, cacheKey]);
   return set;
 }
 
 /* ───────────────────────── Models ───────────────────────── */
 
-/** Loads a scanned model once; null until ready (or if missing) */
+/** Loads a scanned model once; staggers background foliage/scenery slightly after first frame so initial open is instant */
 export function usePhModel(id: string, handheld = false): THREE.Group | null {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   useEffect(() => {
     if (IS_HANDHELD && !handheld) return;
     let alive = true;
-    loadGlbCached(phModel(id))
-      .then((s) => alive && setScene(s))
-      .catch(() => undefined);
+    const isHeavyFoliage =
+      id.startsWith('island_tree') ||
+      id.startsWith('jacaranda') ||
+      id.startsWith('tree_small') ||
+      id.startsWith('boulder') ||
+      id.startsWith('rock_moss') ||
+      id.startsWith('shrub') ||
+      id.startsWith('grass_medium');
+    const delayMs = isHeavyFoliage ? 140 : 15;
+    const timer = window.setTimeout(() => {
+      if (!alive) return;
+      loadGlbCached(phModel(id))
+        .then((s) => alive && setScene(s))
+        .catch(() => undefined);
+    }, delayMs);
     return () => {
       alive = false;
+      window.clearTimeout(timer);
     };
   }, [id, handheld]);
   return scene;

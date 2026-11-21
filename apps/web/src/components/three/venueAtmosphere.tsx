@@ -334,16 +334,16 @@ export function VenueAtmosphere({ theme, quality, reference }: { theme: VenueThe
         color={setup.sunLight.color}
         intensity={setup.sunLight.intensity}
         castShadow={quality === 'high' && reference?.light !== 'interior'}
-        shadow-mapSize-width={IS_HANDHELD ? 2048 : 4096}
-        shadow-mapSize-height={IS_HANDHELD ? 2048 : 4096}
-        shadow-camera-left={-27}
-        shadow-camera-right={27}
-        shadow-camera-top={27}
-        shadow-camera-bottom={-27}
+        shadow-mapSize-width={IS_HANDHELD ? 1024 : 2048}
+        shadow-mapSize-height={IS_HANDHELD ? 1024 : 2048}
+        shadow-camera-left={-25}
+        shadow-camera-right={25}
+        shadow-camera-top={25}
+        shadow-camera-bottom={-25}
         shadow-camera-near={1}
-        shadow-camera-far={130}
-        shadow-bias={-0.0006}
-        shadow-normalBias={gardenLight ? 0.027 : 0.06}
+        shadow-camera-far={110}
+        shadow-bias={-0.0005}
+        shadow-normalBias={gardenLight ? 0.027 : 0.05}
       />
       {/* Warm bounce from lanterns and candles: a soft hemisphere, not a point light — an
           invisible point light leaves a bright reflection on lacquered floors with no lamp */}
@@ -444,27 +444,25 @@ const GradeShader = {
  * chair, pillar and plant), bloom on light sources, then the camera grade. Rendered
  * through an MSAA half-float target so tone mapping happens once, at the end.
  */
-export function PostFX({ strength, ambientOcclusion = !IS_HANDHELD }: { strength: number; ambientOcclusion?: boolean }) {
+export function PostFX({ strength, ambientOcclusion = false }: { strength: number; ambientOcclusion?: boolean }) {
   const { gl, scene, camera, size } = useThree();
   const { composer, grade } = useMemo(() => {
-    const target = new THREE.WebGLRenderTarget(size.width, size.height, { samples: 4, type: THREE.HalfFloatType });
+    const target = new THREE.WebGLRenderTarget(size.width, size.height, { samples: 2, type: THREE.HalfFloatType });
     const c = new EffectComposer(gl, target);
     c.addPass(new RenderPass(scene, camera));
     // Safety net: one bad pixel (NaN / inf from a material) must not bloom into a haze
     c.addPass(new ShaderPass(SanitizeShader));
-    if (ambientOcclusion) {
-      const ao = new GTAOPass(scene, camera, size.width, size.height);
-      ao.output = 0; // GTAOPass.OUTPUT.Default: the scene with AO multiplied in
-      // The AO pre-pass draws front faces only: open shells (skirts) must face outward — see
-      // the lathe profiles in HumanAvatar.tsx
-      ao.blendIntensity = 0.85;
-      ao.updateGtaoMaterial({ radius: 0.55, distanceExponent: 1.6, thickness: 1.2, scale: 1.1, samples: 16, distanceFallOff: 1 });
-      ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+    if (ambientOcclusion && !IS_HANDHELD) {
+      // Half-resolution GTAO with 8 samples keeps 60fps while adding deep crease shading in High mode
+      const ao = new GTAOPass(scene, camera, Math.max(1, Math.floor(size.width * 0.5)), Math.max(1, Math.floor(size.height * 0.5)));
+      ao.output = 0;
+      ao.blendIntensity = 0.78;
+      ao.updateGtaoMaterial({ radius: 0.5, distanceExponent: 1.5, thickness: 1.1, scale: 1.0, samples: 8, distanceFallOff: 1 });
+      ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 4, rings: 2, samples: 8 });
       c.addPass(ao);
     }
-    // Threshold 1.8: only true light sources (bulbs, flames, lanterns at 2–7×) bloom — a brightly
-    // lit cream floor under the chandeliers must not smear into a milky haze
-    c.addPass(new UnrealBloomPass(new THREE.Vector2(size.width, size.height), strength * 0.7, 0.5, 1.8));
+    // Threshold 1.8: only true light sources (bulbs, flames, lanterns at 2–7×) bloom
+    c.addPass(new UnrealBloomPass(new THREE.Vector2(Math.max(1, Math.floor(size.width * 0.5)), Math.max(1, Math.floor(size.height * 0.5))), strength * 0.7, 0.5, 1.8));
     const gradePass = new ShaderPass(GradeShader);
     c.addPass(gradePass);
     c.addPass(new OutputPass());

@@ -11,7 +11,7 @@ import { normalFromCanvas } from './pbr';
 
 export type SurfaceKind = 'grass' | 'sand' | 'wood' | 'stone' | 'tile' | 'marble' | 'snow';
 
-const SIZE = 512;
+const SIZE = 256;
 const cache = new Map<SurfaceKind, HTMLCanvasElement>();
 
 /** Deterministic pseudo-random so every visitor sees the same floor */
@@ -64,7 +64,7 @@ function drawSurface(kind: SurfaceKind): HTMLCanvasElement {
         ctx.ellipse(r() * SIZE, r() * SIZE, 8 + r() * 30, 6 + r() * 20, r() * 3, 0, Math.PI * 2);
         ctx.fill();
       }
-      for (let i = 0; i < 9000; i++) {
+      for (let i = 0; i < 2200; i++) {
         const x = r() * SIZE;
         const y = r() * SIZE;
         const len = 3 + r() * 7;
@@ -83,13 +83,13 @@ function drawSurface(kind: SurfaceKind): HTMLCanvasElement {
         ctx.fillStyle = grey(base + ripple, 0.35);
         ctx.fillRect(0, y, SIZE, 1);
       }
-      for (let i = 0; i < 14000; i++) {
+      for (let i = 0; i < 3200; i++) {
         ctx.fillStyle = grey(200 + r() * 55, 0.55);
         ctx.fillRect(r() * SIZE, r() * SIZE, 1 + r() * 1.5, 1 + r() * 1.5);
       }
       break;
     case 'snow':
-      for (let i = 0; i < 6000; i++) {
+      for (let i = 0; i < 1800; i++) {
         ctx.fillStyle = grey(232 + r() * 23, 0.5);
         ctx.fillRect(r() * SIZE, r() * SIZE, 2, 2);
       }

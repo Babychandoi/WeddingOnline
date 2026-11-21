@@ -36,7 +36,16 @@ const nextConfig = {
    */
   async headers() {
     const cache = [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }];
-    return ['/assets/people/:path*', '/assets/ph/:path*', '/models/:path*', '/venues/:path*'].map((source) => ({ source, headers: cache }));
+    return [
+      '/assets/people/:path*',
+      '/assets/ph/:path*',
+      '/assets/venue-references/:path*',
+      '/assets/venues/:path*',
+      '/invitation-samples/:path*',
+      '/fonts/:path*',
+      '/models/:path*',
+      '/venues/:path*',
+    ].map((source) => ({ source, headers: cache }));
   },
 };
 

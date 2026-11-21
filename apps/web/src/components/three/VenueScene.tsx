@@ -1236,7 +1236,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
             <RendererSetup exposure={(photoHall ? photoHall.light === 'night' || photoHall.light === 'twilight' : theme.mood === 'night') ? 1.15 : 1.05} />
             <VenueAtmosphere theme={theme} quality={lowQuality ? 'low' : 'high'} reference={photoHall} />
             <ShadowCasters enabled={!lowQuality} />
-            {!lowQuality && <PostFX strength={photoComposition ? 0.12 : bloomStrength(theme, photoHall)} ambientOcclusion={photoComposition ? false : undefined} />}
+            {!lowQuality && <PostFX strength={photoComposition ? 0.12 : bloomStrength(theme, photoHall)} ambientOcclusion={!photoComposition && qualityPreset === 'high'} />}
             {/* A still capture (no auto-rotate) must keep full quality however slow the renderer */}
             {isPreview && props.previewAutoRotate !== false && <FpsGuard onLowFps={setAutoLowQuality} />}
             {isPreview && props.previewAutoRotate === false && <FrameProbe orbit={previewOrbit} />}
@@ -1245,7 +1245,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
             {props.splatUrl && <Splat src={props.splatUrl} position={[0, 0, 0]} scale={1} />}
             {photoComposition ? <><GardenCameraFraming /><GardenCeremony /></> : <AmbientPetals lowQuality={lowQuality} templateId={layout.templateId} />}
 
-            {/* Soft ContactShadows anchoring banquet tables, chairs, pedestals and guests onto the floor */}
+            {/* Soft ContactShadows anchoring banquet tables, chairs, pedestals and guests onto the floor (baked once = 0 per-frame GPU cost) */}
             {!lowQuality && !photoComposition && (
               <ContactShadows
                 position={[0, 0.004, 0]}
@@ -1253,9 +1253,9 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
                 scale={32}
                 blur={1.9}
                 far={4.2}
-                resolution={512}
+                resolution={256}
                 color={theme.mood === 'night' ? '#09080c' : '#261e18'}
-                frames={2}
+                frames={1}
               />
             )}
 

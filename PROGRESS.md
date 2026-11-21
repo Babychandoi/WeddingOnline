@@ -289,6 +289,16 @@
   - Tự hiển thị 5 ảnh cưới thật (`/invitation-samples/*.webp`) trên màn LED sân khấu và 4 giá ảnh khi phòng chưa tải ảnh riêng; cập nhật luôn DB thật cho `minh-va-linh` và `duy-va-thao-kyniem`
   - Thêm thanh chọn nhanh **Đồ họa: Tự động / Cao (Photoreal) / Tiết kiệm pin** ngay trong sảnh 3D và thêm `<Environment>` IBL cho `AvatarPreview.tsx`
 
+### [x] Nhóm 36: Tối Ưu Tốc Độ Load Sảnh 3D & Chống Giật/Lag GPU/CPU (`60fps`)
+- [x] **Loại bỏ ~250ms đơ Main Thread khi nạp HDRI 2K** (`phAssets.tsx`): thay vòng lặp quét 2 triệu pixel HDR trên CPU (`sunDirection` + `horizonColor`) bằng vector mặt trời & màu chân trời tính sẵn (`PRECOMPUTED_SKY_INFO`)
+- [x] **Loại bỏ nghẽn GPU ở chế độ mặc định (`venueAtmosphere.tsx`, `VenueScene.tsx`)**:
+  - Giảm Shadow Map từ `4096×4096` (16 triệu pixel/frame) xuống `2048×2048` (`1024` trên mobile) — nhẹ GPU hơn 4 lần mà bóng vẫn mịn
+  - Ở chế độ `Tự động`, dùng `<ContactShadows frames={1} resolution={256} />` (chỉ bake 1 frame đầu = `0ms/frame` về sau) và chỉ bật `GTAOPass` thời gian thực (ở half-res `8 samples`) khi người dùng chọn `Cao (Photoreal)`; hạ `UnrealBloomPass` xuống half-res và `MSAA samples: 2`
+- [x] **Tái sử dụng VRAM Texture 2K & Nạp phân tầng (`phAssets.tsx`, `surfaceTextures.ts`, `next.config.mjs`)**:
+  - Thêm `surfaceRepeatCache` tái sử dụng texture 2K cùng tỉ lệ lặp thay vì `.clone()` upload lại lên VRAM mỗi lần
+  - Giảm kích thước canvas tạm `surfaceTextures.ts` từ `512×512` (23.000 nét vẽ CPU) xuống `256×256` (5.400 nét) — nhanh hơn 4 lần khi khởi tạo
+  - Trì hoãn nhẹ `140ms` cho các model cây/đá lớn ngoài rìa (`usePhModel`) để khung hình sảnh chính mở tức thì; mở rộng `Cache-Control` 24h/7d cho toàn bộ `/assets/venue-references`, `/invitation-samples`, `/fonts` trên Cloudflare Edge
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`
