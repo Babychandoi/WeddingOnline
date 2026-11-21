@@ -122,7 +122,7 @@ interface ActiveShow {
   pending: Array<{ at: number; fn: () => void }>;
 }
 
-function planShow(s: ScheduledFireworks, centre: THREE.Vector3): ActiveShow | null {
+function planShow(s: ScheduledFireworks, centre: THREE.Vector3, enclosed: boolean): ActiveShow | null {
   const pack = getFireworkPack(s.packId);
   if (!pack) return null;
   const r = rng(s.seed);
@@ -178,6 +178,16 @@ function planShow(s: ScheduledFireworks, centre: THREE.Vector3): ActiveShow | nu
       burst: false,
     });
   }
+  if (enclosed) {
+    for (const shell of shells) {
+      for (const point of [shell.from, shell.apex]) {
+        point.x = THREE.MathUtils.clamp(THREE.MathUtils.lerp(centre.x, point.x, 0.44), -12.9, 12.9);
+        point.z = THREE.MathUtils.clamp(THREE.MathUtils.lerp(centre.z, point.z, 0.41), -12.9, 12.9);
+      }
+      shell.apex.y = THREE.MathUtils.lerp(centre.y, shell.apex.y, 0.27);
+      shell.scale *= 0.44;
+    }
+  }
   return { show: s, shells, end: s.startAt + D + 3.5, fountains: pack.fountains, fountainCarry: 0, pending: [] };
 }
 
@@ -189,6 +199,7 @@ export function Fireworks({
   clock = defaultClock,
   silent = false,
   mood = 'night',
+  enclosed = false,
 }: {
   shows: ScheduledFireworks[];
   /** Front of the stage: shells rise behind it, fountains stand in front of it */
@@ -200,6 +211,7 @@ export function Fireworks({
   silent?: boolean;
   /** Venue light: by day and indoors the sky dims to dusk while a show plays */
   mood?: 'day' | 'sunset' | 'night' | 'indoor';
+  enclosed?: boolean;
 }) {
   const daylight = mood === 'day' ? 1 : mood === 'sunset' ? 0.65 : mood === 'indoor' ? 0.55 : 0;
   const { camera, size, gl } = useThree();
@@ -257,10 +269,13 @@ export function Fireworks({
   const tmp = useMemo(() => new THREE.Vector3(), []);
 
   const centre = useMemo(() => {
-    // Behind the stage, high over the hall
+    if (enclosed) {
+      const front = new THREE.Vector3(0, 0, 4).applyAxisAngle(new THREE.Vector3(0, 1, 0), stage.rotY);
+      return new THREE.Vector3(THREE.MathUtils.clamp(stage.x + front.x, -9.5, 9.5), 5.65, THREE.MathUtils.clamp(stage.z + front.z, -9.5, 9.5));
+    }
     const back = new THREE.Vector3(0, 0, -7).applyAxisAngle(new THREE.Vector3(0, 1, 0), stage.rotY);
     return new THREE.Vector3(stage.x + back.x, 15.5, stage.z + back.z);
-  }, [stage.x, stage.z, stage.rotY]);
+  }, [stage.x, stage.z, stage.rotY, enclosed]);
 
   /** Writes one spark into the ring buffer */
   const spawn = (
@@ -449,7 +464,7 @@ export function Fireworks({
     // Pick up new shows
     for (const s of shows) {
       if (!active.current.has(s.id) && now < s.startAt + 30) {
-        const plan = planShow(s, centre);
+        const plan = planShow(s, centre, enclosed);
         if (plan) active.current.set(s.id, plan);
       }
     }

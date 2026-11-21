@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { DEFAULT_BRIDE_PERSON, DEFAULT_GROOM_PERSON, getPrefabCenterWorld, getTableSeatAnchors, type SceneLayoutDocument } from '@dco/shared';
 import type { BouquetView, RemoteNpcView, RemotePlayerView } from '../three/VenueScene';
-import { GARDEN_PHOTO_CAMERA, GARDEN_REFERENCE, GARDEN_VENUE } from '../three/gardenReference';
+import { GARDEN_PHOTO_CAMERA } from '../three/gardenReference';
+import type { VenuePhotoReference } from '../three/venuePhotoReferences';
 
 const VenueScene = dynamic(() => import('../three/VenueScene').then((mod) => mod.VenueScene), {
   ssr: false,
@@ -16,6 +17,8 @@ const VenueScene = dynamic(() => import('../three/VenueScene').then((mod) => mod
     </div>
   ),
 });
+
+const VenuePhotoCanvas = dynamic(() => import('../three/VenuePhotoCanvas').then((mod) => mod.VenuePhotoCanvas), { ssr: false });
 
 const NOOP = () => {};
 const IDLE_BOUQUET: BouquetView = {
@@ -89,6 +92,8 @@ export function VenuePreviewClient({
   layout,
   prev,
   next,
+  reference,
+  initialReference,
   capture,
   camera,
 }: {
@@ -96,22 +101,28 @@ export function VenuePreviewClient({
   layout: SceneLayoutDocument;
   prev: { id: string; nameVi: string };
   next: { id: string; nameVi: string };
+  reference?: VenuePhotoReference;
+  initialReference: boolean;
   /** Still frame with no overlay, for rendering gallery thumbnails */
   capture: boolean;
   /** Capture-only camera override: [x, y, z, targetX, targetY, targetZ] */
   camera?: number[];
 }) {
   const guests = React.useMemo(() => sampleGuests(layout), [layout]);
-  const hasReference = venue.id === GARDEN_VENUE;
-  const [referenceView, setReferenceView] = React.useState(true);
-  const photoComposition = hasReference && referenceView;
-  const previewCamera =
+  const [referenceView, setReferenceView] = React.useState(initialReference);
+  const showingReference = Boolean(reference && referenceView);
+  const photoComposition = reference?.kind === 'garden' && referenceView;
+  const separateReference = reference && referenceView && reference.kind !== 'garden' ? reference : undefined;
+  const cameraOverride =
     camera && camera.length === 6
       ? { position: [camera[0], camera[1], camera[2]] as [number, number, number], target: [camera[3], camera[4], camera[5]] as [number, number, number] }
-      : photoComposition ? GARDEN_PHOTO_CAMERA : undefined;
+      : undefined;
+  const previewCamera = cameraOverride ?? (photoComposition ? GARDEN_PHOTO_CAMERA : undefined);
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden" style={{ backgroundColor: venue.sky }}>
-      <VenueScene
+      {separateReference ? (
+        <VenuePhotoCanvas key={venue.id} reference={separateReference} background={venue.sky} capture={capture} cameraOverride={cameraOverride} />
+      ) : <VenueScene
         key={`${venue.id}-${photoComposition}`}
         mode="preview"
         photoComposition={photoComposition}
@@ -133,7 +144,7 @@ export function VenuePreviewClient({
         onOpenGiftBox={NOOP}
         onOpenVideo={NOOP}
         onOpenPhoto={NOOP}
-      />
+      />}
 
       {!capture && (
         <>
@@ -170,18 +181,24 @@ export function VenuePreviewClient({
               <p className="mt-1 text-xs font-medium text-slate-500">
                 {venue.place} · {venue.regionName}
               </p>
-              {hasReference ? (
+              {reference ? (
+                <>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs font-semibold">
-                  <button type="button" onClick={() => setReferenceView(true)} aria-pressed={photoComposition} className={`min-h-11 rounded-lg px-2.5 ${photoComposition ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'}`}>
+                  <button type="button" onClick={() => setReferenceView(true)} aria-pressed={showingReference} className={`min-h-11 rounded-lg px-2.5 ${showingReference ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'}`}>
                     Góc ảnh 3D
                   </button>
-                  <button type="button" onClick={() => setReferenceView(false)} aria-pressed={!photoComposition} className={`min-h-11 rounded-lg px-2.5 ${!photoComposition ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'}`}>
+                  <button type="button" onClick={() => setReferenceView(false)} aria-pressed={!showingReference} className={`min-h-11 rounded-lg px-2.5 ${!showingReference ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'}`}>
                     Toàn sảnh
                   </button>
-                  <a href={GARDEN_REFERENCE} target="_blank" rel="noreferrer" className="ml-1 inline-flex min-h-11 items-center rounded-lg px-2 text-slate-700 underline underline-offset-4 hover:text-rose-700">
+                  <a href={reference.sourceUrl} title={reference.title} target="_blank" rel="noreferrer" className="ml-1 inline-flex min-h-11 items-center rounded-lg px-2 text-slate-700 underline underline-offset-4 hover:text-rose-700">
                     Ảnh gốc
                   </a>
                 </div>
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                  Ảnh của {reference.credit} · <a href={reference.licenseUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2">{reference.license}</a>
+                </p>
+                {showingReference && reference.kind === 'relief' && <p className="mt-1 text-xs text-slate-600">{reference.subject} · Dựng nổi từ ảnh chụp</p>}
+                </>
               ) : (
                 <p className="mt-2.5 text-[13px] leading-relaxed text-slate-700">{venue.descriptionVi}</p>
               )}
@@ -192,7 +209,11 @@ export function VenuePreviewClient({
                 >
                   <Sparkles className="h-4 w-4" /> Tạo sảnh cưới với không gian này
                 </Link>
-                <span className="text-[11px] text-slate-500">Kéo để xoay · cuộn để phóng to</span>
+                <span className="text-[11px] text-slate-600">
+                  {separateReference?.kind === 'relief' ? 'Kéo để nghiêng' : 'Kéo để xoay'}
+                  <span className="hidden [@media(pointer:fine)]:inline"> · cuộn để phóng sát</span>
+                  <span className="[@media(pointer:fine)]:hidden"> · mở hai ngón để phóng sát</span>
+                </span>
               </div>
             </div>
           </div>

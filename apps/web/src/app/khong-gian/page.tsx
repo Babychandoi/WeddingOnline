@@ -22,8 +22,7 @@ export default function VenueGalleryPage() {
           {VENUE_THEMES.length} Không Gian Cưới Từ Việt Nam Đến Khắp Thế Giới
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-          {vietnamCount} không gian đậm chất cưới Việt và {VENUE_THEMES.length - vietnamCount} phong tục cưới từ các nền văn hoá
-          trên thế giới. Bấm vào một không gian để đi một vòng quanh sảnh 3D, rồi chọn làm sảnh cưới của bạn.
+          {vietnamCount} mẫu Việt Nam và {VENUE_THEMES.length - vietnamCount} mẫu quốc tế. Xoay và phóng gần toàn sảnh 3D, hoặc mở ảnh tham chiếu để đối chiếu.
         </p>
         <div className="mt-8">
           <VenueGallery venues={VENUE_THEMES} />

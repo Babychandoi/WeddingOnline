@@ -13,15 +13,20 @@ import * as THREE from 'three';
 import type { BackdropKit, CanopyKit, CenterpieceKit, PerimeterKit, VenueColors, VenueMood, VenueTheme } from '@dco/shared';
 import { SURFACE_ROUGHNESS, surfaceFor, useSurfaceMaps } from './surfaceTextures';
 import { detailNormal, detailRoughness } from './pbr';
-import { BallroomWalls, CrystalChandelier, FloralArch, LightPost, SilkLantern, StringLights, naturalTone } from './realProps';
-import { flutedColumn } from './realGeometry';
-import { gold, marble } from './realMaterials';
+import { BallroomWalls, CrystalChandelier, FloralArch, InstancedSet, LightPost, SilkLantern, StringLights, naturalTone } from './realProps';
+import { flutedColumn, leafBlade } from './realGeometry';
+import { gold, leaves, marble } from './realMaterials';
 import { CoconutLeafGate, DistantTreeline, Forest, WindClock } from './realNature';
 import { IS_HANDHELD } from './deviceTier';
 import { PhScatter, ringScatter, usePhReady, usePhSurface, type ScatterItem } from './phAssets';
-import { landscapeHeight, ShoreWater, useLandscapeGeometry } from './outdoorScenery';
+import { LandformBackdrop, landscapeHeight, ShoreWater, useLandscapeGeometry, type Landform } from './outdoorScenery';
 import { GardenGrove } from './GardenCeremony';
 import { GARDEN_VENUE } from './gardenReference';
+import { OldTownBackdrop, SkylineBackdrop } from './architecturalScenery';
+import { HaLongHallScenery } from './HaLongPhotoScene';
+import { HoiAnHallScenery } from './HoiAnPhotoScene';
+import { PhotoHallSurroundings } from './photoHallSurroundings';
+import type { PhotoHallProfile } from './photoHallProfiles';
 
 type Vec3 = [number, number, number];
 
@@ -30,8 +35,11 @@ type Vec3 = [number, number, number];
  * once they load, with the procedural version (lawn, sand, planks, flagstone, marble…) as
  * the stand-in. Large grounds blend two texture scales so the tiling never shows.
  */
-export function SurfaceMaterial({ color: swatch, theme, role, size }: { color: string; theme: VenueTheme; role: 'floor' | 'ground'; size: number }) {
-  const kind = surfaceFor(swatch, theme, role);
+export function SurfaceMaterial({ color: base, theme, role, size, reference }: { color: string; theme: VenueTheme; role: 'floor' | 'ground'; size: number; reference?: PhotoHallProfile }) {
+  const swatch = reference && role === 'floor' && reference.floor !== 'snow'
+    ? `#${new THREE.Color(base).lerp(new THREE.Color(reference.palette.primary), reference.floor === 'sand' ? 0.77 : 0.39).getHexString()}`
+    : base;
+  const kind = reference && role === 'floor' ? reference.floor : surfaceFor(swatch, theme, role);
   const { map, normalMap, roughnessMap } = useSurfaceMaps(kind, size);
   const photo = usePhSurface(kind, size);
   // Real lawn is a duller, olive green than any theme swatch
@@ -55,6 +63,7 @@ export function SurfaceMaterial({ color: swatch, theme, role, size }: { color: s
   const maps = usePhoto && photo ? photo : { map, normalMap, roughnessMap };
   const tint = usePhoto ? photoTint : color;
   const roughness = usePhoto ? 1 : SURFACE_ROUGHNESS[kind];
+  const naturalWood = reference !== undefined && kind === 'wood';
   return polished ? (
     <meshPhysicalMaterial
       key={usePhoto ? 'photo' : 'proc'}
@@ -64,11 +73,11 @@ export function SurfaceMaterial({ color: swatch, theme, role, size }: { color: s
       normalScale={normalScale}
       roughnessMap={maps.roughnessMap}
       roughness={roughness}
-      clearcoat={usePhoto ? 0.3 : kind === 'wood' ? 0.35 : 0.4}
-      clearcoatRoughness={0.22}
+      clearcoat={naturalWood ? 0.11 : usePhoto ? 0.3 : kind === 'wood' ? 0.35 : 0.4}
+      clearcoatRoughness={naturalWood ? 0.43 : 0.22}
       // Polished stone mirrors the bright windows of the room at grazing angles; at full strength
       // that sheen read as a milky fog over the floor
-      envMapIntensity={0.4}
+      envMapIntensity={naturalWood ? 0.26 : 0.4}
     />
   ) : (
     <meshStandardMaterial
@@ -79,7 +88,7 @@ export function SurfaceMaterial({ color: swatch, theme, role, size }: { color: s
       normalScale={normalScale}
       roughnessMap={maps.roughnessMap}
       roughness={roughness}
-      onBeforeCompile={kind === 'grass' || (size > 100 && usePhoto) ? antiTile : undefined}
+      onBeforeCompile={kind === 'grass' || (role === 'ground' && (kind === 'sand' || kind === 'snow')) ? antiTile : undefined}
     />
   );
 }
@@ -143,6 +152,58 @@ function Lit({ color, glow = 1.6 }: { color: string; glow?: number }) {
 }
 
 const EDGE_Z = [-12, -4, 4, 12];
+
+function BambooScreen({ color }: { color: string }) {
+  const { culms, nodes, foliage } = useMemo(() => {
+    const culms = [];
+    const nodes = [];
+    const foliage = [];
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 23; i++) {
+        const n = i + (side > 0 ? 23 : 0);
+        const x = side * (16.05 + rand(n + 7) * 2.75);
+        const z = -14.1 + (i / 22) * 28.6 + (rand(n) - 0.5) * 1.3;
+        const height = 4.45 + rand(n + 134) * 2.75;
+        const lean = (rand(n + 17) - 0.5) * 0.12;
+        const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(lean * 0.55, 0, lean));
+        const base = new THREE.Vector3(x, 0, z);
+        const axis = new THREE.Vector3(0, 1, 0).applyQuaternion(quaternion);
+        const centre = base.clone().addScaledVector(axis, height / 2).toArray();
+        culms.push({ position: centre, quaternion, scale: [1, height, 1] as Vec3, color: lighten(color, (rand(n + 51) - 0.5) * 0.13) });
+        for (let h = 0.52; h < height - 0.35; h += 0.47 + rand(n + 39) * 0.14) {
+          const radius = (0.059 - 0.032 * h / height) / 0.054;
+          nodes.push({ position: base.clone().addScaledVector(axis, h).toArray(), quaternion, scale: [radius, 1, radius] as Vec3 });
+        }
+        for (let j = 0; j < (IS_HANDHELD ? 23 : 37); j++) {
+          const phase = j * 2.39996 + n * 1.43;
+          const spread = 0.17 + rand(n * 9 + j * 7) * 0.97;
+          const y = height * (0.49 + rand(n * 37 + j + 8) * 0.52);
+          const offset = base.clone().addScaledVector(axis, y);
+          offset.x += Math.cos(phase) * spread;
+          offset.z += Math.sin(phase) * spread;
+          foliage.push({
+            position: offset.toArray(),
+            rotation: [1.03 + Math.sin(phase * 0.93) * 0.55, phase, Math.cos(phase) * 0.73] as Vec3,
+            scale: [0.65 + rand(j + n) * 0.50, 2.90 + rand(n + j * 5) * 1.90, 1.2] as Vec3,
+            color: j % 4 === 0 ? '#a6b77d' : j % 3 === 0 ? '#708b55' : '#465f3c',
+          });
+        }
+      }
+    }
+    return { culms, nodes, foliage };
+  }, [color]);
+
+  return (
+    <group>
+      <InstancedSet geometry={BAMBOO_CULM} material={leaves('#e4e4bd')} items={culms} />
+      <InstancedSet geometry={BAMBOO_NODE} material={leaves('#7e873f')} items={nodes} castShadow={false} />
+      <InstancedSet geometry={leafBlade()} material={leaves('#f1f6dc')} items={foliage} castShadow={!IS_HANDHELD} />
+    </group>
+  );
+}
+
+const BAMBOO_CULM = new THREE.CylinderGeometry(0.023, 0.056, 1, 8);
+const BAMBOO_NODE = new THREE.CylinderGeometry(0.054, 0.054, 0.027, 8);
 
 /* ───────────────────────────── Perimeter ───────────────────────────── */
 
@@ -247,30 +308,7 @@ function Perimeter({ kind, colors }: { kind: PerimeterKit; colors: VenueColors }
         />
       );
     case 'bamboo':
-      return (
-        <group>
-          {[-16, 16].map((x) =>
-            [-13, -7, -1, 5, 11].map((z) => (
-              <group key={`${x}_${z}`} position={[x, 0, z]}>
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <mesh
-                    key={i}
-                    position={[Math.cos(i * 1.3) * 0.5, 3.4, Math.sin(i * 1.3) * 0.5]}
-                    rotation={[Math.sin(i) * 0.08, 0, Math.cos(i) * 0.08]}
-                  >
-                    <cylinderGeometry args={[0.07, 0.09, 6.8 - i * 0.4, 6]} />
-                    <Std color={k ?? (i % 2 ? '#65a30d' : '#4d7c0f')} />
-                  </mesh>
-                ))}
-                <mesh position={[0, 6.2, 0]}>
-                  <sphereGeometry args={[1.1, 8, 6]} />
-                  <Std color={k ? lighten(k, 0.15) : '#84cc16'} roughness={0.85} />
-                </mesh>
-              </group>
-            ))
-          )}
-        </group>
-      );
+      return <BambooScreen color={k ?? '#72834b'} />;
     case 'arches':
       return (
         <group>
@@ -732,7 +770,8 @@ function ForestBackdrop({ leafColor }: { leafColor: string }) {
   return <Forest kind="pine" leafColor={leafColor} seed={71} spots={spots} castShadow={false} />;
 }
 
-function Backdrop({ kind, colors, mood }: { kind: BackdropKit; colors: VenueColors; mood: VenueMood }) {
+function Backdrop({ kind, theme }: { kind: BackdropKit; theme: VenueTheme }) {
+  const { colors, mood } = theme;
   const sc = colors.sc;
   switch (kind) {
     case 'sea':
@@ -741,113 +780,41 @@ function Backdrop({ kind, colors, mood }: { kind: BackdropKit; colors: VenueColo
       return <ShoreWater sea={false} color={sc ?? '#3d686b'} sky={colors.s} night={mood === 'night'} />;
     case 'mountains':
     case 'snow-peaks': {
-      const peaks = [
-        [-70, -95, 26],
-        [-42, -110, 34],
-        [-15, -100, 24],
-        [12, -115, 38],
-        [40, -98, 28],
-        [68, -108, 32],
-        [-95, -70, 22],
-        [95, -75, 24],
-      ];
-      return (
-        <group>
-          {peaks.map(([x, z, h], i) => (
-            <group key={i} position={[x, 0, z]}>
-              <mesh position={[0, h / 2, 0]}>
-                <coneGeometry args={[h * 0.9, h, 7]} />
-                <Std color={sc ?? '#64748b'} roughness={0.95} />
-              </mesh>
-              {kind === 'snow-peaks' && (
-                <mesh position={[0, h * 0.84, 0]}>
-                  <coneGeometry args={[h * 0.29, h * 0.33, 7]} />
-                  <Std color="#f8fafc" roughness={0.8} />
-                </mesh>
-              )}
-            </group>
-          ))}
-        </group>
-      );
+      const peaks = [[-70, -95, 26], [-42, -110, 34], [-15, -100, 24], [12, -115, 38], [40, -98, 28], [68, -108, 32], [-95, -70, 22], [95, -75, 24]];
+      const forms: Landform[] = peaks.map(([x, z, height], i) => ({
+        x, z, height, width: height * (1.75 + rand(i + 321) * 0.68), depth: height * 1.6,
+        style: kind === 'snow-peaks' ? 'snow' : 'ridge',
+      }));
+      const color = kind === 'snow-peaks' ? sc ?? '#64748b' : `#${new THREE.Color(sc ?? '#64748b').lerp(new THREE.Color('#586c65'), 0.62).getHexString()}`;
+      return <LandformBackdrop forms={forms} color={color} />;
     }
-    case 'hills':
-      return (
-        <group>
-          {[
-            [-60, -75, 30],
-            [-15, -85, 38],
-            [35, -70, 28],
-            [80, -80, 34],
-            [-95, -40, 26],
-            [95, -35, 26],
-          ].map(([x, z, r], i) => (
-            <mesh key={i} position={[x, -2, z]} scale={[1, 0.32, 1]}>
-              <sphereGeometry args={[r, 18, 10]} />
-              <Std color={sc ?? colors.g} roughness={0.95} />
-            </mesh>
-          ))}
-        </group>
-      );
-    case 'dunes':
-      return (
-        <group>
-          {Array.from({ length: 10 }, (_, i) => {
-            const angle = -Math.PI * 0.95 + (i / 9) * Math.PI * 0.9;
-            const dist = 55 + rand(i) * 30;
-            return (
-              <mesh key={i} position={[Math.cos(angle) * dist, -1, Math.sin(angle) * dist]} scale={[1.6, 0.28, 1]}>
-                <sphereGeometry args={[16 + rand(i + 5) * 10, 16, 8]} />
-                <Std color={sc ?? '#d6b07a'} roughness={1} />
-              </mesh>
-            );
-          })}
-        </group>
-      );
+    case 'hills': {
+      const forms: Landform[] = [[-60, -75, 30], [-15, -85, 38], [35, -70, 28], [80, -80, 34], [-95, -40, 26], [95, -35, 26]]
+        .map(([x, z, scale], i) => ({ x, z, height: scale * (0.29 + rand(i + 162) * 0.11), width: scale * 2.65, depth: scale * 2.18, style: 'hill' }));
+      return <LandformBackdrop forms={forms} color={sc ?? colors.g} />;
+    }
+    case 'dunes': {
+      const forms: Landform[] = Array.from({ length: 10 }, (_, i) => {
+        const angle = -Math.PI * 0.95 + (i / 9) * Math.PI * 0.9;
+        const dist = 55 + rand(i) * 30;
+        const scale = 16 + rand(i + 5) * 10;
+        return { x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, height: scale * 0.34, width: scale * 3.6, depth: scale * 2.15, style: 'dune' };
+      });
+      return <LandformBackdrop forms={forms} color={sc ?? '#d6b07a'} />;
+    }
     case 'forest':
       // Two staggered rows of real pines behind the hall (same leaf cards as the perimeter trees)
       return <ForestBackdrop leafColor={sc ?? '#2f5a2c'} />;
-    case 'terraces':
-      return (
-        <group>
-          {[
-            [-45, -60],
-            [40, -70],
-            [-5, -95],
-          ].map(([x, z], hill) => (
-            <group key={hill} position={[x, 0, z]}>
-              {Array.from({ length: 7 }, (_, i) => (
-                <mesh key={i} position={[0, i * 1.6 + 0.8, 0]}>
-                  <cylinderGeometry args={[26 - i * 3.4, 26 - i * 3.4 + 0.6, 1.6, 28]} />
-                  <Std color={i % 2 ? sc ?? '#84cc16' : lighten(sc ?? '#84cc16', -0.1)} roughness={0.95} />
-                </mesh>
-              ))}
-            </group>
-          ))}
-        </group>
-      );
-    case 'red-rocks':
-      return (
-        <group>
-          {[
-            [-55, -70, 8, 18, 'mesa'],
-            [-25, -85, 4, 22, 'spire'],
-            [10, -75, 10, 14, 'mesa'],
-            [42, -88, 4, 26, 'spire'],
-            [70, -68, 9, 16, 'mesa'],
-            [-80, -40, 4, 18, 'spire'],
-            [85, -40, 4, 20, 'spire'],
-          ].map(([x, z, w, h, shape], i) => (
-            <mesh key={i} position={[x as number, (h as number) / 2, z as number]}>
-              {shape === 'mesa' ? (
-                <cylinderGeometry args={[w as number, (w as number) * 1.25, h as number, 8]} />
-              ) : (
-                <coneGeometry args={[w as number, h as number, 8]} />
-              )}
-              <Std color={sc ?? '#9a3412'} roughness={0.95} />
-            </mesh>
-          ))}
-        </group>
-      );
+    case 'terraces': {
+      const forms: Landform[] = [[-45, -60], [40, -70], [-5, -95]]
+        .map(([x, z], i) => ({ x, z, height: 11 + i, width: 63, depth: 52 + i * 3, style: 'terrace' }));
+      return <LandformBackdrop forms={forms} color={sc ?? '#98a657'} />;
+    }
+    case 'red-rocks': {
+      const sites = [[-55, -70, 8, 18], [-25, -85, 4, 22], [10, -75, 10, 14], [42, -88, 4, 26], [70, -68, 9, 16], [-80, -40, 4, 18], [85, -40, 4, 20]];
+      const forms: Landform[] = sites.map(([x, z, w, height], i) => ({ x, z, width: w * 3.0, depth: w * (1.95 + rand(i) * 0.78), height, style: w > 5 ? 'mesa' : 'spire' }));
+      return <LandformBackdrop forms={forms} color={sc ?? '#9a3412'} />;
+    }
     case 'walls':
       return (
         <group>
@@ -884,35 +851,7 @@ function Backdrop({ kind, colors, mood }: { kind: BackdropKit; colors: VenueColo
           </mesh>
         </group>
       );
-    case 'old-town': {
-      const houses: Array<{ x: number; z: number; w: number; h: number; ry: number }> = [];
-      for (let i = 0; i < 8; i++) {
-        houses.push({ x: -22.5, z: -14 + i * 4, w: 3.6, h: 4 + rand(i) * 3, ry: Math.PI / 2 });
-        houses.push({ x: 22.5, z: -14 + i * 4, w: 3.6, h: 4 + rand(i + 20) * 3, ry: -Math.PI / 2 });
-      }
-      for (let i = 0; i < 9; i++) houses.push({ x: -16 + i * 4, z: -24, w: 3.6, h: 5 + rand(i + 40) * 4, ry: 0 });
-      const walls = sc ?? '#fde68a';
-      return (
-        <group>
-          {houses.map((h, i) => (
-            <group key={i} position={[h.x, 0, h.z]} rotation={[0, h.ry, 0]}>
-              <mesh position={[0, h.h / 2, 0]}>
-                <boxGeometry args={[h.w, h.h, 4]} />
-                <Std color={i % 3 === 1 ? lighten(walls, 0.06) : walls} roughness={0.9} />
-              </mesh>
-              <mesh position={[0, h.h + 0.9, 0]} rotation={[0, Math.PI / 4, 0]}>
-                <coneGeometry args={[2.95, 1.8, 4]} />
-                <Std color={colors.k2 ?? (i % 2 ? '#7c2d12' : '#9a3412')} roughness={0.9} />
-              </mesh>
-              <mesh position={[0, 1.1, 2.02]}>
-                <planeGeometry args={[0.9, 2.2]} />
-                <meshBasicMaterial color={mood === 'night' ? '#fbbf24' : '#57534e'} />
-              </mesh>
-            </group>
-          ))}
-        </group>
-      );
-    }
+    case 'old-town': return theme.id === 'vn_hoi_an' ? <HoiAnHallScenery /> : <OldTownBackdrop theme={theme} />;
     case 'castle': {
       const stone = sc ?? '#d6d3d1';
       return (
@@ -961,55 +900,24 @@ function Backdrop({ kind, colors, mood }: { kind: BackdropKit; colors: VenueColo
         </group>
       );
     }
-    case 'karst':
+    case 'karst': {
+      if (theme.id === 'vn_ha_long_cruise') return <HaLongHallScenery />;
+      const forms: Landform[] = Array.from({ length: 14 }, (_, i) => ({
+        x: -85 + i * 13 + rand(i) * 6,
+        z: -62 - rand(i + 9) * 72,
+        height: 11 + rand(i + 2) * 16,
+        width: 10 + rand(i + 4) * 15,
+        depth: 12 + rand(i + 12) * 9,
+        style: 'karst',
+      }));
       return (
         <group>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -80]}>
-            <planeGeometry args={[400, 110]} />
-            <Std color="#0e7490" roughness={0.25} metalness={0.1} />
-          </mesh>
-          {Array.from({ length: 14 }, (_, i) => {
-            const x = -85 + i * 13 + rand(i) * 6;
-            const z = -45 - rand(i + 9) * 55;
-            const h = 14 + rand(i + 2) * 18;
-            const r = 3.5 + rand(i + 4) * 4;
-            return (
-              <group key={i} position={[x, 0, z]}>
-                <mesh position={[0, h / 2, 0]}>
-                  <cylinderGeometry args={[r * 0.8, r, h, 9]} />
-                  <Std color={sc ?? '#4d7c6f'} roughness={0.95} />
-                </mesh>
-                <mesh position={[0, h, 0]} scale={[1, 0.6, 1]}>
-                  <sphereGeometry args={[r * 0.8, 9, 7]} />
-                  <Std color={lighten(sc ?? '#4d7c6f', 0.08)} roughness={0.95} />
-                </mesh>
-              </group>
-            );
-          })}
+          <ShoreWater sea={false} basin color="#346d64" sky={colors.s} night={mood === 'night'} />
+          <LandformBackdrop forms={forms} color={sc ?? '#4d7c6f'} />
         </group>
       );
-    case 'skyline':
-      return (
-        <group>
-          {Array.from({ length: 30 }, (_, i) => {
-            const x = -75 + i * 5.2 + rand(i) * 2;
-            const z = -45 - rand(i + 30) * 25;
-            const h = 8 + rand(i + 60) * 32;
-            const w = 3 + rand(i + 90) * 3.5;
-            return (
-              <mesh key={i} position={[x, h / 2, z]}>
-                <boxGeometry args={[w, h, w]} />
-                <Std
-                  color={sc ?? '#1e293b'}
-                  roughness={0.6}
-                  emissive={mood === 'night' ? (i % 3 ? '#fbbf24' : '#60a5fa') : '#000000'}
-                  emissiveIntensity={mood === 'night' ? 0.18 : 0}
-                />
-              </mesh>
-            );
-          })}
-        </group>
-      );
+    }
+    case 'skyline': return <SkylineBackdrop theme={theme} />;
     case 'stupas':
       return (
         <group>
@@ -1597,20 +1505,23 @@ export function VenueGate({ theme }: { theme: VenueTheme }) {
 
 /* ───────────────────────────── Environment & lighting ───────────────────────────── */
 
-export function VenueEnvironment({ theme, photoComposition = false }: { theme: VenueTheme; photoComposition?: boolean }) {
+export const VenueEnvironment = React.memo(function VenueEnvironment({ theme, photoComposition = false, reference }: { theme: VenueTheme; photoComposition?: boolean; reference?: PhotoHallProfile }) {
   const { colors, kits, mood } = theme;
   const groundKind = surfaceFor(colors.g, theme, 'ground');
-  const rolling = mood !== 'indoor' && groundKind === 'grass' && kits.b.every((kit) => kit === 'hills' || kit === 'forest');
+  const rolling = !reference && mood !== 'indoor' && groundKind === 'grass' && kits.b.every((kit) => kit === 'hills' || kit === 'forest');
   const terrain = useLandscapeGeometry(rolling);
-  const isLawn = surfaceFor(colors.f, theme, 'floor') === 'grass';
+  const isLawn = (reference?.floor ?? surfaceFor(colors.f, theme, 'floor')) === 'grass';
+  const isBayCruise = theme.id === 'vn_ha_long_cruise';
+  const border = !isLawn && !isBayCruise && !photoComposition && reference?.floor !== 'snow' && reference?.floor !== 'sand';
+  const keepPerimeter = !reference || ['gers', 'lacquer-pillars', 'torches', 'stone-lanterns'].includes(kits.p);
   return (
     <group>
       {/* Ground beyond the 30 m hall */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.035, 0]} receiveShadow>
+      {!isBayCruise && !reference?.terrain && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.035, 0]} receiveShadow>
         {/* Reaches the horizon so the photographed sky never shows below it */}
         <planeGeometry args={[2400, 2400]} />
-        <SurfaceMaterial color={colors.g} theme={theme} role="ground" size={2400} />
-      </mesh>
+        <SurfaceMaterial color={reference?.palette.primary ?? colors.g} theme={theme} role="ground" size={2400} />
+      </mesh>}
       {rolling && (
         <mesh geometry={terrain} position-y={-0.024} receiveShadow userData={{ noCastShadow: true }}>
           <SurfaceMaterial color={colors.g} theme={theme} role="ground" size={224} />
@@ -1618,7 +1529,7 @@ export function VenueEnvironment({ theme, photoComposition = false }: { theme: V
       )}
 
       {/* Hall floor border */}
-      {!isLawn && !photoComposition && (
+      {border && (
         [
           { pos: [0, 0.03, -15], size: [30.3, 0.06, 0.25] },
           { pos: [0, 0.03, 15], size: [30.3, 0.06, 0.25] },
@@ -1629,26 +1540,24 @@ export function VenueEnvironment({ theme, photoComposition = false }: { theme: V
         <mesh key={idx} position={edge.pos}>
           <boxGeometry args={edge.size} />
           {/* Stone kerb edging the floor, not a painted stripe */}
-          <Std color="#a39d92" roughness={0.85} />
+          <Std color={reference?.palette.secondary ?? '#a39d92'} roughness={0.85} />
         </mesh>
       ))}
 
-      {kits.b.map((b) => (
-        <Backdrop key={b} kind={b} colors={colors} mood={mood} />
-      ))}
+      {reference ? <PhotoHallSurroundings variant={theme.id} profile={reference} /> : kits.b.map((b) => <Backdrop key={b} kind={b} theme={theme} />)}
       <WindClock />
-      {mood !== 'indoor' && !photoComposition && <GroundCover theme={theme} rolling={rolling} />}
-      {mood !== 'indoor' && kits.b.length === 0 && !snowyOrDesert(theme) && (
+      {!reference && mood !== 'indoor' && !photoComposition && <GroundCover theme={theme} rolling={rolling} />}
+      {!reference && mood !== 'indoor' && kits.b.length === 0 && !snowyOrDesert(theme) && (
         <DistantTreeline leafColor={lighten(colors.g, -0.08)} kind={kits.p === 'pines' && theme.id !== GARDEN_VENUE ? 'pine' : kits.p === 'palms' ? 'palm' : 'broadleaf'} groundHeight={rolling ? landscapeHeight : undefined} />
       )}
-      {mood === 'indoor' && <BallroomWalls wallColor={naturalTone(colors.f, 0.15, 0.3)} drape={naturalTone(colors.c, 0, 0.15)} />}
+      {!reference && mood === 'indoor' && <BallroomWalls wallColor={naturalTone(colors.f, 0.15, 0.3)} drape={naturalTone(colors.c, 0, 0.15)} />}
       {theme.id === GARDEN_VENUE && !photoComposition && <GardenGrove behindHall />}
-      {theme.id !== GARDEN_VENUE && <Perimeter kind={kits.p} colors={colors} />}
+      {keepPerimeter && theme.id !== GARDEN_VENUE && <Perimeter kind={kits.p} colors={colors} />}
       {!photoComposition && <Canopy kind={kits.c} colors={colors} mood={mood} />}
       <Centerpiece kind={kits.ce} colors={colors} />
     </group>
   );
-}
+});
 
 function naturalGrass(hex: string): string {
   const c = new THREE.Color(hex);

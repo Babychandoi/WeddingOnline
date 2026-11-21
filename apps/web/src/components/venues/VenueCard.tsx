@@ -4,7 +4,8 @@ import type { VenueTheme } from '@dco/shared';
 
 /** Rendered still of a venue (scripts/render-venue-thumbnails.mjs writes these) */
 export function venueThumbnail(id: string): string {
-  return `/venues/${id}.webp`;
+  const version = id === 'vn_ha_long_cruise' || id === 'vn_hoi_an' ? 3 : 2;
+  return `/venues/${id}.webp?v=${version}`;
 }
 
 export function VenueCard({ venue, priority = false }: { venue: VenueTheme; priority?: boolean }) {

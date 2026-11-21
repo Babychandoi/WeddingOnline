@@ -5,6 +5,7 @@ import { STARTER_TEMPLATES, VENUE_REGIONS, VENUE_THEMES, getVenueTheme, isVenueI
 export const dynamic = 'force-dynamic';
 import { VenuePreviewClient } from '@/components/venues/VenuePreviewClient';
 import { venueThumbnail } from '@/components/venues/VenueCard';
+import { getVenuePhotoReference } from '@/components/three/venuePhotoReferences';
 
 export function generateMetadata({ params }: { params: { id: string } }): Metadata {
   if (!isVenueId(params.id)) return { title: 'Không tìm thấy không gian — DamCuoiOnline.vn' };
@@ -21,7 +22,7 @@ export default function VenuePreviewPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { capture?: string; cam?: string };
+  searchParams: { capture?: string; cam?: string; view?: string };
 }) {
   if (!isVenueId(params.id)) notFound();
   const capture = searchParams.capture === '1';
@@ -32,9 +33,14 @@ export default function VenuePreviewPage({
   const index = VENUE_THEMES.findIndex((v) => v.id === venue.id);
   const prev = VENUE_THEMES[(index - 1 + VENUE_THEMES.length) % VENUE_THEMES.length];
   const next = VENUE_THEMES[(index + 1) % VENUE_THEMES.length];
+  const reference = getVenuePhotoReference(venue.id);
+  // The rebuilt halls are the main view. The three standalone compositions keep their opening shot.
+  const initialReference = searchParams.view === 'photo'
+    || (searchParams.view !== 'hall' && reference !== undefined && reference.kind !== 'relief');
 
   return (
     <VenuePreviewClient
+      key={venue.id}
       venue={{
         id: venue.id,
         nameVi: venue.nameVi,
@@ -46,6 +52,8 @@ export default function VenuePreviewPage({
       layout={STARTER_TEMPLATES[venue.id].layout}
       prev={{ id: prev.id, nameVi: prev.nameVi }}
       next={{ id: next.id, nameVi: next.nameVi }}
+      reference={reference}
+      initialReference={initialReference}
       capture={capture}
       camera={camera}
     />

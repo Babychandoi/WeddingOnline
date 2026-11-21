@@ -152,8 +152,8 @@ export function swagValance(width: number, swags = 4): THREE.BufferGeometry {
 /* ───────────────────────── Flowers ───────────────────────── */
 
 function petal(width: number, length: number, cup: number, curl: number): THREE.BufferGeometry {
-  // 4×4 segments keep the cup and curl smooth at viewing distance; phones get 2×3
-  const g = IS_HANDHELD ? new THREE.PlaneGeometry(width, length, 2, 3) : new THREE.PlaneGeometry(width, length, 4, 4);
+  // An odd number of cross-sections keeps both sides smooth while larger bouquets add depth.
+  const g = new THREE.PlaneGeometry(width, length, IS_HANDHELD ? 2 : 3, IS_HANDHELD ? 2 : 4);
   const pos = g.attributes.position as THREE.BufferAttribute;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);

@@ -1,0 +1,8 @@
+Hạ Long photo reference and karst surface material
+
+A boat deck with an orange lifebuoy facing limestone karst islands across blue water
+Tyler Zhang · Unsplash
+https://unsplash.com/photos/boat-deck-facing-limestone-karst-islands-Uucj_9ohP5o
+https://unsplash.com/license
+
+karst-faces.webp: a crop of the limestone formations used as a projected texture on 3D volumes. The foreground vessel, railing and life ring are modeled separately.

@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
+import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import * as THREE from 'three';
 import {
   buildOccupancyGrid,
@@ -19,6 +20,7 @@ import { Fireworks, type FireworksFocus, type ScheduledFireworks } from './Firew
 import { npcTrackKey, type MotionStore } from '@dco/shared';
 import { GlbAssetMesh } from './GlbAssetMesh';
 import { SurfaceMaterial, VenueEnvironment, VenueGate } from './venueKits';
+import { getPhotoHallProfile } from './photoHallProfiles';
 import {
   AisleRunner,
   BanquetTableDressing,
@@ -130,14 +132,41 @@ interface VenueSceneProps {
   previewCamera?: { position: [number, number, number]; target: [number, number, number] };
 }
 
-/** Still captures only: counts rendered frames so the thumbnail script knows when the scene is drawn */
-const FrameProbe: React.FC = () => {
-  const scene = useThree((st) => st.scene);
+type AuditVector = [number, number, number];
+type CaptureWindow = Window & {
+  __venueScene?: THREE.Scene;
+  __venueFrames?: number;
+  __venueAudit?: {
+    setView: (position: AuditVector, target: AuditVector) => void;
+    getView: () => { position: AuditVector; target: AuditVector; frames: number };
+  };
+};
+
+/** Still captures only: inspect multiple camera poses without reloading the hall. */
+const FrameProbe: React.FC<{ orbit: React.RefObject<OrbitControlsInstance> }> = ({ orbit }) => {
+  const { scene, camera } = useThree();
   useEffect(() => {
-    (window as unknown as { __venueScene?: THREE.Scene }).__venueScene = scene;
-  }, [scene]);
+    const capture = window as CaptureWindow;
+    capture.__venueScene = scene;
+    capture.__venueFrames = 0;
+    capture.__venueAudit = {
+      setView(position, target) {
+        const controls = orbit.current;
+        if (!controls) return;
+        controls.target.fromArray(target);
+        camera.position.fromArray(position);
+        controls.update();
+      },
+      getView: () => ({ position: camera.position.toArray(), target: orbit.current?.target.toArray() ?? [0, 0, 0], frames: capture.__venueFrames ?? 0 }),
+    };
+    return () => {
+      capture.__venueScene = undefined;
+      capture.__venueAudit = undefined;
+      capture.__venueFrames = 0;
+    };
+  }, [scene, camera, orbit]);
   useFrame(() => {
-    const w = window as unknown as { __venueFrames?: number };
+    const w = window as CaptureWindow;
     w.__venueFrames = (w.__venueFrames ?? 0) + 1;
   });
   return null;
@@ -160,6 +189,17 @@ const setPointerCursor = (active: boolean) => {
   }
 };
 
+function constrainHallCamera(position: THREE.Vector3, target: THREE.Vector3) {
+  let fraction = 1;
+  for (const axis of ['x', 'y', 'z'] as const) {
+    const offset = position[axis] - target[axis];
+    if (Math.abs(offset) < 1e-5) continue;
+    const boundary = axis === 'y' ? (offset > 0 ? 6.9 : 0.55) : (offset > 0 ? 15.42 : -15.42);
+    fraction = Math.min(fraction, (boundary - target[axis]) / offset);
+  }
+  if (fraction < 1) position.lerp(target, 1 - Math.max(fraction, 0));
+}
+
 const CameraRigAndController: React.FC<{
   grid: boolean[][];
   localPlayer?: RemotePlayerView;
@@ -175,6 +215,7 @@ const CameraRigAndController: React.FC<{
   onArriveClickMarker: () => void;
   onMove: (x: number, z: number, rotY: number, isMoving: boolean) => void;
   onFpsDrop: (lowFps: boolean) => void;
+  enclosed?: boolean;
   registerCaptureFn?: (fn: () => string | null) => void;
   /** While fireworks play the camera turns to the sky over the stage */
   focusRef?: React.MutableRefObject<FireworksFocus>;
@@ -187,6 +228,7 @@ const CameraRigAndController: React.FC<{
   onArriveClickMarker,
   onMove,
   onFpsDrop,
+  enclosed = false,
   registerCaptureFn,
   focusRef,
 }) => {
@@ -212,7 +254,7 @@ const CameraRigAndController: React.FC<{
           localPosRef.current.initialized = true;
           if (controlsRef.current) {
             controlsRef.current.target.set(localPlayer.x, 1.2, localPlayer.z);
-            camera.position.set(localPlayer.x, 8.5, localPlayer.z + 7.5);
+            camera.position.set(localPlayer.x, enclosed ? 4.8 : 8.5, localPlayer.z + 7.5);
             controlsRef.current.update();
           }
           return;
@@ -235,6 +277,7 @@ const CameraRigAndController: React.FC<{
     localPlayer?.rotY,
     localPosRef,
     camera,
+    enclosed,
   ]);
 
 useEffect(() => {
@@ -373,7 +416,8 @@ useFrame((_, delta) => {
         const d = Math.hypot(dx, dz) || 1;
         dx /= d;
         dz /= d;
-        wantTarget.set(px + dx * 4, 5.2, pz + dz * 4);
+        const lookAhead = enclosed ? Math.min(4, d) : 4;
+        wantTarget.set(px + dx * lookAhead, Math.min(5.2, focus.y), pz + dz * lookAhead);
         wantCam.set(px - dx * 5.2, 2.3, pz - dz * 5.2);
         const k = 1 - Math.exp(-safeDelta * 2.2);
         target.lerp(wantTarget, k);
@@ -381,6 +425,7 @@ useFrame((_, delta) => {
       } else if (preShowOffset.current) {
         wantTarget.set(px, 1.2, pz);
         wantCam.copy(wantTarget).add(preShowOffset.current);
+        if (enclosed) constrainHallCamera(wantCam, wantTarget);
         const k = 1 - Math.exp(-safeDelta * 2.6);
         target.lerp(wantTarget, k);
         camera.position.lerp(wantCam, k);
@@ -389,10 +434,11 @@ useFrame((_, delta) => {
           camera.position.copy(wantCam);
           preShowOffset.current = null;
           controlsRef.current.maxPolarAngle = Math.PI * 0.44;
-          controlsRef.current.minDistance = 4.5;
+          controlsRef.current.minDistance = enclosed ? 2.4 : 4.5;
         }
       }
       controlsRef.current.update();
+      if (enclosed) constrainHallCamera(camera.position, target);
     }
 
     const now = performance.now();
@@ -412,9 +458,9 @@ return (
     enablePan={false}
     enableDamping
     dampingFactor={0.09}
-    minDistance={4.5}
-    maxDistance={21}
-    minPolarAngle={Math.PI * 0.16}
+    minDistance={enclosed ? 2.4 : 4.5}
+    maxDistance={enclosed ? 13 : 21}
+    minPolarAngle={Math.PI * (enclosed ? 0.37 : 0.16)}
     maxPolarAngle={Math.PI * 0.44}
   />
 );
@@ -1041,6 +1087,26 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
   }, [layout.prefabs]);
   const isPreview = props.mode === 'preview';
   const photoComposition = isPreview && theme.id === GARDEN_VENUE && props.photoComposition === true;
+  const photoHall = getPhotoHallProfile(theme.id);
+  const terrainFloor = Boolean(photoHall?.terrain && ['grass', 'sand', 'snow'].includes(photoHall.floor));
+  const enclosed = photoHall?.architecture === 'ballroom';
+  const previewOrbit = useRef<OrbitControlsInstance>(null);
+  const boundPreview = enclosed && !props.previewCamera;
+  const keepPreviewInside = useCallback(() => {
+    const controls = previewOrbit.current;
+    if (!boundPreview || !controls) return;
+    const { target, object } = controls;
+    target.x = THREE.MathUtils.clamp(target.x, -14.7, 14.7);
+    target.y = THREE.MathUtils.clamp(target.y, 0.65, 6.5);
+    target.z = THREE.MathUtils.clamp(target.z, -14.7, 14.7);
+    constrainHallCamera(object.position, target);
+    object.lookAt(target);
+  }, [boundPreview]);
+  const indoorPreview = theme.mood === 'indoor';
+  const previewPosition: [number, number, number] = props.previewCamera?.position ?? (
+    enclosed ? [4.7, 4.55, 12.5] : photoHall ? [10.5, 8.6, 22.4] : indoorPreview ? [5.8, 4.8, 18.2] : [13, 9.5, 23]
+  );
+  const previewTarget: [number, number, number] = props.previewCamera?.target ?? (enclosed ? [0, 2.6, -0.5] : indoorPreview ? [0, 2.0, -4.8] : [0, 2.5, -5]);
 
   const localPlayer = players.find((p) => p.sessionId === localSessionId);
 
@@ -1091,7 +1157,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
             shadows={lowQuality ? false : 'soft'}
             dpr={lowQuality ? 1 : [1, 1.75]}
             camera={{
-              position: isPreview ? (props.previewCamera?.position ?? [13, 9.5, 23]) : [0, 8.5, 17.5],
+              position: isPreview ? previewPosition : [0, 8.5, 17.5],
               fov: photoComposition ? 36 : 50,
               near: 0.1,
               far: 2000,
@@ -1099,21 +1165,22 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
             gl={{ preserveDrawingBuffer: true, antialias: !lowQuality }}
           >
             {/* Sky, sun with soft shadows, fill and image-based light */}
-            <RendererSetup exposure={theme.mood === 'night' ? 1.15 : 1.05} />
-            <VenueAtmosphere theme={theme} quality={lowQuality ? 'low' : 'high'} photoComposition={photoComposition} />
+            <RendererSetup exposure={(photoHall ? photoHall.light === 'night' || photoHall.light === 'twilight' : theme.mood === 'night') ? 1.15 : 1.05} />
+            <VenueAtmosphere theme={theme} quality={lowQuality ? 'low' : 'high'} reference={photoHall} />
             <ShadowCasters enabled={!lowQuality} />
-            {!lowQuality && <PostFX strength={bloomStrength(theme)} />}
+            {!lowQuality && <PostFX strength={photoComposition ? 0.12 : bloomStrength(theme, photoHall)} ambientOcclusion={photoComposition ? false : undefined} />}
             {/* A still capture (no auto-rotate) must keep full quality however slow the renderer */}
             {isPreview && props.previewAutoRotate !== false && <FpsGuard onLowFps={setLowQuality} />}
-            {isPreview && props.previewAutoRotate === false && <FrameProbe />}
+            {isPreview && props.previewAutoRotate === false && <FrameProbe orbit={previewOrbit} />}
 
-            <VenueEnvironment theme={theme} photoComposition={photoComposition} />
+            <VenueEnvironment theme={theme} photoComposition={photoComposition} reference={photoHall} />
             {photoComposition ? <><GardenCameraFraming /><GardenCeremony /></> : <AmbientPetals lowQuality={lowQuality} templateId={layout.templateId} />}
 
             {/* 30m x 30m Hall Floor */}
             <mesh
               rotation={[-Math.PI / 2, 0, 0]}
               position={[0, 0, 0]}
+              userData={{ noCastShadow: terrainFloor }}
               onClick={(e) => {
                 if (isPreview) return;
                 e.stopPropagation();
@@ -1121,7 +1188,8 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
               }}
             >
               <planeGeometry args={[30, 30]} />
-              <SurfaceMaterial color={theme.colors.f} theme={theme} role="floor" size={30} />
+              {terrainFloor ? <meshBasicMaterial colorWrite={false} depthWrite={false} />
+                : <SurfaceMaterial color={theme.colors.f} theme={theme} role="floor" size={30} reference={photoHall} />}
             </mesh>
 
             {/* Tap-to-Move Destination Ripple */}
@@ -1219,21 +1287,26 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
               lowQuality={lowQuality}
             />
             {!isPreview && props.fireworks && props.fireworks.length > 0 && (
-              <Fireworks shows={props.fireworks} stage={fireworksStage} focusRef={fireworksFocusRef} lowQuality={lowQuality} mood={theme.mood} />
+              <Fireworks shows={props.fireworks} stage={fireworksStage} focusRef={fireworksFocusRef} lowQuality={lowQuality} mood={theme.mood} enclosed={enclosed} />
             )}
 
             {isPreview ? (
               <OrbitControls
-                target={props.previewCamera?.target ?? [0, 2.5, -5]}
-                enablePan={false}
+                ref={previewOrbit}
+                target={previewTarget}
+                enablePan={Boolean(photoHall)}
+                zoomToCursor={Boolean(photoHall)}
+                screenSpacePanning={!photoHall}
+                panSpeed={0.65}
+                onChange={keepPreviewInside}
                 enableDamping
                 dampingFactor={0.08}
-                autoRotate={!photoComposition && props.previewAutoRotate !== false}
+                autoRotate={!photoComposition && !photoHall && props.previewAutoRotate !== false}
                 autoRotateSpeed={0.45}
-                minDistance={props.previewCamera ? 0.5 : 12}
-                maxDistance={46}
-                minPolarAngle={props.previewCamera ? 0 : Math.PI * 0.12}
-                maxPolarAngle={props.previewCamera ? Math.PI * 0.6 : Math.PI * 0.46}
+                minDistance={props.previewCamera ? 0.5 : photoHall ? 2.15 : 12}
+                maxDistance={enclosed && !props.previewCamera ? 14.6 : 46}
+                minPolarAngle={props.previewCamera ? 0 : Math.PI * (enclosed ? 0.42 : 0.12)}
+                maxPolarAngle={props.previewCamera ? Math.PI * 0.6 : Math.PI * (photoHall ? 0.492 : 0.46)}
               />
             ) : (
               <CameraRigAndController
@@ -1245,6 +1318,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
                 onArriveClickMarker={() => setClickMarker(null)}
                 onMove={props.onMove}
                 onFpsDrop={setLowQuality}
+                enclosed={enclosed}
                 registerCaptureFn={props.registerCaptureFn}
                 focusRef={fireworksFocusRef}
               />

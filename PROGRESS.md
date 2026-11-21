@@ -251,6 +251,15 @@
 - [x] Tiền pháo hoa và tiền mua gói giữ nguyên vào tài khoản nền tảng (chủ dự án chọn)
 - [x] Kiểm chứng: E2E trang quản trị 18/18 (giá ảnh có số, lối tắt lưu rồi mở Setup, góc xoay được lưu, Cài Đặt giữ Vietcombank sau khi lưu, tạo khoá SePay, QR mừng cưới trong sảnh dùng tài khoản cặp đôi và khoá của họ xác nhận được), E2E thiệp nhạc + mừng cưới đạt
 
+### [x] Nhóm 33: Góc Ảnh 3D Chiều Sâu (Depth Relief) & Cảnh Quan 3D Theo Ảnh Tham Chiếu Cho 101 Không Gian (đã triển khai)
+- [x] Bộ đối chiếu ảnh tham chiếu cho 101 không gian (`venuePhotoReferences.ts`, `catalogPhotoReferences.json`):
+  - 3 cảnh 3D dựng chi tiết riêng theo ảnh mẫu: Tiệc Sân Vườn (`GardenCeremony.tsx`), Du thuyền Hạ Long (`HaLongPhotoScene.tsx`), Phố cổ Hội An (`HoiAnPhotoScene.tsx`)
+  - 98 không gian còn lại dùng mô hình chiều sâu 3D (`VenuePhotoRelief` + `VenuePhotoCanvas.tsx`) từ 98 cặp ảnh `.webp` & bản đồ độ sâu `.depth.webp` sinh bằng AI **Depth Anything V2 Small ONNX** (`scripts/build-venue-depth.py`)
+- [x] Cảnh quan 3D bao quanh sảnh tiệc đồng bộ theo từng địa danh (`photoHallProfiles.ts`, `photoHallSurroundings.tsx`):
+  - Kiến trúc đặc trưng (`photoArchitecture.tsx`), địa hình núi/vịnh/ruộng bậc thang/đồi cát (`photoTerrain.tsx`), thảm thực vật bản địa (`photoVegetation.tsx`, `gardenBotany.tsx`, `architecturalScenery.tsx`) và thuyền trên mặt nước (sampan, gondola, felucca, nhà nổi)
+- [x] Cập nhật lại bộ ảnh đại diện `apps/web/public/venues/*.webp` cho 101 không gian; nút chuyển đổi mượt giữa **Góc ảnh 3D** và **Toàn sảnh** tại `/khong-gian/[id]`
+- [x] Kiểm chứng: `npm run typecheck` (`6/6`), `npm test` (`12/12`), đóng gói và triển khai lên cụm Docker `poiplegal.online` (`npm run docker:up`)
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

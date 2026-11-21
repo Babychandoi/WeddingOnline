@@ -4,14 +4,14 @@ import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { IS_HANDHELD } from './deviceTier';
+import { GardenHydrangeas, type FlowerCloud } from './gardenBotany';
 import { GARDEN_ALTAR_Z } from './gardenReference';
 import { PhScatter, usePhReady, usePhSurface } from './phAssets';
 import { Forest, type TreeSpot } from './realNature';
-import { domePoints, leafBlade, roundedSlab, seatCushion } from './realGeometry';
-import { carpet, fabric, leaves, wood } from './realMaterials';
+import { roundedSlab, seatCushion } from './realGeometry';
+import { carpet, fabric, wood } from './realMaterials';
 import { InstancedSet } from './realProps';
 
-const IVORY = ['#faf9f4', '#eaece5', '#dcdfd3', '#fffdfa'];
 const SEAT_WOOD = ['#633a28', '#76503a', '#96634a', '#6d4230'];
 const GROVE: TreeSpot[] = [
   { position: [-7.9, 0, -10.7], height: 11 }, { position: [-11.3, 0, -12.2], height: 7.5 },
@@ -20,79 +20,12 @@ const GROVE: TreeSpot[] = [
   { position: [7.8, 0, -9.7], height: 9.7 }, { position: [11.4, 0, -8.9], height: 10.6 },
   { position: [8.9, 0, -16.1], height: 8 }, { position: [-10.3, 0, -7.8], height: 8 },
 ];
+const AISLE_CANOPY: TreeSpot[] = [
+  { position: [-5.9, 0, 2.1], height: 9.3, rotation: 1.1 },
+  { position: [7.8, 0, -3.8], height: 9.7, rotation: 2.7 },
+];
 
 type Vec3 = [number, number, number];
-type FlowerCloud = { center: Vec3; spread: Vec3; count: number; wrapped?: boolean };
-
-function hydrangeaFloret() {
-  const lobes = new THREE.Shape();
-  const segments = 28;
-  for (let i = 0; i < segments; i++) {
-    const angle = i * Math.PI * 2 / segments;
-    const radius = 0.047 * (0.84 + 0.16 * Math.cos(angle * 4));
-    const x = Math.cos(angle) * radius;
-    const y = Math.sin(angle) * radius;
-    if (i === 0) lobes.moveTo(x, y);
-    else lobes.lineTo(x, y);
-  }
-  lobes.closePath();
-  const shape = new THREE.ShapeGeometry(lobes);
-  const perimeter = shape.attributes.position;
-  const positions = [0, -0.008, 0];
-  const indices = [];
-  for (let i = 0; i < perimeter.count; i++) {
-    positions.push(perimeter.getX(i), 0.001 + Math.hypot(perimeter.getX(i), perimeter.getY(i)) * 0.13, -perimeter.getY(i));
-    indices.push(0, i + 1, ((i + 1) % perimeter.count) + 1);
-  }
-  shape.dispose();
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-  return geometry;
-}
-
-/** A single batch of four-petal hydrangea florets, individually tilted and shaded. */
-function Hydrangeas({ clouds }: { clouds: FlowerCloud[] }) {
-  const geometry = useMemo(hydrangeaFloret, []);
-  const bloom = useMemo(() => new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, emissive: '#e4e0d3', emissiveIntensity: 0.11 }), []);
-  useEffect(() => () => { geometry.dispose(); bloom.dispose(); }, [geometry, bloom]);
-
-  const { petals, foliage } = useMemo(() => {
-    const up = new THREE.Vector3(0, 1, 0);
-    const petals = clouds.flatMap(({ center, spread, count, wrapped }, bed) => (
-      domePoints(IS_HANDHELD ? Math.round(count * 0.72) : count, 1, wrapped ? -0.96 : -0.25).map(({ n }, i) => {
-        const phase = (i + 1) * 2.39996 + bed * 1.94;
-        const uneven = 0.88 + 0.18 * Math.sin(phase * 1.59);
-        const facing = n.clone().add(new THREE.Vector3(0.25 * Math.sin(phase), 0, 0.27 * Math.cos(phase))).normalize();
-        return {
-          position: center.map((value, axis) => value + n.getComponent(axis) * spread[axis] * uneven) as Vec3,
-          quaternion: new THREE.Quaternion().setFromUnitVectors(up, facing).multiply(new THREE.Quaternion().setFromAxisAngle(up, phase)),
-          scale: 0.7 + 0.76 * Math.abs(Math.sin(phase * 2.27)),
-          color: IVORY[(i + 2 * bed) % IVORY.length],
-        };
-      })
-    ));
-    const foliage = clouds.flatMap(({ center, spread }, bed) => Array.from({ length: 5 }, (_, i) => {
-      const direction = bed * 1.9 + i * 2.39996;
-      const leaf = i % 2 ? '#52694b' : '#687c52';
-      return {
-        position: [center[0] + Math.cos(direction) * spread[0] * 0.75, center[1] + spread[1] * Math.sin(i * 2.8) * 0.55, center[2] + Math.sin(direction) * spread[2] * 0.75] as Vec3,
-        rotation: [Math.sin(direction), direction, 0.35 * i] as Vec3,
-        scale: 1.7 + Math.abs(Math.sin(direction)) * 1.4,
-        color: leaf,
-      };
-    }));
-    return { petals, foliage };
-  }, [clouds]);
-
-  return (
-    <>
-      <InstancedSet geometry={geometry} material={bloom} items={petals} />
-      <InstancedSet geometry={leafBlade()} material={leaves('#e8efdc')} items={foliage} castShadow={false} />
-    </>
-  );
-}
 
 /** A timber rail of the X-back chair, with a round cross section. */
 function rail(from: THREE.Vector3Tuple, to: THREE.Vector3Tuple, radius: number): THREE.BufferGeometry {
@@ -171,7 +104,7 @@ export function GardenAltar({ children }: { children?: React.ReactNode }) {
 
   return (
     <>
-      <Hydrangeas clouds={clouds} />
+      <GardenHydrangeas clouds={clouds} />
       <group position={[0, 0.03, -0.42]}>
         <mesh geometry={roundedSlab(2.36, 0.4, 0.81, 0.10)} material={linen} position={[0, 0.29, 0]} />
         <mesh geometry={roundedSlab(2.18, 0.2, 0.71, 0.08)} material={linen} position={[0, 0.51, 0.012]} />
@@ -195,18 +128,21 @@ export function GardenAltar({ children }: { children?: React.ReactNode }) {
 
 function FlowerBorders() {
   const clouds = useMemo<FlowerCloud[]>(() => {
-    const beds = [-1, 1].flatMap((side) => Array.from({ length: 25 }, (_, i): FlowerCloud => {
-      const phase = i * 2.1 + side * 0.8;
-      return {
-        center: [side * (1.35 + Math.sin(phase) * 0.20), 0.12 + 0.1 * Math.abs(Math.sin(phase)), -6.72 + i * 0.52 + side * 0.13],
-        spread: [0.28 + 0.14 * Math.abs(Math.cos(phase)), 0.20 + 0.14 * Math.abs(Math.sin(phase * 1.9)), 0.38 + Math.cos(phase) * 0.075],
-        count: 78,
-      };
+    const beds = [-1, 1].flatMap((side) => [-6.42, -4.94, -2.85, -0.59, 1.61, 3.68, 5.32].flatMap((z, group) => {
+      const volume = 0.82 + 0.34 * Math.abs(Math.sin(group * 2.1 + side));
+      return Array.from({ length: 5 }, (_, i): FlowerCloud => {
+        const phase = i * 2.39996 + group * 1.7 + side * 0.8;
+        return {
+          center: [side * (1.35 + Math.sin(phase) * 0.32), volume * (0.12 + 0.28 * Math.abs(Math.sin(phase))), z + (i - 2) * 0.24 + side * 0.14],
+          spread: [volume * 0.25, 0.12 + 0.13 * Math.abs(Math.cos(phase)), volume * 0.30],
+          count: 50 + Math.round(volume * 15),
+        };
+      });
     }));
     beds.push({ center: [0.02, 0.16, -6.91], spread: [0.62, 0.38, 0.48], count: 168 });
     return beds;
   }, []);
-  return <Hydrangeas clouds={clouds} />;
+  return <GardenHydrangeas clouds={clouds} />;
 }
 
 function StoneApron() {
@@ -221,22 +157,41 @@ function StoneApron() {
 
 export function GardenGrove({ behindHall = false }: { behindHall?: boolean }) {
   const ready = usePhReady('tree_small_02');
-  const spots = useMemo(() => behindHall ? GROVE.map(({ position: [x, y, z], ...rest }) => ({ ...rest, position: [x * 1.7, y, z - 10] as [number, number, number] })) : GROVE, [behindHall]);
-  const trees = useMemo(() => spots.map(({ position, height }, ix) => ({ position, scale: (height ?? 8) / 8, rotationY: ix * 2.39996 })), [spots]);
+  const spots = useMemo(() => behindHall ? GROVE.map(({ position: [x, y, z], ...rest }) => ({ ...rest, position: [x * 1.7, y, z - 10] as Vec3 })) : [...GROVE, ...AISLE_CANOPY], [behindHall]);
+  const trees = useMemo(() => spots.map(({ position, height, rotation }, ix) => ({ position, scale: (height ?? 8) / 8, rotationY: rotation ?? ix * 2.39996 })), [spots]);
   const shrubs = useMemo(() => Array.from({ length: IS_HANDHELD ? 17 : 30 }, (_, i) => ({
     position: [Math.sin(i * 2.39996) * 12, 0, (behindHall ? -18.4 : -12.1) - (i % 4) * 1.5] as Vec3,
     scale: 1.45 + 2.1 * Math.abs(Math.cos(i * 3.1)),
     rotationY: i * 1.8,
   })), [behindHall]);
-  const understorey = useMemo<TreeSpot[]>(() => Array.from({ length: 21 }, (_, i) => ({
-    position: [(i - 10) * 1.38 + Math.sin(i) * 1.2, -0.38, -17.4 - (i % 3) * 2.2] as Vec3,
-    height: 2.6 + 3.4 * Math.abs(Math.sin(i * 2.21)),
-  })), []);
+  const understorey = useMemo<TreeSpot[]>(() => Array.from({ length: 26 }, (_, i) => {
+    const row = i % 2;
+    const height = 4.4 + row * 1.4 + 1.8 * Math.abs(Math.sin(i * 2.21));
+    return {
+      // Lower the crown into the ground so bordering foliage reads as dense thickets.
+      position: [(Math.floor(i / 2) - 6) * 3.1 + Math.sin(i) * 1.9, -height * (row ? 0.20 : 0.32), -16.8 - row * 6.3 - Math.abs(Math.cos(i)) * 3.4] as Vec3,
+      height,
+    };
+  }), []);
+  const thickets = useMemo(() => {
+    const columns = IS_HANDHELD ? 12 : 16;
+    return Array.from({ length: columns * 2 }, (_, i) => {
+      const row = Math.floor(i / columns);
+      const x = (i % columns - (columns - 1) / 2) * 2.2;
+      const angle = i * 2.39996;
+      return {
+        position: [x + Math.cos(angle) * 1.3 + row * 1.2, -0.03, (behindHall ? -19.0 : -12.8) - row * 5.3 - 1.7 * Math.abs(Math.sin(angle))] as Vec3,
+        rotationY: angle,
+        scale: (row ? 1.48 : 0.94) + Math.abs(Math.cos(i * 2.9)) * (row ? 0.85 : 0.55),
+      };
+    });
+  }, [behindHall]);
 
   return (
     <>
-      {ready ? <PhScatter id="tree_small_02" items={trees} height={8} /> : <Forest kind="broadleaf" spots={spots} leafColor="#516747" seed={427} />}
-      {!behindHall && <Forest kind="broadleaf" spots={understorey} leafColor="#627947" castShadow={false} seed={834} />}
+      {ready ? <PhScatter id="tree_small_02" items={trees} height={8} leafAlphaCutoff={0.42} /> : <Forest kind="broadleaf" spots={spots} leafColor="#5c724c" seed={427} />}
+      {!behindHall && <Forest kind="broadleaf" spots={understorey} leafColor="#536e45" castShadow={false} seed={834} />}
+      <PhScatter id="shrub_02" items={thickets} variants handheld castShadow={false} />
       <PhScatter id="shrub_03" items={shrubs} variants handheld castShadow={false} />
     </>
   );

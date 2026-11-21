@@ -220,6 +220,8 @@ export function usePhSurface(kind: PhSurfaceKind, sizeMetres: number): SurfaceSe
     // Phones keep the procedural surfaces: three 2K photo maps per surface is a lot to download
     if (IS_HANDHELD) return;
     let alive = true;
+    let owned: SurfaceSet | undefined;
+    setSet(null);
     loadSurface(kind)
       .then((base) => {
         if (!alive) return;
@@ -230,11 +232,15 @@ export function usePhSurface(kind: PhSurfaceKind, sizeMetres: number): SurfaceSe
           c.needsUpdate = true;
           return c;
         };
-        setSet({ map: clone(base.map), normalMap: clone(base.normalMap), roughnessMap: clone(base.roughnessMap) });
+        owned = { map: clone(base.map), normalMap: clone(base.normalMap), roughnessMap: clone(base.roughnessMap) };
+        setSet(owned);
       })
       .catch((e) => console.warn('[ph] surface', kind, e));
     return () => {
       alive = false;
+      owned?.map.dispose();
+      owned?.normalMap.dispose();
+      owned?.roughnessMap.dispose();
     };
   }, [kind, sizeMetres]);
   return set;
@@ -300,13 +306,25 @@ type Part = { geometry: THREE.BufferGeometry; material: THREE.Material | THREE.M
  * instanced mesh per part. With `variants`, the model is a pack of separate pieces (as Poly
  * Haven ships grass and shrub sets): each piece is re-centred and every item uses one of them.
  */
-export function PhScatter({ id, items, height, variants = false, castShadow = true, handheld = false }: { id: string; items: ScatterItem[]; height?: number; variants?: boolean; castShadow?: boolean; handheld?: boolean }) {
+export function PhScatter({ id, items, height, variants = false, castShadow = true, handheld = false, leafAlphaCutoff }: { id: string; items: ScatterItem[]; height?: number; variants?: boolean; castShadow?: boolean; handheld?: boolean; leafAlphaCutoff?: number }) {
   const src = usePhModel(id, handheld);
-  const parts = useMemo<Part[]>(() => {
-    if (!src) return [];
+  const { parts, ownedMaterials } = useMemo(() => {
+    const ownedMaterials = new Map<THREE.Material, THREE.Material>();
+    const asCutout = (material: THREE.Material) => {
+      if (leafAlphaCutoff === undefined || !material.transparent) return material;
+      const existing = ownedMaterials.get(material);
+      if (existing) return existing;
+      const cutout = material.clone();
+      cutout.alphaTest = leafAlphaCutoff;
+      cutout.transparent = false;
+      cutout.depthWrite = true;
+      ownedMaterials.set(material, cutout);
+      return cutout;
+    };
+    const parts: Part[] = [];
+    if (!src) return { parts, ownedMaterials };
     src.updateMatrixWorld(true);
     const rootInv = new THREE.Matrix4().copy(src.matrixWorld).invert();
-    const out: Part[] = [];
     src.traverse((o) => {
       const m = o as THREE.Mesh;
       if (!m.isMesh) return;
@@ -317,10 +335,12 @@ export function PhScatter({ id, items, height, variants = false, castShadow = tr
         const c = box.getCenter(new THREE.Vector3());
         local.premultiply(new THREE.Matrix4().makeTranslation(-c.x, -box.min.y, -c.z));
       }
-      out.push({ geometry: m.geometry, material: m.material, local });
+      const material = Array.isArray(m.material) ? m.material.map(asCutout) : asCutout(m.material);
+      parts.push({ geometry: m.geometry, material, local });
     });
-    return out;
-  }, [src, variants]);
+    return { parts, ownedMaterials };
+  }, [src, variants, leafAlphaCutoff]);
+  useEffect(() => () => { ownedMaterials.forEach((material) => material.dispose()); }, [ownedMaterials]);
   const base = useMemo(() => (src && height && !variants ? height / modelHeight(src) : 1), [src, height, variants]);
   const groups = useMemo(() => {
     if (!variants) return parts.map((p) => ({ part: p, items }));
