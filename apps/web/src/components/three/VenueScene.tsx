@@ -1180,6 +1180,9 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
   const previewTarget: [number, number, number] = props.previewCamera?.target ?? (enclosed ? [0, 2.6, -0.5] : indoorPreview ? [0, 2.0, -4.8] : [0, 2.5, -5]);
 
   const localPlayer = players.find((p) => p.sessionId === localSessionId);
+  const localPlayerRef = useRef(localPlayer);
+  localPlayerRef.current = localPlayer;
+  const lastWaypointKeyRef = useRef<number | null>(null);
 
   const photoIndexMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -1194,10 +1197,11 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
 
       const navigateToWorld = useCallback(
         (destX: number, destZ: number) => {
+          const lp = localPlayerRef.current;
           const start = localPosRef.current.initialized
             ? { x: localPosRef.current.x, z: localPosRef.current.z }
-            : localPlayer
-              ? { x: localPlayer.x, z: localPlayer.z }
+            : lp
+              ? { x: lp.x, z: lp.z }
               : { x: 0, z: 10 };
           const path = findGridPathAStar(grid, start, { x: destX, z: destZ });
           if (path.length > 0) {
@@ -1206,11 +1210,12 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
             setClickMarker(last);
           }
         },
-        [grid, localPlayer]
+        [grid]
       );
 
       useEffect(() => {
-        if (!waypointTarget) return;
+        if (!waypointTarget || lastWaypointKeyRef.current === waypointTarget.key) return;
+        lastWaypointKeyRef.current = waypointTarget.key;
         navigateToWorld(waypointTarget.x, waypointTarget.z);
       }, [waypointTarget, navigateToWorld]);
 
