@@ -244,6 +244,13 @@
 - [x] Sảnh 3D trên điện thoại gọn lại: các nút nổi (Nhạc, Lưu bút, Photobooth, Video, Mừng cưới, nút chat, thanh cảm xúc, bảng điều khiển chủ tiệc) gom vào một thanh điều hướng dưới đáy: Chúc mừng (có số tin mới) · Mừng cưới · Pháo hoa · Cảm xúc · Thêm (nhạc, lưu bút, chụp ảnh, video, đi nhanh tới cổng hoa / sân khấu / bàn tiệc, điều khiển chủ tiệc); cần điều khiển nằm trên thanh và ẩn khi đang ngồi bàn; máy tính giữ nguyên. E2E trình duyệt điện thoại + máy tính đạt, đã triển khai web
 - [ ] Cấu hình tài khoản ngân hàng nền tảng + SePay API key ở `/admin/settings/payment` — chưa có thì khách bấm mua pháo hoa sẽ báo "Hệ thống chưa cấu hình tài khoản nhận thanh toán" (gói 3D/thiệp trả phí cũng vậy)
 
+### [x] Nhóm 32: Trang Quản Trị Cặp Đôi: Ảnh Trong Sảnh 3D & Nhận Tiền Mừng (đã triển khai)
+- [x] Thiết kế sảnh 3D: giá ảnh trên bản đồ có số (khớp "Giá ảnh N" ở Setup Phòng Cưới); thẻ "Ảnh cưới trong sảnh" + nút "Chọn ảnh cho sảnh"; chọn sân khấu / cổng / giá ảnh thì hiện "Chọn ảnh"; bố cục chưa lưu thì nút tự lưu trước khi chuyển tab (trước đây chuyển tab là mất thay đổi)
+- [x] Tiền mừng cưới vào thẳng tài khoản cô dâu chú rể: phần "Nhận tiền mừng cưới" (ngân hàng, số tài khoản, khoá SePay của đám cưới) dùng chung một component cho tab Cài Đặt (sảnh 3D) và tab Thiệp Cưới Online
+- [x] Sửa lỗi: form Cài Đặt luôn gửi ngân hàng MB (970422) nên mỗi lần lưu cài đặt là ghi đè ngân hàng cô dâu chú rể đã chọn; bỏ 3 ô ngân hàng cũ (chỉ 5 ngân hàng, không hiện số tài khoản đang dùng)
+- [x] Tiền pháo hoa và tiền mua gói giữ nguyên vào tài khoản nền tảng (chủ dự án chọn)
+- [x] Kiểm chứng: E2E trang quản trị 18/18 (giá ảnh có số, lối tắt lưu rồi mở Setup, góc xoay được lưu, Cài Đặt giữ Vietcombank sau khi lưu, tạo khoá SePay, QR mừng cưới trong sảnh dùng tài khoản cặp đôi và khoá của họ xác nhận được), E2E thiệp nhạc + mừng cưới đạt
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

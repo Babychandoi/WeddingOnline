@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Plus, RotateCw, Save, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, ImageIcon, Plus, RotateCw, Save, Trash2 } from 'lucide-react';
 import {
   GRID_COLS,
   GRID_ROWS,
@@ -21,6 +21,8 @@ interface SceneBuilderEditorProps {
   slug: string;
   initialLayout: SceneLayoutDocument;
   onSaved?: (layout: SceneLayoutDocument) => void;
+  /** Opens the dashboard's "Setup Phòng Cưới" tab, where each photo spot gets its picture */
+  onOpenPhotoSetup?: () => void;
 }
 
 const PREFAB_COLORS: Record<PrefabType, string> = {
@@ -38,8 +40,10 @@ export const SceneBuilderEditor: React.FC<SceneBuilderEditorProps> = ({
   slug,
   initialLayout,
   onSaved,
+  onOpenPhotoSetup,
 }) => {
   const [layout, setLayout] = useState<SceneLayoutDocument>(initialLayout);
+  const [savedLayout, setSavedLayout] = useState<SceneLayoutDocument>(initialLayout);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [placingType, setPlacingType] = useState<PrefabType | null>(null);
   const [saving, setSaving] = useState(false);
@@ -47,6 +51,13 @@ export const SceneBuilderEditor: React.FC<SceneBuilderEditorProps> = ({
 
   const validation = useMemo(() => validateSceneLayout(layout), [layout]);
   const selectedPrefab = layout.prefabs.find((p) => p.instanceId === selectedId) ?? null;
+  const dirty = useMemo(() => JSON.stringify(layout) !== JSON.stringify(savedLayout), [layout, savedLayout]);
+  /** Photo stands numbered in layout order, the same "Giá ảnh N" the setup tab shows */
+  const photoStandNo = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of layout.prefabs) if (p.prefabType === 'PHOTO_FRAME_STAND') m.set(p.instanceId, m.size + 1);
+    return m;
+  }, [layout.prefabs]);
 
   const handleTemplateSwitch = (templateId: TemplateId) => {
     const tpl = STARTER_TEMPLATES[templateId];
@@ -120,8 +131,8 @@ export const SceneBuilderEditor: React.FC<SceneBuilderEditorProps> = ({
     setSelectedId(null);
   };
 
-  const handleSave = async () => {
-    if (!validation.valid) return;
+  const handleSave = async (): Promise<boolean> => {
+    if (!validation.valid) return false;
     setSaving(true);
     setSaveMessage('');
     try {
@@ -133,13 +144,35 @@ export const SceneBuilderEditor: React.FC<SceneBuilderEditorProps> = ({
       const data = await res.json();
       if (!res.ok) throw new Error((data.errors && data.errors[0]) || data.error || 'Lỗi lưu');
       setSaveMessage('Đã lưu bố cục Sảnh 3D thành công!');
+      setSavedLayout(layout);
       onSaved?.(layout);
+      return true;
     } catch (err) {
       setSaveMessage(err instanceof Error ? err.message : 'Lỗi lưu bố cục');
+      return false;
     } finally {
       setSaving(false);
     }
   };
+
+  /** Switching tabs drops unsaved edits, so a changed layout is saved first */
+  const openPhotoSetup = async () => {
+    if (!onOpenPhotoSetup) return;
+    if (dirty && !(await handleSave())) return;
+    onOpenPhotoSetup();
+  };
+
+  const photoSetupButton = (label: string) =>
+    onOpenPhotoSetup ? (
+      <button
+        type="button"
+        onClick={openPhotoSetup}
+        disabled={saving || (dirty && !validation.valid)}
+        className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl bg-sky-600 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-sky-500 disabled:opacity-50"
+      >
+        {dirty ? `Lưu bố cục & ${label.toLowerCase()}` : label} <ArrowRight className="h-3.5 w-3.5" />
+      </button>
+    ) : null;
 
   const cellPx = 8; // 60 * 8 = 480px crisp grid canvas
 
@@ -211,7 +244,11 @@ export const SceneBuilderEditor: React.FC<SceneBuilderEditorProps> = ({
                   className={`absolute flex items-center justify-center rounded border text-[9px] font-bold leading-tight transition ${
                     PREFAB_COLORS[prefab.prefabType]
                   } ${isSelected ? 'z-20 ring-2 ring-indigo-600 ring-offset-1' : 'z-10'}`}
-                  title={PREFAB_CATALOG[prefab.prefabType].labelVi}
+                  title={
+                    prefab.prefabType === 'PHOTO_FRAME_STAND'
+                      ? `Giá ảnh ${photoStandNo.get(prefab.instanceId)}`
+                      : PREFAB_CATALOG[prefab.prefabType].labelVi
+                  }
                 >
                   <span className="truncate px-0.5">
                     {prefab.meta?.tableLabel ||
@@ -221,6 +258,8 @@ export const SceneBuilderEditor: React.FC<SceneBuilderEditorProps> = ({
                         ? 'CỔNG'
                         : prefab.prefabType === 'GIFT_BOX_STAND'
                         ? 'QR'
+                        : prefab.prefabType === 'PHOTO_FRAME_STAND'
+                        ? photoStandNo.get(prefab.instanceId)
                         : '')}
                   </span>
                 </button>
@@ -313,6 +352,19 @@ export const SceneBuilderEditor: React.FC<SceneBuilderEditorProps> = ({
               </div>
             )}
 
+            {(selectedPrefab.prefabType === 'PHOTO_FRAME_STAND' ||
+              selectedPrefab.prefabType === 'STAGE_MAIN' ||
+              selectedPrefab.prefabType === 'GATE_RECEPTION') && (
+              <div className="mt-2 rounded-xl bg-white/80 p-2.5 text-xs text-slate-600 ring-1 ring-indigo-100">
+                {selectedPrefab.prefabType === 'PHOTO_FRAME_STAND'
+                  ? `Giá ảnh ${photoStandNo.get(selectedPrefab.instanceId)} hiện một ảnh trong album cưới.`
+                  : selectedPrefab.prefabType === 'STAGE_MAIN'
+                    ? 'Màn hình sân khấu hiện một ảnh trong album cưới.'
+                    : 'Bảng chào mừng ở cổng hiện một ảnh trong album cưới.'}
+                {photoSetupButton('Chọn ảnh')}
+              </div>
+            )}
+
             <div className="mt-3 flex gap-2">
               <button
                 type="button"
@@ -329,6 +381,20 @@ export const SceneBuilderEditor: React.FC<SceneBuilderEditorProps> = ({
                 <Trash2 className="h-3.5 w-3.5" /> Xóa
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Where the photos in the hall come from */}
+        {onOpenPhotoSetup && (
+          <div className="rounded-3xl border border-sky-200 bg-sky-50/60 p-4 shadow-sm">
+            <h4 className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
+              <ImageIcon className="h-4 w-4 text-sky-600" aria-hidden="true" /> Ảnh cưới trong sảnh
+            </h4>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">
+              Màn hình sân khấu, bảng chào ở cổng và {photoStandNo.size} giá ảnh (ô xanh có số) hiện ảnh từ album
+              cưới. Tải ảnh lên và chọn ảnh cho từng chỗ ở tab Setup Phòng Cưới.
+            </p>
+            {photoSetupButton('Chọn ảnh cho sảnh')}
           </div>
         )}
 

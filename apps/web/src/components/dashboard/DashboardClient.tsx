@@ -35,6 +35,7 @@ import { SceneBuilderEditor } from '../builder/SceneBuilderEditor';
 import { PrintQrTab } from './PrintQrTab';
 import { InvitationEditor } from './InvitationEditor';
 import { RoomSetupEditor } from './RoomSetupEditor';
+import { GiftReceivingSettings } from './GiftReceivingSettings';
 import { uploadWeddingPhoto } from '@/lib/uploadWeddingPhoto';
 import { OAuthModal } from '../hall/OAuthModal';
 
@@ -74,9 +75,6 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
   const [videoEmbedUrl, setVideoEmbedUrl] = useState(initialWedding.videoEmbedUrl || '');
   const [videoIsLive, setVideoIsLive] = useState(initialWedding.videoIsLive);
   const [pin, setPin] = useState('');
-  const [bankBin, setBankBin] = useState('970422');
-  const [bankAccountNo, setBankAccountNo] = useState('');
-  const [bankAccountName, setBankAccountName] = useState(initialWedding.bankAccountName || '');
   const [ceremonyTimeIso, setCeremonyTimeIso] = useState(() => {
     const raw = initialWedding.ceremonyConfig?.ceremonyTimeIso;
     return raw ? new Date(raw).toISOString().slice(0, 16) : '';
@@ -192,9 +190,6 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
         videoEmbedUrl: videoEmbedUrl.trim() || null,
         videoIsLive,
         pin: pin.trim() || undefined,
-        bankBin,
-        bankAccountNo: bankAccountNo.trim() || undefined,
-        bankAccountName: bankAccountName.trim() || undefined,
         ceremonyConfig: {
           ceremonyTimeIso: ceremonyTimeIso ? new Date(ceremonyTimeIso).toISOString() : undefined,
           greetingMessage: greetingMessage.trim() || undefined,
@@ -538,7 +533,17 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
           })}
         </div>
 
-        {tab === 'builder' && <SceneBuilderEditor slug={wedding.slug} initialLayout={layoutState} onSaved={setLayoutState} />}
+        {tab === 'builder' && (
+          <SceneBuilderEditor
+            slug={wedding.slug}
+            initialLayout={layoutState}
+            onSaved={setLayoutState}
+            onOpenPhotoSetup={() => {
+              setTab('setup');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        )}
 
         {tab === 'setup' && (
           <RoomSetupEditor
@@ -641,43 +646,6 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
               </label>
             </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">Ngân Hàng (BIN)</label>
-              <select
-                value={bankBin}
-                onChange={(e) => setBankBin(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-              >
-                <option value="970422">MBBank (970422)</option>
-                <option value="970436">Vietcombank (970436)</option>
-                <option value="970407">Techcombank (970407)</option>
-                <option value="970415">VietinBank (970415)</option>
-                <option value="970418">BIDV (970418)</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Số Tài Khoản Cô Dâu / Chú Rể
-              </label>
-              <input
-                type="text"
-                value={bankAccountNo}
-                onChange={(e) => setBankAccountNo(e.target.value)}
-                placeholder="Nhập STK nhận tiền mừng..."
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs font-semibold text-slate-700">Tên Chủ Tài Khoản</label>
-              <input
-                type="text"
-                value={bankAccountName}
-                onChange={(e) => setBankAccountName(e.target.value)}
-                placeholder="NGUYEN NHAT MINH"
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-              />
-            </div>
-
             <div className="sm:col-span-2 flex items-center gap-3">
               <button
                 type="submit"
@@ -688,6 +656,16 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
               {saveNote && <span className="text-xs font-semibold text-emerald-700">{saveNote}</span>}
             </div>
           </form>
+        )}
+
+        {tab === 'settings' && !wedding.invitationOnly && (
+          <section className="mt-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm" aria-labelledby="gift-receiving-title">
+            <h3 id="gift-receiving-title" className="text-base font-bold text-slate-900">Nhận tiền mừng cưới</h3>
+            <p className="mb-4 mt-1 text-sm text-slate-600">
+              Khách quét mã QR ở hộp mừng cưới trong sảnh 3D và trên thiệp, tiền chuyển thẳng vào tài khoản của hai bạn. Số tiền không bao giờ hiện công khai.
+            </p>
+            <GiftReceivingSettings slug={wedding.slug} />
+          </section>
         )}
 
         {tab === 'photos' && (

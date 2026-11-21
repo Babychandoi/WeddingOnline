@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Copy, ExternalLink, Eye, Gift, ImagePlus, KeyRound, LayoutList, Link2, ListChecks, Loader2, MapPin, Music2, MousePointerClick, Palette, Play, Plus, Save, Square, Star, Trash2, Users, VolumeX, X } from 'lucide-react';
+import { Check, ExternalLink, Eye, Gift, ImagePlus, LayoutList, Link2, ListChecks, Loader2, MapPin, Music2, MousePointerClick, Palette, Play, Plus, Save, Square, Star, Trash2, Users, VolumeX, X } from 'lucide-react';
 import {
   INVITATION_EVENT_LABELS,
   INVITATION_LIMITS,
@@ -24,6 +24,7 @@ import { SAMPLE_WISHES } from '@/components/invitation/sampleInvitation';
 import { MusicBox } from '@/components/invitation/musicBox';
 import { deleteWeddingPhoto, uploadWeddingPhoto } from '@/lib/uploadWeddingPhoto';
 import { InvitationPublish } from './InvitationPublish';
+import { CopyField, GiftReceivingSettings, type GiftSettings } from './GiftReceivingSettings';
 
 const input =
   'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base text-slate-900 outline-none placeholder:text-slate-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 sm:text-sm';
@@ -97,25 +98,6 @@ function Group({ id, title, children, hint, bare = false }: { id: string; title:
   );
 }
 
-function CopyField({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="flex gap-2">
-      <input readOnly value={value} className={`${input} min-w-0 font-mono !text-xs`} onFocus={(e) => e.currentTarget.select()} />
-      <button
-        type="button"
-        onClick={() => navigator.clipboard?.writeText(value).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        })}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 text-xs font-bold text-amber-200 hover:bg-slate-800"
-      >
-        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? 'Đã chép' : 'Chép'}
-      </button>
-    </div>
-  );
-}
-
 function useIsDesktop(): boolean {
   const [desktop, setDesktop] = useState(false);
   useEffect(() => {
@@ -129,17 +111,6 @@ function useIsDesktop(): boolean {
 }
 
 type SaveState = 'saved' | 'dirty' | 'saving' | 'error';
-
-interface GiftSettings {
-  allowed: boolean;
-  bankBin: string;
-  bankAccountNo: string;
-  bankAccountName: string;
-  banks: Array<{ bin: string; name: string }>;
-  sepayKey: string;
-  webhookUrl: string;
-  ready: boolean;
-}
 type Mode = 'visual' | 'list';
 
 export function InvitationEditor({
@@ -173,9 +144,6 @@ export function InvitationEditor({
   const isDesktop = useIsDesktop();
   // Gift box settings live on the wedding (bank account, SePay key), not in the invitation JSON
   const [gift, setGift] = useState<GiftSettings | null>(null);
-  const [giftForm, setGiftForm] = useState({ bankBin: '', bankAccountNo: '', bankAccountName: '' });
-  const [giftMsg, setGiftMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [giftBusy, setGiftBusy] = useState(false);
   // Music preview
   const [previewTrack, setPreviewTrack] = useState<InvitationMusicTrackId | null>(null);
   const previewBox = useRef<MusicBox | null>(null);
@@ -207,11 +175,7 @@ export function InvitationEditor({
       .catch((e: Error) => setLoadError(e.message));
     fetch(`/api/weddings/${wedding.slug}/gift-settings`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((g: GiftSettings | null) => {
-        if (!g) return;
-        setGift(g);
-        setGiftForm({ bankBin: g.bankBin, bankAccountNo: g.bankAccountNo, bankAccountName: g.bankAccountName });
-      })
+      .then((g: GiftSettings | null) => g && setGift(g))
       .catch(() => undefined);
   }, [wedding.slug]);
 
@@ -317,26 +281,6 @@ export function InvitationEditor({
     const box = new MusicBox(null, track);
     previewBox.current = box;
     setPreviewTrack((await box.start()) ? track : null);
-  };
-
-  const saveGift = async (extra: Record<string, unknown> = {}) => {
-    if (!extra.action && (!giftForm.bankBin || !giftForm.bankAccountNo.trim())) {
-      setGiftMsg({ ok: false, text: 'Bạn chọn ngân hàng và nhập số tài khoản nhé.' });
-      return;
-    }
-    setGiftBusy(true);
-    setGiftMsg(null);
-    const res = await fetch(`/api/weddings/${wedding.slug}/gift-settings`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...giftForm, ...extra }),
-    }).catch(() => null);
-    const data = res ? await res.json().catch(() => ({})) : {};
-    setGiftBusy(false);
-    if (!res?.ok) return setGiftMsg({ ok: false, text: data.message ?? 'Chưa lưu được, bạn thử lại nhé.' });
-    setGift(data as GiftSettings);
-    setGiftForm({ bankBin: data.bankBin, bankAccountNo: data.bankAccountNo, bankAccountName: data.bankAccountName });
-    setGiftMsg({ ok: true, text: extra.action === 'generate-key' ? 'Đã tạo khoá SePay mới.' : extra.action === 'remove-key' ? 'Đã tắt tự xác nhận SePay.' : 'Đã lưu tài khoản nhận mừng cưới.' });
   };
 
   const inviteUrl = `${origin}/thiep/${wedding.slug}`;
@@ -670,68 +614,16 @@ export function InvitationEditor({
       case 'qua':
         return (
           <Group key={key} id="qua" bare={bare} title="Hộp mừng cưới" hint="Khách ở xa quét mã QR chuyển khoản thẳng vào tài khoản của hai bạn. Số tiền không bao giờ hiện công khai trên thiệp.">
-            {!gift ? (
-              <p className="flex items-center gap-2 text-xs text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Đang tải…</p>
-            ) : !gift.allowed ? (
-              <p className="rounded-xl bg-amber-50 px-3 py-2.5 text-xs text-amber-800">Hộp mừng cưới mở ở Gói Hạnh Phúc và Gói Viên Mãn. Nâng gói ở đầu trang quản trị để bật.</p>
-            ) : (
-              <>
+            <GiftReceivingSettings
+              slug={wedding.slug}
+              onSettings={setGift}
+              header={
                 <label className="flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-800">
                   <input type="checkbox" className="h-4 w-4 accent-rose-700" checked={config.sections.gift} onChange={(e) => patch({ sections: { ...config.sections, gift: e.target.checked } })} />
                   Hiện hộp mừng cưới trên thiệp
                 </label>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <label className={label} htmlFor="giftset-bank">Ngân hàng</label>
-                    <select id="giftset-bank" className={input} value={giftForm.bankBin} onChange={(e) => { const v = e.target.value; setGiftForm((f) => ({ ...f, bankBin: v })); }}>
-                      <option value="" disabled>Chọn ngân hàng</option>
-                      {gift.banks.map((b) => (
-                        <option key={b.bin} value={b.bin}>{b.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={label} htmlFor="giftset-no">Số tài khoản</label>
-                    <input id="giftset-no" inputMode="numeric" autoComplete="off" className={input} value={giftForm.bankAccountNo} maxLength={24} onChange={(e) => { const v = e.target.value; setGiftForm((f) => ({ ...f, bankAccountNo: v })); }} placeholder="Ví dụ: 0123456789" />
-                  </div>
-                  <div>
-                    <label className={label} htmlFor="giftset-name">Tên chủ tài khoản</label>
-                    <input id="giftset-name" autoComplete="off" className={`${input} uppercase`} value={giftForm.bankAccountName} maxLength={50} onChange={(e) => { const v = e.target.value; setGiftForm((f) => ({ ...f, bankAccountName: v })); }} placeholder="NGUYEN VAN A" />
-                  </div>
-                </div>
-                <button type="button" disabled={giftBusy} onClick={() => void saveGift()} className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-rose-700 px-4 text-sm font-bold text-white hover:bg-rose-600 disabled:opacity-60">
-                  {giftBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Lưu tài khoản
-                </button>
-                {giftMsg && <p className={`text-xs font-semibold ${giftMsg.ok ? 'text-emerald-700' : 'text-rose-700'}`} role="status">{giftMsg.text}</p>}
-                {!gift.ready && <p className="text-xs text-amber-700">Hộp mừng cưới hiện cho khách sau khi bạn lưu số tài khoản.</p>}
-
-                <div className="space-y-2.5 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5 text-xs leading-relaxed text-slate-700">
-                  <p className="flex items-center gap-1.5 text-sm font-black text-emerald-900"><KeyRound className="h-4 w-4" /> Tự xác nhận bằng SePay (không bắt buộc)</p>
-                  <p>Không bật thì khách vẫn chuyển khoản được, bạn tự xem trong app ngân hàng. Bật thì thiệp tự báo “Đã nhận” cho khách và ghi vào Sổ mừng cưới.</p>
-                  <ol className="list-decimal space-y-1 pl-4">
-                    <li>Đăng ký tài khoản tại <a href="https://my.sepay.vn" target="_blank" rel="noopener noreferrer" className="font-bold text-emerald-800 underline">sepay.vn</a> và liên kết đúng tài khoản ngân hàng ở trên.</li>
-                    <li>Trong SePay vào <strong>Tích hợp WebHooks → Thêm webhook</strong>, dán đường dẫn dưới đây, chọn sự kiện <strong>Có tiền vào</strong>, kiểu chứng thực <strong>API Key</strong>.</li>
-                    <li>Dán khoá API của đám cưới vào ô API Key rồi lưu.</li>
-                  </ol>
-                  <p className="font-bold text-slate-800">Đường dẫn webhook</p>
-                  <CopyField value={gift.webhookUrl} />
-                  <p className="font-bold text-slate-800">Khoá API</p>
-                  {gift.sepayKey ? (
-                    <>
-                      <CopyField value={gift.sepayKey} />
-                      <div className="flex flex-wrap gap-2">
-                        <button type="button" disabled={giftBusy} onClick={() => { if (window.confirm('Tạo khoá mới? Khoá cũ trong SePay sẽ không dùng được nữa.')) void saveGift({ action: 'generate-key' }); }} className="min-h-[40px] rounded-xl px-3 font-bold text-emerald-900 ring-1 ring-emerald-300 hover:bg-emerald-100">Đổi khoá</button>
-                        <button type="button" disabled={giftBusy} onClick={() => void saveGift({ action: 'remove-key' })} className="min-h-[40px] rounded-xl px-3 font-bold text-slate-700 ring-1 ring-slate-300 hover:bg-white">Tắt tự xác nhận</button>
-                      </div>
-                    </>
-                  ) : (
-                    <button type="button" disabled={giftBusy} onClick={() => void saveGift({ action: 'generate-key' })} className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-emerald-700 px-4 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-60">
-                      <KeyRound className="h-4 w-4" /> Tạo khoá SePay
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
+              }
+            />
           </Group>
         );
 
