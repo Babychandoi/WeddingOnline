@@ -443,6 +443,7 @@ useFrame((_, delta) => {
         controlsRef.current.update();
       }
       if (enclosed) constrainHallCamera(camera.position, target);
+      camera.updateMatrixWorld();
     }
 
     const now = performance.now();
@@ -1036,7 +1037,7 @@ const PrefabMesh: React.FC<{
               flowers={flowers}
               seed={seed}
             />
-            <SceneLabel position={[0, 1.52, 0]} center distanceFactor={13}>
+            <SceneLabel position={[0, 1.52, 0]} center>
               <div className="pointer-events-none whitespace-nowrap rounded-full border border-rose-200 bg-white/90 px-2.5 py-0.5 text-[10px] font-bold text-rose-900 shadow-sm">
                 {prefab.meta?.tableLabel || `Bàn ${tableNo}`}
               </div>
@@ -1236,6 +1237,22 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
           >
             {/* Sky, sun with soft shadows, fill and image-based light */}
             <RendererSetup exposure={(photoHall ? photoHall.light === 'night' || photoHall.light === 'twilight' : theme.mood === 'night') ? 1.15 : 1.05} />
+            {/* Run CameraRigAndController FIRST before all PrefabMesh & HumanAvatar so every 3D mesh and <Html> label projects with the exact same frame's camera matrix */}
+            {!isPreview && (
+              <CameraRigAndController
+                grid={grid}
+                localPlayer={localPlayer}
+                localPosRef={localPosRef}
+                joystickInput={props.joystickInput}
+                targetPath={targetPath}
+                onArriveClickMarker={() => setClickMarker(null)}
+                onMove={props.onMove}
+                onFpsDrop={setAutoLowQuality}
+                enclosed={enclosed}
+                registerCaptureFn={props.registerCaptureFn}
+                focusRef={fireworksFocusRef}
+              />
+            )}
             <VenueAtmosphere theme={theme} quality={lowQuality ? 'low' : 'high'} reference={photoHall} />
             <ShadowCasters enabled={!lowQuality} />
             {!lowQuality && (qualityPreset === 'high' || (isPreview && props.previewAutoRotate === false)) && (
@@ -1304,23 +1321,6 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
                 onOpenPhoto={props.onOpenPhoto}
               />
             ))}
-
-            {/* Run CameraRigAndController BEFORE HumanAvatar so camera, target & avatar share the exact same frame */}
-            {!isPreview && (
-              <CameraRigAndController
-                grid={grid}
-                localPlayer={localPlayer}
-                localPosRef={localPosRef}
-                joystickInput={props.joystickInput}
-                targetPath={targetPath}
-                onArriveClickMarker={() => setClickMarker(null)}
-                onMove={props.onMove}
-                onFpsDrop={setAutoLowQuality}
-                enclosed={enclosed}
-                registerCaptureFn={props.registerCaptureFn}
-                focusRef={fireworksFocusRef}
-              />
-            )}
 
             {/* Auto-NPCs (Hidden when live taken over by Bride/Groom/MC) */}
             {npcs
