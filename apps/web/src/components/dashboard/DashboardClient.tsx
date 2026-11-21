@@ -931,7 +931,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-slate-600">
-                        {meta.maxCcu} khách • {meta.allowVoiceChat ? 'Voice bàn tiệc + ' : ''}VietQR Webhook + Lưu trữ 2D vĩnh viễn
+                        {meta.maxCcu} khách • Chat cá nhân 1-1 + Bắn pháo hoa • {meta.allowVoiceChat ? 'Voice bàn tiệc + ' : ''}VietQR Webhook + Lưu trữ 2D vĩnh viễn
                       </p>
                     </button>
                   );

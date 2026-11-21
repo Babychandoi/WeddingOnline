@@ -335,7 +335,7 @@ export default function CreateWeddingPage() {
                           {meta.priceVnd === 0 ? '0đ (24 giờ)' : `${meta.priceVnd.toLocaleString('vi-VN')}đ`}
                         </p>
                         <p className="mt-1 text-[10px] text-slate-600">
-                          {meta.maxCcu} khách • {meta.allowVoiceChat ? 'Voice bàn tiệc • ' : ''}
+                          {meta.maxCcu} khách • Chat cá nhân 1-1 • Bắn pháo hoa • {meta.allowVoiceChat ? 'Voice bàn tiệc • ' : ''}
                           {meta.allowVietQr ? 'VietQR Webhook' : 'Khóa VietQR'}
                         </p>
                       </button>

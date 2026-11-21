@@ -47,8 +47,8 @@ const CAPABILITIES = [
   },
   {
     icon: Gift,
-    title: 'Mừng Cưới VietQR Xác Thực Webhook',
-    desc: 'Tiền chuyển thẳng 100% vào tài khoản cá nhân của cặp đôi. Pháo hoa sảnh 3D chỉ nổ khi SePay xác nhận và luôn ẩn hoàn toàn số tiền.',
+    title: 'Mừng Cưới VietQR, Chat Cá Nhân 1-1 & Bắn Pháo Hoa 3D',
+    desc: 'Khách nhắn tin riêng 1-1 với nhau ngay trong sảnh, bắn pháo hoa 3D chúc mừng lên bầu trời; tiền mừng chuyển thẳng 100% về tài khoản cặp đôi và luôn ẩn số tiền.',
   },
   {
     icon: Camera,
@@ -376,6 +376,14 @@ export default function HomePage() {
                         <strong>{meta.maxPhotos}</strong> ảnh triển lãm &amp; Photobooth
                       </li>
                       <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 shrink-0 text-emerald-600" />
+                        Chat cá nhân 1-1, chat chung, cụng ly &amp; bắt hoa cưới
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 shrink-0 text-emerald-600" />
+                        Bắn pháo hoa 3D chúc mừng rực rỡ toàn sảnh
+                      </li>
+                      <li className="flex items-center gap-2">
                         <Check
                           className={`h-4 w-4 shrink-0 ${
                             meta.allowVietQr ? 'text-emerald-600' : 'text-slate-300'
@@ -393,7 +401,7 @@ export default function HomePage() {
                         />
                         {meta.allowVoiceChat
                           ? 'Voice Chat từng bàn & Mic MC sân khấu LiveKit'
-                          : 'Bong bóng chat, cụng ly & bắt hoa cưới'}
+                          : 'Không kèm Voice Chat bàn tiệc LiveKit'}
                       </li>
                     </ul>
                   </div>

@@ -304,9 +304,10 @@
 ### [x] Nhóm 37: Cập Nhật Bảng Gói & Sức Chứa Đồng Thời (CCU) Sảnh Cưới 3D (`199.000đ` · `399.000đ / 50 khách` · `1.199.000đ / 200 khách`)
 - [x] **Bỏ gói miễn phí, chuyển gói khởi đầu sang `199.000đ`** (`packages/shared/src/types.ts`, `apps/web/src/app/page.tsx`, `apps/web/src/app/create/page.tsx`, `apps/web/src/app/api/orders/route.ts`, `apps/web/src/lib/adminFormat.ts`):
   - `TRIAL_24H` (`Phòng Cưới 24h`): đổi từ `0đ (Miễn phí)` sang **`199.000đ` (`priceVnd: 199000`)**, tối đa `15` khách đồng thời (CCU), thanh toán qua VietQR hoặc mã voucher đối tác Studio
-- [x] **Cập nhật số lượng khách đồng thời (CCU) cho Gói Hạnh Phúc & Gói Viên Mãn VIP** (`packages/shared/src/types.ts`, `packages/database/src/seedData.ts`, PostgreSQL DB):
+- [x] **Cập nhật số lượng khách đồng thời (CCU) & dòng tính năng Chat cá nhân 1-1 / Bắn pháo hoa 3D** (`packages/shared/src/types.ts`, `apps/web/src/app/page.tsx`, `apps/web/src/app/create/page.tsx`, `apps/web/src/components/dashboard/DashboardClient.tsx`, `packages/database/src/seedData.ts`, PostgreSQL DB):
   - `HAPPINESS` (`Gói Hạnh Phúc`, **`399.000đ`**): đổi từ `100` xuống **`50` khách đồng thời (`maxCcu: 50`)**
   - `VIP_FULFILLMENT` (`Gói Viên Mãn VIP`, **`1.199.000đ`**): đổi từ `1000` xuống **`200` khách đồng thời (`maxCcu: 200`)**
+  - Bổ sung rõ 2 dòng tính năng có dấu tích xanh trên cả 3 gói: **`Chat cá nhân 1-1, chat chung, cụng ly & bắt hoa cưới`** và **`Bắn pháo hoa 3D chúc mừng rực rỡ toàn sảnh`**
 
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
