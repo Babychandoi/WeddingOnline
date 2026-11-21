@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { IS_HANDHELD } from './deviceTier';
 import { detailNormal } from './pbr';
+import { PhScatter, ringScatter, usePhReady, type ScatterItem } from './phAssets';
 import { bark, leaves, petals } from './realMaterials';
 import { InstancedSet } from './realProps';
 
@@ -664,10 +665,30 @@ function pineSlope(items: PlantInstances, ground: Ground, random: Random) {
 export function PhotoVegetation({ style, seed, variant, palette, groundHeight = FLAT_GROUND }: {
   style: PlantStyle; seed: number; variant: string; palette: Palette; groundHeight?: Ground;
 }) {
-  const instances = useMemo(() => {
+  const canUseScannedTrees =
+    style === 'broadleaf' ||
+    style === 'tropical' ||
+    style === 'blossom' ||
+    style === 'birch' ||
+    style === 'cedar' ||
+    style === 'acacia' ||
+    style === 'pine';
+  const scannedIds = useMemo(
+    () =>
+      style === 'blossom'
+        ? ['jacaranda_tree', 'tree_small_02']
+        : style === 'tropical'
+          ? ['island_tree_01', 'island_tree_02', 'island_tree_03']
+          : ['island_tree_01', 'island_tree_02', 'tree_small_02'],
+    [style],
+  );
+  const phTreesReady = usePhReady(scannedIds[0]);
+
+  const { instances, scannedTreeBuckets, scannedGroundSets } = useMemo(() => {
     const random = randomFrom(seed + 1247);
     const result = new PlantInstances();
     const hasTrees = style !== 'lavender' && style !== 'tulip' && style !== 'wildflower' && style !== 'succulent' && style !== 'vineyard' && style !== 'barren';
+    const treeBuckets: ScatterItem[][] = scannedIds.map(() => []);
     if (hasTrees) {
       const profile = CANOPY_PROFILES[style];
       const flora = flowerColor(palette, variant, style === 'blossom' ? 'cherry' : 'bougainvillea');
@@ -676,9 +697,16 @@ export function PhotoVegetation({ style, seed, variant, palette, groundHeight = 
         const space = spots[i];
         const h = variant === 'lb_cedar' && i === 0 ? 11.3 : THREE.MathUtils.lerp(...profile.height, random());
         const angle = i * GOLDEN_ANGLE + random() * 0.88;
+        if (canUseScannedTrees) {
+          treeBuckets[i % scannedIds.length].push({
+            position: [space.x, space.y, space.z],
+            rotationY: angle,
+            scale: h / 7.5,
+          });
+        }
         if (style === 'palm') palm(result, space, h, angle, profile, random, variant);
         else if (style === 'bamboo') bamboo(result, space, h, angle, profile, random);
-        else branchedTree(result, space, style, h, angle, variant, profile, random, flora);
+        else if (!canUseScannedTrees || !phTreesReady) branchedTree(result, space, style, h, angle, variant, profile, random, flora);
       }
     }
     if (style === 'lavender' || style === 'tulip' || style === 'wildflower') flowerBeds(result, style, variant, palette, groundHeight, random);
@@ -688,11 +716,76 @@ export function PhotoVegetation({ style, seed, variant, palette, groundHeight = 
     if (variant === 'mekong_coconut_tent') coconutRiverBank(result, groundHeight, random);
     if (variant === 'vn_da_lat') pineSlope(result, groundHeight, random);
     if (!ROOFTOPS.has(variant)) understorey(result, variant, style, groundHeight, random);
-    return result;
-  }, [style, seed, variant, palette, groundHeight]);
+
+    // Real photo-scanned Poly Haven ground cover (grass, ferns, gazania flowers, shrubs, mossy rocks)
+    const groundOut: Array<{ id: string; items: ScatterItem[]; handheld?: boolean }> = [];
+    if (!ROOFTOPS.has(variant) && style !== 'barren') {
+      const placeOnTerrain = (raw: ScatterItem[]) =>
+        raw
+          .filter(({ position: [x, , z] }) => canPlant(x, z, groundHeight, 0.35))
+          .map(({ position: [x, , z], ...rest }) => ({
+            ...rest,
+            position: [x, groundHeight(x, z) - 0.025, z] as Vec3,
+          }));
+      groundOut.push({
+        id: 'grass_medium_02',
+        handheld: true,
+        items: placeOnTerrain(ringScatter(IS_HANDHELD ? 70 : 160, 15.6, 26, seed + 11, [0.75, 1.45])),
+      });
+      if (style !== 'succulent') {
+        groundOut.push({
+          id: 'grass_medium_01',
+          items: placeOnTerrain(ringScatter(85, 16.4, 32, seed + 12, [0.75, 1.4])),
+        });
+        groundOut.push({
+          id: 'fern_02',
+          handheld: true,
+          items: placeOnTerrain(ringScatter(IS_HANDHELD ? 18 : 42, 16.2, 28, seed + 13, [0.8, 1.5])),
+        });
+        groundOut.push({
+          id: 'flower_gazania',
+          items: placeOnTerrain(ringScatter(48, 15.6, 25, seed + 14, [0.8, 1.35])),
+        });
+        groundOut.push({
+          id: 'shrub_03',
+          handheld: true,
+          items: placeOnTerrain(ringScatter(IS_HANDHELD ? 10 : 22, 16.8, 32, seed + 15, [0.85, 1.45])),
+        });
+        groundOut.push({
+          id: 'shrub_04',
+          items: placeOnTerrain(ringScatter(18, 17.5, 34, seed + 16, [0.9, 1.6])),
+        });
+      }
+      groundOut.push({
+        id: 'rock_moss_set_01',
+        items: placeOnTerrain(ringScatter(12, 18.5, 36, seed + 17, [0.65, 1.15])),
+      });
+    }
+
+    return { instances: result, scannedTreeBuckets: treeBuckets, scannedGroundSets: groundOut };
+  }, [style, seed, variant, palette, groundHeight, canUseScannedTrees, phTreesReady, scannedIds]);
 
   return (
     <group name={`photo-vegetation-${style}`}>
+      {canUseScannedTrees &&
+        phTreesReady &&
+        scannedIds.map((id, idx) =>
+          scannedTreeBuckets[idx].length > 0 ? (
+            <PhScatter key={id} id={id} items={scannedTreeBuckets[idx]} height={7.5} leafAlphaCutoff={0.42} />
+          ) : null,
+        )}
+      {scannedGroundSets.map((s) =>
+        s.items.length > 0 ? (
+          <PhScatter
+            key={s.id}
+            id={s.id}
+            items={s.items}
+            variants
+            handheld={s.handheld}
+            castShadow={!IS_HANDHELD && (s.id.startsWith('shrub') || s.id.startsWith('rock'))}
+          />
+        ) : null,
+      )}
       {instances.trunks.length > 0 && <InstancedSet geometry={SHAFT} material={BARK} items={instances.trunks} castShadow={!IS_HANDHELD} />}
       {instances.wood.length > 0 && <InstancedSet geometry={BRANCH} material={BARK} items={instances.wood} castShadow={!IS_HANDHELD} />}
       {instances.nodes.length > 0 && <InstancedSet geometry={JOINT} material={BARK} items={instances.nodes} castShadow={false} />}

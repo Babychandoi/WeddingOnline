@@ -14,6 +14,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import { PEOPLE, type PersonInfo } from '@dco/shared';
 import { loadGltfCached } from './GlbAssetMesh';
 import { IS_HANDHELD } from './deviceTier';
+import { detailNormal, detailRoughness } from './pbr';
 
 export const PEOPLE_BASE = '/assets/people';
 export const personUrl = (id: string) => `${PEOPLE_BASE}/${id}.glb`;
@@ -99,9 +100,13 @@ export function RealPerson({
   const body = info?.body ?? 'f';
   const rig = useRig(id, body, priority);
 
-  const { object, mixer, actions } = useMemo(() => {
-    if (!rig) return { object: null, mixer: null, actions: null };
+  const { object, mixer, actions, lifeBones } = useMemo(() => {
+    if (!rig) return { object: null, mixer: null, actions: null, lifeBones: null };
     const obj = cloneSkinned(rig.scene) as THREE.Group;
+    const microNorm = detailNormal('micro');
+    const fabricNorm = detailNormal('fabric');
+    const fabricRough = detailRoughness('fabric');
+
     obj.traverse((o) => {
       const m = o as THREE.SkinnedMesh;
       if (!m.isMesh) return;
@@ -109,12 +114,56 @@ export function RealPerson({
       m.receiveShadow = true;
       m.frustumCulled = false; // skinned bounds do not follow the animation
       m.userData.realPerson = true;
-      const mats = Array.isArray(m.material) ? m.material : [m.material];
-      mats.forEach((mat) => {
+
+      const upgradeMat = (mat: THREE.Material): THREE.Material => {
         const sm = mat as THREE.MeshStandardMaterial;
-        sm.envMapIntensity = 0.8;
-      });
+        if (!sm.isMeshStandardMaterial) return mat;
+        const label = `${m.name} ${sm.name}`.toLowerCase();
+        const isEye = label.includes('eye') || label.includes('cornea') || label.includes('teeth');
+        const isHair = label.includes('hair') || label.includes('brow') || label.includes('lash');
+        const isSkin =
+          label.includes('skin') ||
+          label.includes('head') ||
+          label.includes('body') ||
+          label.includes('face') ||
+          label.includes('hand') ||
+          (!isEye && !isHair && !label.includes('cloth') && !label.includes('shirt') && !label.includes('pant') && !label.includes('dress') && !label.includes('shoe'));
+
+        if (IS_HANDHELD) {
+          sm.envMapIntensity = isEye ? 1.35 : 0.95;
+          sm.roughness = isEye ? 0.12 : isSkin ? 0.54 : 0.72;
+          return sm;
+        }
+
+        const phys = new THREE.MeshPhysicalMaterial({
+          name: sm.name,
+          color: sm.color,
+          map: sm.map,
+          normalMap: sm.normalMap ?? (isSkin ? microNorm : isEye ? null : fabricNorm),
+          normalScale: sm.normalMap ? sm.normalScale : new THREE.Vector2(isSkin ? 0.12 : 0.22, isSkin ? 0.12 : 0.22),
+          roughnessMap: sm.roughnessMap ?? (!isSkin && !isEye ? fabricRough : null),
+          roughness: isEye ? 0.08 : isHair ? 0.46 : isSkin ? 0.52 : 0.76,
+          metalness: isEye ? 0.02 : sm.metalness * 0.4,
+          alphaMap: sm.alphaMap,
+          transparent: sm.transparent,
+          opacity: sm.opacity,
+          alphaTest: sm.alphaTest,
+          side: sm.side,
+          // Warm subcutaneous sheen for human skin; soft fabric sheen for garments
+          sheen: isEye ? 0 : isSkin ? 0.38 : isHair ? 0.25 : 0.55,
+          sheenColor: isSkin ? new THREE.Color('#ffcab8') : new THREE.Color('#fff9f2'),
+          sheenRoughness: isSkin ? 0.48 : 0.65,
+          // Natural sebaceous micro-gloss on skin, crisp wet corneal reflection on eyes
+          clearcoat: isEye ? 1.0 : isSkin ? 0.09 : isHair ? 0.15 : 0,
+          clearcoatRoughness: isEye ? 0.04 : 0.38,
+          envMapIntensity: isEye ? 1.55 : isSkin ? 0.95 : 0.88,
+        });
+        return phys;
+      };
+
+      m.material = Array.isArray(m.material) ? m.material.map(upgradeMat) : upgradeMat(m.material);
     });
+
     const mx = new THREE.AnimationMixer(obj);
     const acts = new Map<ClipName, THREE.AnimationAction>();
     rig.clips.forEach((clip) => {
@@ -122,7 +171,12 @@ export function RealPerson({
       a.setLoop(THREE.LoopRepeat, Infinity);
       acts.set(clip.name as ClipName, a);
     });
-    return { object: obj, mixer: mx, actions: acts };
+    const bones = {
+      head: obj.getObjectByName('Bip01_Head'),
+      neck: obj.getObjectByName('Bip01_Neck'),
+      spine: obj.getObjectByName('Bip01_Spine1') ?? obj.getObjectByName('Bip01_Spine'),
+    };
+    return { object: obj, mixer: mx, actions: acts, lifeBones: bones };
   }, [rig, castShadow]);
 
   const current = useRef<ClipName | null>(null);
@@ -163,6 +217,21 @@ export function RealPerson({
     const walk = actions.get('walk');
     if (walk) walk.timeScale = THREE.MathUtils.clamp(m.speed / WALK_CLIP_SPEED, 0.6, 1.8);
     mixer.update(Math.min(dt, 0.1));
+
+    // Living micro-motion: subtle desynchronized head gaze, neck tilt and breathing posture
+    if (lifeBones && want !== 'walk') {
+      const t = performance.now() * 0.001 + phase.current * 3.7;
+      if (lifeBones.head) {
+        lifeBones.head.rotation.y += Math.sin(t * 0.55) * 0.085 + Math.sin(t * 1.2) * 0.025;
+        lifeBones.head.rotation.z += Math.cos(t * 0.42) * 0.035;
+      }
+      if (lifeBones.neck) {
+        lifeBones.neck.rotation.y += Math.sin(t * 0.55) * 0.04;
+      }
+      if (lifeBones.spine) {
+        lifeBones.spine.rotation.x += Math.sin(t * 1.45) * 0.018;
+      }
+    }
   });
 
   if (!object) return <>{fallback}</>;

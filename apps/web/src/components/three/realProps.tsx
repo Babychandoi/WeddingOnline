@@ -39,7 +39,7 @@ import {
   wineGlass,
 } from './realGeometry';
 import { IS_HANDHELD } from './deviceTier';
-import { PhScatter, type ScatterItem } from './phAssets';
+import { PhModel, PhScatter, type ScatterItem } from './phAssets';
 import { carpet, fabric, flameGlow, glass, gold, leaves, liquid, marble, organza, painted, petals, porcelain, silver, wax, wood } from './realMaterials';
 
 type Vec3 = [number, number, number];
@@ -275,12 +275,23 @@ export function BanquetTableDressing({
       <InstancedSet geometry={wineGlass()} material={glass()} items={settings.glasses} castShadow={false} />
       <InstancedSet geometry={wineFill()} material={liquid('#5c0f1d')} items={settings.glasses} castShadow={false} />
 
-      {/* Centrepiece: gilded compote of roses ringed by pillar candles */}
+      {/* Centrepiece: photo-scanned brass/ceramic vase & candleholders ringed by roses and pillar candles */}
       <group position={[0, height, 0]}>
-        <mesh geometry={urn()} material={gold('champagne')} scale={[0.55, 0.55, 0.55]} />
-        <group position={[0, 0.22, 0]}>
+        <PhModel
+          id={seed % 3 === 0 ? 'brass_vase_01' : seed % 3 === 1 ? 'ceramic_vase_01' : 'ceramic_vase_03'}
+          height={0.24}
+          fallback={<mesh geometry={urn()} material={gold('champagne')} scale={[0.55, 0.55, 0.55]} />}
+        />
+        <group position={[0, 0.24, 0]}>
           <RoseDome radius={0.17} palette={flowers} seed={seed} minY={-0.25} />
         </group>
+        {!IS_HANDHELD && (
+          <PhModel
+            id="brass_candleholders"
+            position={[0.22, 0.002, -0.18]}
+            height={0.22}
+          />
+        )}
         {[0, 1, 2, 3, 4].map((i) => {
           const a = (i / 5) * Math.PI * 2 + 0.3;
           const h = [0.12, 0.18, 0.1, 0.15, 0.2][i];
@@ -385,9 +396,8 @@ export function ChampagneTower() {
 
 export function EaselFrame({ children }: { children?: React.ReactNode }) {
   const legMat = wood('#4a2f1a', 0.3);
-  return (
-    <group>
-      {/* Tripod: two front legs and a rear prop */}
+  const proceduralEasel = (
+    <>
       {[-0.26, 0.26].map((x) => (
         <mesh key={x} position={[x, 0.78, 0.04]} rotation={[0.08, 0, x > 0 ? 0.1 : -0.1]} material={legMat}>
           <boxGeometry args={[0.035, 1.6, 0.025]} />
@@ -396,10 +406,14 @@ export function EaselFrame({ children }: { children?: React.ReactNode }) {
       <mesh position={[0, 0.72, -0.28]} rotation={[-0.36, 0, 0]} material={legMat}>
         <boxGeometry args={[0.03, 1.5, 0.022]} />
       </mesh>
-      {/* Ledge the frame rests on */}
       <mesh position={[0, 0.4, 0.07]} material={legMat}>
         <boxGeometry args={[0.7, 0.03, 0.08]} />
       </mesh>
+    </>
+  );
+  return (
+    <group>
+      <PhModel id="standing_picture_frame_02" height={1.58} fallback={proceduralEasel} />
       <group position={[0, 0.96, 0.08]} rotation={[-0.08, 0, 0]}>
         <mesh geometry={pictureFrame(0.92, 1.1, 0.09)} material={gold('yellow')} />
         {children}
@@ -638,8 +652,8 @@ export function CrystalChandelier({ scale = 1, castLight = !IS_HANDHELD }: { sca
     return g;
   }, []);
   const cup = useMemo(() => new THREE.CylinderGeometry(0.05, 0.03, 0.06, 14), []);
-  return (
-    <group scale={scale}>
+  const proceduralChandelier = (
+    <>
       {/* Stem, crown and central bowl */}
       <mesh position={[0, 1.2, 0]} material={gold('yellow')}>
         <cylinderGeometry args={[0.03, 0.03, 1.4, 10]} />
@@ -655,6 +669,11 @@ export function CrystalChandelier({ scale = 1, castLight = !IS_HANDHELD }: { sca
       <InstancedSet geometry={bulb} material={flameGlow('#ffd9a0', 5)} items={bulbs.map((b) => ({ position: [b.position[0], b.position[1] + 0.03, b.position[2]] }))} castShadow={false} />
       <InstancedSet geometry={prism} material={crystalMaterial()} items={drops} castShadow={false} />
       <InstancedSet geometry={bead} material={crystalMaterial()} items={beads} castShadow={false} />
+    </>
+  );
+  return (
+    <group scale={scale}>
+      <PhModel id="Chandelier_01" position={[0, -0.65, 0]} height={1.85} fallback={proceduralChandelier} />
       {castLight && <pointLight position={[0, -0.3, 0]} color="#ffd8a8" intensity={16} distance={22} decay={1.4} />}
     </group>
   );
@@ -950,19 +969,25 @@ export function GiftTable({ accent }: { accent: string }) {
 }
 
 function IndoorPlants({ half, bays }: { half: number; bays: number }) {
-  const items = useMemo(() => {
-    const out: ScatterItem[] = [];
+  const { primary, secondary, planters } = useMemo(() => {
+    const p1: ScatterItem[] = [];
+    const p2: ScatterItem[] = [];
+    const pl: ScatterItem[] = [];
     const bay = (half * 2) / bays;
     for (let b = 1; b < bays; b++) {
       const t = -half + bay * b;
       const inset = half - 0.55;
-      out.push(
-        { position: [t, 0, -inset], rotationY: b, scale: 1.1 },
-        { position: [-inset, 0, t], rotationY: b * 2, scale: 1.1 },
-        { position: [inset, 0, t], rotationY: b * 3, scale: 1.1 },
-      );
+      p1.push({ position: [t, 0, -inset], rotationY: b, scale: 1.1 });
+      p2.push({ position: [-inset, 0, t], rotationY: b * 2, scale: 1.05 });
+      pl.push({ position: [inset, 0, t], rotationY: b * 3, scale: 1.0 });
     }
-    return out;
+    return { primary: p1, secondary: p2, planters: pl };
   }, [half, bays]);
-  return <PhScatter id="potted_plant_01" items={items} height={1.6} />;
+  return (
+    <group>
+      <PhScatter id="potted_plant_01" items={primary} height={1.6} />
+      <PhScatter id="potted_plant_02" items={secondary} height={1.45} />
+      <PhScatter id="potted_plant_04" items={planters} height={1.25} />
+    </group>
+  );
 }

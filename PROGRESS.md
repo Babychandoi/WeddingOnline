@@ -260,6 +260,20 @@
 - [x] Cập nhật lại bộ ảnh đại diện `apps/web/public/venues/*.webp` cho 101 không gian; nút chuyển đổi mượt giữa **Góc ảnh 3D** và **Toàn sảnh** tại `/khong-gian/[id]`
 - [x] Kiểm chứng: `npm run typecheck` (`6/6`), `npm test` (`12/12`), đóng gói và triển khai lên cụm Docker `poiplegal.online` (`npm run docker:up`)
 
+### [x] Nhóm 34: Kết Hợp Cách 1 (3D Gaussian Splatting `<Splat />` & High-Density Depth Relief) + Cách 2 (Quét 3D Photogrammetry `.glb`, 100% PBR Ảnh Thật, Shader Da/Mắt & ContactShadows)
+- [x] **Cách 1 — 3D Gaussian Splatting & Góc ảnh 3D chiều sâu độ phân giải cao** (`venuePhotoRelief.tsx`, `VenueScene.tsx`):
+  - Tích hợp `<Splat />` (3D Gaussian Splatting từ `@react-three/drei`) hỗ trợ nạp trực tiếp file `.splat` đời thật
+  - Nâng lưới `VenuePhotoRelief` từ `112×84` lên `224×168` kèm bộ lọc làm mượt song phương giữ biên (`Edge-Preserving Bilateral Depth Filter`), shader vi sai chiều sâu (`Sub-pixel Depth Parallax & Specular Glint`) và hạt ánh sáng nổi 3D (`DepthAtmosphereParticles`)
+- [x] **Cách 2A — Kích hoạt toàn bộ 32 mô hình quét 3D Photogrammetry Poly Haven (`.glb`) trên cả 101 sảnh** (`photoVegetation.tsx`, `realProps.tsx`):
+  - Phủ cây quét 3D thật (`island_tree_01..03`, `tree_small_02`, `jacaranda_tree`) và thảm thực vật quét 3D (`grass_medium_01..02`, `fern_02`, `flower_gazania`, `shrub_03..04`, `rock_moss_set_01`) trực tiếp lên địa hình `PhotoVegetation` của 98 sảnh có hồ sơ ảnh
+  - Thay đạo cụ hình học bằng mô hình `.glb` quét 3D thật trong `realProps.tsx`: đèn chùm `Chandelier_01`, bình hoa bàn tiệc `brass_vase_01`/`ceramic_vase_01`/`ceramic_vase_03`, chân nến đồng `brass_candleholders`, khung tranh gỗ `standing_picture_frame_02`, chậu cây `potted_plant_01..04`
+- [x] **Cách 2B — Mở khóa 100% PBR Texture ảnh chụp thật 2K & Bóng tiếp xúc `<ContactShadows>`** (`venueKits.tsx`, `VenueScene.tsx`):
+  - Bật bộ texture ảnh chụp 2K Poly Haven (`_diff.webp`, `_nor.webp`, `_rough.webp`) cho cả 7 loại mặt sàn/mặt đất (bao gồm `stone` và `sand` kèm trộn UV 2 tỉ lệ chống lặp `antiTile`)
+  - Thêm `<ContactShadows>` mềm dưới sàn sảnh `30m×30m` ghim chặt toàn bộ chân bàn, ghế Chiavari, trụ hoa và khách mời
+- [x] **Cách 2C — Nâng cấp Nhân vật người thật (`RealPerson.tsx`)**:
+  - Chuyển vật liệu 51 nhân vật Rocketbox sang `MeshPhysicalMaterial`: da có độ tán sắc ấm dưới da (`sheen: #ffcab8`), vân da vi mô (`detailNormal('micro')`), mắt có lớp phản xạ giác mạc ướt (`clearcoat: 1.0`), trang phục có vân sợi vải (`detailNormal('fabric')`)
+  - Thêm cử động vi mô như người sống (`Bip01_Head`, `Bip01_Neck`, `Bip01_Spine1`): tự nhiên nhìn quanh, nghiêng đầu và thở lệch pha giữa các khách mời
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

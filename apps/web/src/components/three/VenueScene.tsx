@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Html, OrbitControls } from '@react-three/drei';
+import { ContactShadows, Html, OrbitControls, Splat } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import * as THREE from 'three';
 import {
@@ -130,6 +130,8 @@ interface VenueSceneProps {
   photoComposition?: boolean;
   /** Preview camera override (close-up stills) */
   previewCamera?: { position: [number, number, number]; target: [number, number, number] };
+  /** Optional 3D Gaussian Splatting (.splat) environment URL */
+  splatUrl?: string;
 }
 
 type AuditVector = [number, number, number];
@@ -1174,7 +1176,22 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
             {isPreview && props.previewAutoRotate === false && <FrameProbe orbit={previewOrbit} />}
 
             <VenueEnvironment theme={theme} photoComposition={photoComposition} reference={photoHall} />
+            {props.splatUrl && <Splat src={props.splatUrl} position={[0, 0, 0]} scale={1} />}
             {photoComposition ? <><GardenCameraFraming /><GardenCeremony /></> : <AmbientPetals lowQuality={lowQuality} templateId={layout.templateId} />}
+
+            {/* Soft ContactShadows anchoring banquet tables, chairs, pedestals and guests onto the floor */}
+            {!lowQuality && !photoComposition && (
+              <ContactShadows
+                position={[0, 0.004, 0]}
+                opacity={theme.mood === 'night' || theme.mood === 'indoor' ? 0.48 : 0.36}
+                scale={32}
+                blur={1.9}
+                far={4.2}
+                resolution={512}
+                color={theme.mood === 'night' ? '#09080c' : '#261e18'}
+                frames={2}
+              />
+            )}
 
             {/* 30m x 30m Hall Floor */}
             <mesh

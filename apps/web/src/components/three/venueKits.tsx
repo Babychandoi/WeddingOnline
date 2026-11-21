@@ -55,14 +55,16 @@ export function SurfaceMaterial({ color: base, theme, role, size, reference }: {
   const normalScale = useMemo(() => new THREE.Vector2(0.8, 0.8), []);
   // Polished floors get a clear lacquer coat so they mirror chandeliers and the stage
   const polished = kind === 'marble' || kind === 'tile' || (kind === 'wood' && role === 'floor');
-  // Photographed maps only where the photo matches the venue. The sand scan is cracked, damp
-  // sand (grey, glossy enough to mirror the sky); 'stone' is the catch-all for any colour that
-  // is not lawn, sand or planks (beach dunes, red earth, paving…), and a grey paving photo would
-  // override it. Both keep the procedural surface tinted with the venue's own colour.
-  const usePhoto = photo !== null && kind !== 'sand' && kind !== 'stone';
+  // Use Poly Haven photographed 2K PBR maps across all 7 surface kinds whenever loaded,
+  // tinting sand and stone toward each venue's own natural palette so they never look grey.
+  const usePhoto = photo !== null;
   const maps = usePhoto && photo ? photo : { map, normalMap, roughnessMap };
-  const tint = usePhoto ? photoTint : color;
-  const roughness = usePhoto ? 1 : SURFACE_ROUGHNESS[kind];
+  const tint = usePhoto
+    ? kind === 'stone'
+      ? `#${new THREE.Color('#ffffff').lerp(new THREE.Color(swatch), 0.48).getHexString()}`
+      : photoTint
+    : color;
+  const roughness = usePhoto ? (kind === 'sand' ? 0.92 : 1) : SURFACE_ROUGHNESS[kind];
   const naturalWood = reference !== undefined && kind === 'wood';
   return polished ? (
     <meshPhysicalMaterial
@@ -73,11 +75,11 @@ export function SurfaceMaterial({ color: base, theme, role, size, reference }: {
       normalScale={normalScale}
       roughnessMap={maps.roughnessMap}
       roughness={roughness}
-      clearcoat={naturalWood ? 0.11 : usePhoto ? 0.3 : kind === 'wood' ? 0.35 : 0.4}
-      clearcoatRoughness={naturalWood ? 0.43 : 0.22}
+      clearcoat={naturalWood ? 0.14 : usePhoto ? 0.34 : kind === 'wood' ? 0.35 : 0.4}
+      clearcoatRoughness={naturalWood ? 0.38 : 0.2}
       // Polished stone mirrors the bright windows of the room at grazing angles; at full strength
       // that sheen read as a milky fog over the floor
-      envMapIntensity={naturalWood ? 0.26 : 0.4}
+      envMapIntensity={naturalWood ? 0.32 : 0.45}
     />
   ) : (
     <meshStandardMaterial
@@ -88,7 +90,7 @@ export function SurfaceMaterial({ color: base, theme, role, size, reference }: {
       normalScale={normalScale}
       roughnessMap={maps.roughnessMap}
       roughness={roughness}
-      onBeforeCompile={kind === 'grass' || (role === 'ground' && (kind === 'sand' || kind === 'snow')) ? antiTile : undefined}
+      onBeforeCompile={kind === 'grass' || kind === 'sand' || kind === 'stone' || (role === 'ground' && kind === 'snow') ? antiTile : undefined}
     />
   );
 }
