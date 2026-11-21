@@ -348,9 +348,8 @@ export default function HomePage() {
               return (
                 <div
                   key={tierId}
-                  className={`flex flex-col justify-between rounded-3xl border bg-white p-6 shadow-sm ${
-                    isVip ? 'border-rose-500 ring-2 ring-rose-200' : 'border-amber-200'
-                  }`}
+                  className={`flex flex-col justify-between rounded-3xl border bg-white p-6 shadow-sm ${isVip ? 'border-rose-500 ring-2 ring-rose-200' : 'border-amber-200'
+                    }`}
                 >
                   <div>
                     <div className="flex items-center justify-between">
@@ -385,9 +384,8 @@ export default function HomePage() {
                       </li>
                       <li className="flex items-center gap-2">
                         <Check
-                          className={`h-4 w-4 shrink-0 ${
-                            meta.allowVietQr ? 'text-emerald-600' : 'text-slate-300'
-                          }`}
+                          className={`h-4 w-4 shrink-0 ${meta.allowVietQr ? 'text-emerald-600' : 'text-slate-300'
+                            }`}
                         />
                         {meta.allowVietQr
                           ? 'Mở Hộp Mừng Cưới VietQR Webhook 100%'
@@ -395,9 +393,8 @@ export default function HomePage() {
                       </li>
                       <li className="flex items-center gap-2">
                         <Check
-                          className={`h-4 w-4 shrink-0 ${
-                            meta.allowVoiceChat ? 'text-emerald-600' : 'text-slate-300'
-                          }`}
+                          className={`h-4 w-4 shrink-0 ${meta.allowVoiceChat ? 'text-emerald-600' : 'text-slate-300'
+                            }`}
                         />
                         {meta.allowVoiceChat
                           ? 'Voice Chat từng bàn & Mic MC sân khấu LiveKit'
@@ -408,11 +405,10 @@ export default function HomePage() {
 
                   <Link
                     href="/create"
-                    className={`mt-6 block rounded-2xl py-3 text-center text-xs font-bold transition ${
-                      isVip
-                        ? 'bg-rose-600 text-white shadow hover:bg-rose-500'
-                        : 'border border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100'
-                    }`}
+                    className={`mt-6 block rounded-2xl py-3 text-center text-xs font-bold transition ${isVip
+                      ? 'bg-rose-600 text-white shadow hover:bg-rose-500'
+                      : 'border border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100'
+                      }`}
                   >
                     Chọn {meta.nameVi}
                   </Link>

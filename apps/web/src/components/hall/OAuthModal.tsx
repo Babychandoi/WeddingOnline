@@ -31,7 +31,7 @@ export const OAuthModal: React.FC<OAuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [error, setError] = useState('');
-  const [googleConfigured, setGoogleConfigured] = useState(false);
+  const [googleConfigured, setGoogleConfigured] = useState<boolean | null>(null);
   const [devAuthEnabled, setDevAuthEnabled] = useState(false);
   const [redirectUriHint, setRedirectUriHint] = useState('');
 
@@ -181,7 +181,7 @@ export const OAuthModal: React.FC<OAuthModalProps> = ({
           <span>Tiếp tục bằng Tài khoản Google</span>
         </a>
 
-        {!googleConfigured && (
+        {googleConfigured === false && (
           <p className="mt-2 rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 py-2 text-[11px] leading-relaxed text-amber-950">
             Chưa điền <code className="font-bold">GOOGLE_CLIENT_ID</code> vào <code className="font-bold">.env</code>
             {redirectUriHint ? ` (Callback: ${redirectUriHint})` : ''}.

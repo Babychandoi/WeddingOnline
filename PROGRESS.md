@@ -308,6 +308,9 @@
   - `HAPPINESS` (`Gói Hạnh Phúc`, **`399.000đ`**): đổi từ `100` xuống **`50` khách đồng thời (`maxCcu: 50`)**
   - `VIP_FULFILLMENT` (`Gói Viên Mãn VIP`, **`1.199.000đ`**): đổi từ `1000` xuống **`200` khách đồng thời (`maxCcu: 200`)**
   - Bổ sung rõ 2 dòng tính năng có dấu tích xanh trên cả 3 gói: **`Chat cá nhân 1-1, chat chung, cụng ly & bắt hoa cưới`** và **`Bắn pháo hoa 3D chúc mừng rực rỡ toàn sảnh`**
+- [x] **Sửa 2 lỗi phát hiện khi QA trình duyệt trực tiếp trên `poiplegal.online`** (`OAuthModal.tsx`, `VenueScene.tsx`):
+  - Khởi tạo `googleConfigured` bằng `null` thay vì `false` để không nháy dòng cảnh báo `Chưa điền GOOGLE_CLIENT_ID` trong lúc `/api/health` đang tải
+  - Dời thanh **Đồ họa: Tự động / Cao / Tiết kiệm pin** xuống `sm:top-[6.5rem]` để không đè lên thanh đi nhanh **Cổng Hoa / Sân Khấu / Bàn Tiệc** trên máy tính
 
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
