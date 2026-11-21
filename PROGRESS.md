@@ -314,6 +314,7 @@
 - [x] **Tối ưu thêm FPS & tốc độ vào sảnh 3D (`60fps` mặc định)** (`VenueScene.tsx`, `venueAtmosphere.tsx`, `phAssets.tsx`):
   - Giới hạn `dpr={[1, 1.25]}`, tắt `EffectComposer` PostFX ở chế độ `Tự động` (giữ ở `Cao (Photoreal)`), bật `FpsGuard` tự hạ chất lượng ngay cả trong sảnh thật
   - Bỏ đổ bóng cho cây/đá ở vòng ngoài bán kính `32m` (`ShadowCasters`), trì hoãn tải HDRI 5MB (`550ms`) và cây nền nặng (`650ms`) để sảnh & nhân vật hiện tức thì
+  - Sửa lỗi giật/rung cảnh vật khi di chuyển (`CameraRigAndController` trong `VenueScene.tsx`): đặt `CameraRigAndController` chạy trước `HumanAvatar` để camera và nhân vật luôn đồng bộ đúng 1 khung hình, và bỏ gọi `OrbitControls.update()` 2 lần mỗi frame
 - [x] **Ẩn mục "Đối Tác Studio" (`/partner`) với người dùng thường** (`apps/web/src/app/page.tsx`, `apps/web/src/app/partner/page.tsx`): chỉ hiển thị liên kết/khối **Đối Tác Studio** trên trang chủ và cho phép truy cập `/partner` khi tài khoản **Admin** đã đăng nhập (`getAdminSession()`)
 
 ## Các Bước Tiếp Theo Khi Go-Live

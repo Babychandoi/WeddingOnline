@@ -324,7 +324,7 @@ useFrame((_, delta) => {
     frameStats.current.elapsed = 0;
   }
 
-  const safeDelta = Math.min(delta, 0.1);
+  const safeDelta = Math.min(delta, 0.05);
   let vx = joystickInput.dx;
   let vz = joystickInput.dz;
   if (keys.current.has('w') || keys.current.has('arrowup')) vz -= 1;
@@ -439,7 +439,9 @@ useFrame((_, delta) => {
           controlsRef.current.minDistance = enclosed ? 2.4 : 4.5;
         }
       }
-      controlsRef.current.update();
+      if (focus?.active || preShowOffset.current) {
+        controlsRef.current.update();
+      }
       if (enclosed) constrainHallCamera(camera.position, target);
     }
 
@@ -1303,6 +1305,23 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
               />
             ))}
 
+            {/* Run CameraRigAndController BEFORE HumanAvatar so camera, target & avatar share the exact same frame */}
+            {!isPreview && (
+              <CameraRigAndController
+                grid={grid}
+                localPlayer={localPlayer}
+                localPosRef={localPosRef}
+                joystickInput={props.joystickInput}
+                targetPath={targetPath}
+                onArriveClickMarker={() => setClickMarker(null)}
+                onMove={props.onMove}
+                onFpsDrop={setAutoLowQuality}
+                enclosed={enclosed}
+                registerCaptureFn={props.registerCaptureFn}
+                focusRef={fireworksFocusRef}
+              />
+            )}
+
             {/* Auto-NPCs (Hidden when live taken over by Bride/Groom/MC) */}
             {npcs
               .filter((n) => !n.isTakenOver)
@@ -1375,7 +1394,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
               <Fireworks shows={props.fireworks} stage={fireworksStage} focusRef={fireworksFocusRef} lowQuality={lowQuality} mood={theme.mood} enclosed={enclosed} />
             )}
 
-            {isPreview ? (
+            {isPreview && (
               <OrbitControls
                 ref={previewOrbit}
                 target={previewTarget}
@@ -1392,20 +1411,6 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
                 maxDistance={enclosed && !props.previewCamera ? 14.6 : 46}
                 minPolarAngle={props.previewCamera ? 0 : Math.PI * (enclosed ? 0.42 : 0.12)}
                 maxPolarAngle={props.previewCamera ? Math.PI * 0.6 : Math.PI * (photoHall ? 0.492 : 0.46)}
-              />
-            ) : (
-              <CameraRigAndController
-                grid={grid}
-                localPlayer={localPlayer}
-                localPosRef={localPosRef}
-                joystickInput={props.joystickInput}
-                targetPath={targetPath}
-                onArriveClickMarker={() => setClickMarker(null)}
-                onMove={props.onMove}
-                onFpsDrop={setAutoLowQuality}
-                enclosed={enclosed}
-                registerCaptureFn={props.registerCaptureFn}
-                focusRef={fireworksFocusRef}
               />
             )}
           </Canvas>
