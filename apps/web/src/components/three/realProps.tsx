@@ -395,27 +395,33 @@ export function ChampagneTower() {
 /* ───────────────────────── Easel with photo ───────────────────────── */
 
 export function EaselFrame({ children }: { children?: React.ReactNode }) {
-  const legMat = wood('#4a2f1a', 0.3);
-  const proceduralEasel = (
-    <>
-      {[-0.26, 0.26].map((x) => (
-        <mesh key={x} position={[x, 0.78, 0.04]} rotation={[0.08, 0, x > 0 ? 0.1 : -0.1]} material={legMat}>
-          <boxGeometry args={[0.035, 1.6, 0.025]} />
-        </mesh>
-      ))}
-      <mesh position={[0, 0.72, -0.28]} rotation={[-0.36, 0, 0]} material={legMat}>
-        <boxGeometry args={[0.03, 1.5, 0.022]} />
-      </mesh>
-      <mesh position={[0, 0.4, 0.07]} material={legMat}>
-        <boxGeometry args={[0.7, 0.03, 0.08]} />
-      </mesh>
-    </>
-  );
+  const legMat = wood('#4a2f1a', 0.38);
+  const goldMat = gold('champagne');
   return (
     <group>
-      <PhModel id="standing_picture_frame_02" height={1.58} fallback={proceduralEasel} />
+      {/* Sculpted walnut tripod legs with brass feet and top finial */}
+      {[-0.26, 0.26].map((x) => (
+        <group key={x} position={[x, 0.78, 0.04]} rotation={[0.08, 0, x > 0 ? 0.1 : -0.1]}>
+          <mesh material={legMat}>
+            <cylinderGeometry args={[0.014, 0.018, 1.62, 12]} />
+          </mesh>
+          <mesh position={[0, -0.78, 0]} material={goldMat}>
+            <cylinderGeometry args={[0.019, 0.016, 0.07, 12]} />
+          </mesh>
+        </group>
+      ))}
+      <mesh position={[0, 0.72, -0.28]} rotation={[-0.36, 0, 0]} material={legMat}>
+        <cylinderGeometry args={[0.013, 0.017, 1.52, 12]} />
+      </mesh>
+      {/* Brass-trimmed ledge the portrait frame rests on */}
+      <mesh position={[0, 0.4, 0.07]} material={legMat}>
+        <boxGeometry args={[0.76, 0.028, 0.075]} />
+      </mesh>
+      <mesh position={[0, 0.4, 0.11]} material={goldMat}>
+        <boxGeometry args={[0.78, 0.016, 0.012]} />
+      </mesh>
       <group position={[0, 0.96, 0.08]} rotation={[-0.08, 0, 0]}>
-        <mesh geometry={pictureFrame(0.92, 1.1, 0.09)} material={gold('yellow')} />
+        <mesh geometry={pictureFrame(0.92, 1.1, 0.09)} material={goldMat} />
         {children}
       </group>
     </group>

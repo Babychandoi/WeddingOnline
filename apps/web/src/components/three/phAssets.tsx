@@ -153,20 +153,20 @@ const SURFACE_ID: Record<PhSurfaceKind, string> = {
   sand: 'sand_01',
   wood: 'wood_floor_deck',
   stone: 'stone_tiles',
-  tile: 'patterned_terracotta_tiling',
+  tile: 'stone_tiles',
   marble: 'marble_01',
   snow: 'snow_02',
 };
 
 /** Real-world size (metres) one texture tile covers */
 const SURFACE_METRES: Record<PhSurfaceKind, number> = {
-  grass: 2.5,
-  sand: 3,
-  wood: 2.2,
-  stone: 2,
-  tile: 1.6,
-  marble: 2.4,
-  snow: 3,
+  grass: 3.2,
+  sand: 3.5,
+  wood: 2.6,
+  stone: 3.4,
+  tile: 3.4,
+  marble: 3.2,
+  snow: 3.5,
 };
 
 interface SurfaceSet {

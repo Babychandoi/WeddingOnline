@@ -37,34 +37,35 @@ type Vec3 = [number, number, number];
  */
 export function SurfaceMaterial({ color: base, theme, role, size, reference }: { color: string; theme: VenueTheme; role: 'floor' | 'ground'; size: number; reference?: PhotoHallProfile }) {
   const swatch = reference && role === 'floor' && reference.floor !== 'snow'
-    ? `#${new THREE.Color(base).lerp(new THREE.Color(reference.palette.primary), reference.floor === 'sand' ? 0.77 : 0.39).getHexString()}`
+    ? `#${new THREE.Color(base).lerp(new THREE.Color(reference.palette.primary), reference.floor === 'sand' ? 0.65 : 0.25).getHexString()}`
     : base;
-  const kind = reference && role === 'floor' ? reference.floor : surfaceFor(swatch, theme, role);
+  // Surrounding countryside ground outside courtyards/heritage halls should be natural grass unless snowy or desert
+  const kind =
+    role === 'ground' && reference && !reference.terrain && reference.floor !== 'snow' && reference.floor !== 'sand'
+      ? 'grass'
+      : reference && role === 'floor'
+        ? reference.floor
+        : surfaceFor(swatch, theme, role);
   const { map, normalMap, roughnessMap } = useSurfaceMaps(kind, size);
   const photo = usePhSurface(kind, size);
   // Real lawn is a duller, olive green than any theme swatch
-  const color = kind === 'grass' ? naturalGrass(swatch) : swatch;
+  const color = kind === 'grass' ? naturalGrass(role === 'ground' ? '#587842' : swatch) : swatch;
   // A photographed surface already has its true colour: only hint at the theme
   const photoTint = useMemo(() => {
     // Poly Haven's ground photos are dry meadow: shift them to a watered lawn green
     if (kind === 'grass') return '#c6e6aa';
     // The sand scan is a grey, damp sand: lean well towards the venue's own sand colour
     if (kind === 'sand') return `#${new THREE.Color('#ffffff').lerp(new THREE.Color(swatch), 0.55).multiplyScalar(1.12).getHexString()}`;
+    if (kind === 'tile' || kind === 'stone') return `#${new THREE.Color('#f4ece1').lerp(new THREE.Color(swatch), 0.28).getHexString()}`;
     return `#${new THREE.Color('#ffffff').lerp(new THREE.Color(swatch), kind === 'snow' ? 0.08 : 0.22).getHexString()}`;
   }, [swatch, kind]);
-  const normalScale = useMemo(() => new THREE.Vector2(0.8, 0.8), []);
+  const normalScale = useMemo(() => new THREE.Vector2(0.55, 0.55), []);
   // Polished floors get a clear lacquer coat so they mirror chandeliers and the stage
-  const polished = kind === 'marble' || kind === 'tile' || (kind === 'wood' && role === 'floor');
-  // Use Poly Haven photographed 2K PBR maps across all 7 surface kinds whenever loaded,
-  // tinting sand and stone toward each venue's own natural palette so they never look grey.
+  const polished = kind === 'marble' || (kind === 'wood' && role === 'floor');
   const usePhoto = photo !== null;
   const maps = usePhoto && photo ? photo : { map, normalMap, roughnessMap };
-  const tint = usePhoto
-    ? kind === 'stone'
-      ? `#${new THREE.Color('#ffffff').lerp(new THREE.Color(swatch), 0.48).getHexString()}`
-      : photoTint
-    : color;
-  const roughness = usePhoto ? (kind === 'sand' ? 0.92 : 1) : SURFACE_ROUGHNESS[kind];
+  const tint = usePhoto ? photoTint : color;
+  const roughness = usePhoto ? (kind === 'sand' ? 0.92 : kind === 'tile' || kind === 'stone' ? 0.86 : 1) : SURFACE_ROUGHNESS[kind];
   const naturalWood = reference !== undefined && kind === 'wood';
   return polished ? (
     <meshPhysicalMaterial
@@ -77,8 +78,6 @@ export function SurfaceMaterial({ color: base, theme, role, size, reference }: {
       roughness={roughness}
       clearcoat={naturalWood ? 0.14 : usePhoto ? 0.34 : kind === 'wood' ? 0.35 : 0.4}
       clearcoatRoughness={naturalWood ? 0.38 : 0.2}
-      // Polished stone mirrors the bright windows of the room at grazing angles; at full strength
-      // that sheen read as a milky fog over the floor
       envMapIntensity={naturalWood ? 0.32 : 0.45}
     />
   ) : (
@@ -90,7 +89,7 @@ export function SurfaceMaterial({ color: base, theme, role, size, reference }: {
       normalScale={normalScale}
       roughnessMap={maps.roughnessMap}
       roughness={roughness}
-      onBeforeCompile={kind === 'grass' || kind === 'sand' || kind === 'stone' || (role === 'ground' && kind === 'snow') ? antiTile : undefined}
+      onBeforeCompile={antiTile}
     />
   );
 }
@@ -521,18 +520,19 @@ function Canopy({ kind, colors, mood }: { kind: CanopyKit; colors: VenueColors; 
     case 'silk-lanterns':
       return (
         <group>
+          {[-14.6, 14.6].map((x) => [-10, 0, 10].map((z) => <group key={`${x}_${z}`} position={[x, 0, z]}><LightPost height={5.5} /></group>))}
           {[-10, 0, 10].map((z) => (
-            <group key={z} position={[0, 5.4, z]}>
-              {/* Lacquered timber beam wrapped in a swag of silk */}
-              <mesh rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.09, 0.09, 28, 12]} />
-                <meshPhysicalMaterial color="#5a2a1a" roughness={0.35} clearcoat={0.8} clearcoatRoughness={0.15} />
-              </mesh>
-              {[-9, -3, 3, 9].map((x) => (
-                <group key={x} position={[x, -1.0, 0]}>
-                  <SilkLantern color={colors.ca2 ?? '#dc2626'} glow={glow * 0.9} />
-                </group>
-              ))}
+            <group key={z}>
+              {/* Graceful catenary string-light cables instead of rigid thick pipes across the view */}
+              <StringLights from={[-14.6, 5.4, z]} to={[14.6, 5.4, z]} sag={0.75} color={colors.ca ?? '#ffd28a'} />
+              {[-9, -3, 3, 9].map((x) => {
+                const sag = Math.sin(((x + 14.6) / 29.2) * Math.PI) * 0.75;
+                return (
+                  <group key={x} position={[x, 5.4 - sag - 0.55, z]}>
+                    <SilkLantern color={colors.ca2 ?? '#dc2626'} glow={glow * 0.9} />
+                  </group>
+                );
+              })}
             </group>
           ))}
         </group>
@@ -1509,24 +1509,30 @@ export function VenueGate({ theme }: { theme: VenueTheme }) {
 
 export const VenueEnvironment = React.memo(function VenueEnvironment({ theme, photoComposition = false, reference }: { theme: VenueTheme; photoComposition?: boolean; reference?: PhotoHallProfile }) {
   const { colors, kits, mood } = theme;
-  const groundKind = surfaceFor(colors.g, theme, 'ground');
-  const rolling = !reference && mood !== 'indoor' && groundKind === 'grass' && kits.b.every((kit) => kit === 'hills' || kit === 'forest');
+  const enclosedRoom = reference?.architecture === 'ballroom' || mood === 'indoor';
+  const hasCustomTerrain = Boolean(reference?.terrain);
+  const isSnowOrDesert = reference ? reference.floor === 'snow' || reference.floor === 'sand' : snowyOrDesert(theme);
+  const rolling = !enclosedRoom && !hasCustomTerrain && !isSnowOrDesert;
   const terrain = useLandscapeGeometry(rolling);
   const isLawn = (reference?.floor ?? surfaceFor(colors.f, theme, 'floor')) === 'grass';
   const isBayCruise = theme.id === 'vn_ha_long_cruise';
   const border = !isLawn && !isBayCruise && !photoComposition && reference?.floor !== 'snow' && reference?.floor !== 'sand';
-  const keepPerimeter = !reference || ['gers', 'lacquer-pillars', 'torches', 'stone-lanterns'].includes(kits.p);
+  // When PhotoHallSurroundings builds the authentic 3D architecture/courtyard, do not stack legacy box perimeters or flat box centerpieces on top
+  const keepPerimeter = !reference;
+  const keepCenterpiece = !reference;
   return (
     <group>
       {/* Ground beyond the 30 m hall */}
-      {!isBayCruise && !reference?.terrain && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.035, 0]} receiveShadow>
-        {/* Reaches the horizon so the photographed sky never shows below it */}
-        <planeGeometry args={[2400, 2400]} />
-        <SurfaceMaterial color={reference?.palette.primary ?? colors.g} theme={theme} role="ground" size={2400} />
-      </mesh>}
+      {!isBayCruise && !hasCustomTerrain && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.035, 0]} receiveShadow>
+          {/* Reaches the horizon so the photographed sky never shows below it */}
+          <planeGeometry args={[2400, 2400]} />
+          <SurfaceMaterial color={isSnowOrDesert ? (reference?.palette.primary ?? colors.g) : '#587842'} theme={theme} role="ground" size={2400} reference={reference} />
+        </mesh>
+      )}
       {rolling && (
         <mesh geometry={terrain} position-y={-0.024} receiveShadow userData={{ noCastShadow: true }}>
-          <SurfaceMaterial color={colors.g} theme={theme} role="ground" size={224} />
+          <SurfaceMaterial color="#587842" theme={theme} role="ground" size={224} reference={reference} />
         </mesh>
       )}
 
@@ -1548,15 +1554,19 @@ export const VenueEnvironment = React.memo(function VenueEnvironment({ theme, ph
 
       {reference ? <PhotoHallSurroundings variant={theme.id} profile={reference} /> : kits.b.map((b) => <Backdrop key={b} kind={b} theme={theme} />)}
       <WindClock />
-      {!reference && mood !== 'indoor' && !photoComposition && <GroundCover theme={theme} rolling={rolling} />}
-      {!reference && mood !== 'indoor' && kits.b.length === 0 && !snowyOrDesert(theme) && (
-        <DistantTreeline leafColor={lighten(colors.g, -0.08)} kind={kits.p === 'pines' && theme.id !== GARDEN_VENUE ? 'pine' : kits.p === 'palms' ? 'palm' : 'broadleaf'} groundHeight={rolling ? landscapeHeight : undefined} />
+      {!enclosedRoom && !hasCustomTerrain && !photoComposition && <GroundCover theme={theme} rolling={rolling} />}
+      {!enclosedRoom && !hasCustomTerrain && !isSnowOrDesert && (
+        <DistantTreeline
+          leafColor="#445e36"
+          kind={kits.p === 'pines' && theme.id !== GARDEN_VENUE ? 'pine' : kits.p === 'palms' ? 'palm' : 'broadleaf'}
+          groundHeight={rolling ? landscapeHeight : undefined}
+        />
       )}
       {!reference && mood === 'indoor' && <BallroomWalls wallColor={naturalTone(colors.f, 0.15, 0.3)} drape={naturalTone(colors.c, 0, 0.15)} />}
       {theme.id === GARDEN_VENUE && !photoComposition && <GardenGrove behindHall />}
       {keepPerimeter && theme.id !== GARDEN_VENUE && <Perimeter kind={kits.p} colors={colors} />}
       {!photoComposition && <Canopy kind={kits.c} colors={colors} mood={mood} />}
-      <Centerpiece kind={kits.ce} colors={colors} />
+      {keepCenterpiece && <Centerpiece kind={kits.ce} colors={colors} />}
     </group>
   );
 });

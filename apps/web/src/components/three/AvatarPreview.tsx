@@ -8,7 +8,7 @@
 
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { ContactShadows, OrbitControls } from '@react-three/drei';
+import { ContactShadows, Environment, Lightformer, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { HumanAvatar } from './HumanAvatar';
@@ -77,6 +77,11 @@ export default function AvatarPreview({ personId, outfitId, hairId, hairColor, d
       <directionalLight position={[2.5, 4, 3]} intensity={2.2} castShadow shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} />
       <directionalLight position={[-3, 2.5, -2]} intensity={0.9} color="#ffe6d6" />
       <pointLight position={[0, 1.6, 2.2]} intensity={1.4} distance={6} color="#fff1e6" />
+      <Environment resolution={128} frames={1} environmentIntensity={0.75}>
+        <Lightformer form="rect" intensity={2.2} color="#fff6e8" scale={[6, 4, 1]} position={[0, 4, 3]} target={[0, 1.2, 0]} />
+        <Lightformer form="circle" intensity={2.8} color="#ffe4c4" scale={3} position={[3, 2.2, 2]} target={[0, 1.4, 0]} />
+        <Lightformer form="rect" intensity={1.2} color="#e8eef8" scale={[5, 4, 1]} position={[-3, 2, -2]} target={[0, 1.2, 0]} />
+      </Environment>
 
       <HumanAvatar
         id={`preview-${personId || outfitId}`}

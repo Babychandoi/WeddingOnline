@@ -276,6 +276,19 @@
   - Chuyển vật liệu 51 nhân vật Rocketbox sang `MeshPhysicalMaterial`: da có độ tán sắc ấm dưới da (`sheen: #ffcab8`), vân da vi mô (`detailNormal('micro')`), mắt có lớp phản xạ giác mạc ướt (`clearcoat: 1.0`), trang phục có vân sợi vải (`detailNormal('fabric')`)
   - Thêm cử động vi mô như người sống (`Bip01_Head`, `Bip01_Neck`, `Bip01_Spine1`): tự nhiên nhìn quanh, nghiêng đầu và thở lệch pha giữa các khách mời
 
+### [x] Nhóm 35: Sửa Triệt Để Cảnh Toàn Sảnh 3D (`PhSky` HDRI 2K, Thảm Cỏ & Đồi Cây Quanh Sảnh, Bỏ Tường Hộp Đỏ & Ống Ngang, Ảnh Cưới Thật Trên Khung & Màn LED, Nút Chọn Đồ Họa & IBL Sảnh Chờ)
+- [x] **Mở khóa bầu trời ảnh chụp thật 2K (`PhSky`) cho toàn bộ 98 sảnh có hồ sơ ảnh** (`venueAtmosphere.tsx`): xóa điều kiện `!reference` ở `photoSky` vốn tắt bầu trời HDRI thật và làm chân trời bị xám/nâu
+- [x] **Sửa mặt đất 2400m & mặt sàn sân gạch (`venueKits.tsx`, `phAssets.tsx`)**:
+  - Vùng đất ngoài sân sảnh (`role === 'ground'`) dùng thảm cỏ tự nhiên (`#587842`) kèm đồi cỏ (`useLandscapeGeometry`), thảm thực vật quét 3D (`GroundCover`) và vòng rừng xa (`DistantTreeline`) thay vì mặt phẳng màu nâu đất trống trải tới chân trời
+  - Mặt sàn sân gạch (`tile`) dùng đá lát sáng màu (`stone_tiles` `3.4m`) kèm `antiTile` thay vì gạch lỗ đen lặp 19×19 lần
+- [x] **Bỏ các khối hình hộp thừa đè lên kiến trúc 3D (`venueKits.tsx`, `realProps.tsx`)**:
+  - Khi `PhotoHallSurroundings` đã dựng kiến trúc 3D (như Nhà Ba Gian), tắt `Centerpiece` hộp đỏ phẳng `AncestralAltar` và khung cột hộp `lacquer-pillars` chắn ngang cảnh
+  - Đổi 3 thanh ống nâu cứng treo đèn lồng (`Canopy: silk-lanterns`) thành dây đèn võng mềm (`StringLights`)
+  - Sửa `EaselFrame` hết xung đột 2 khung tranh đè nhau tạo khối đen trắng dọc thảm đỏ
+- [x] **Ảnh cưới người thật trên Màn LED sân khấu & 4 giá ảnh + Nút chọn Đồ họa 3D + IBL Sảnh chờ** (`VenueScene.tsx`, `AvatarPreview.tsx`, `seedData.ts`):
+  - Tự hiển thị 5 ảnh cưới thật (`/invitation-samples/*.webp`) trên màn LED sân khấu và 4 giá ảnh khi phòng chưa tải ảnh riêng; cập nhật luôn DB thật cho `minh-va-linh` và `duy-va-thao-kyniem`
+  - Thêm thanh chọn nhanh **Đồ họa: Tự động / Cao (Photoreal) / Tiết kiệm pin** ngay trong sảnh 3D và thêm `<Environment>` IBL cho `AvatarPreview.tsx`
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

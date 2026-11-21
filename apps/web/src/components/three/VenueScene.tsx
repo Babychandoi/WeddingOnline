@@ -669,7 +669,70 @@ const CelebrationParticles: React.FC<{
 /** 'none' in a spot's mediaSlotId = the couple chose to show no photo there */
 const NO_PHOTO = 'none';
 
-/** The photo for a spot: the one the couple picked, else the wedding gallery in order */
+const DEFAULT_SHOWCASE_PHOTOS: PhotoAssetRecord[] = [
+  {
+    id: 'showcase_1',
+    weddingId: 'showcase',
+    uploaderId: 'showcase',
+    type: 'PRE_WEDDING_GALLERY',
+    r2ObjectKey: 'invitation-samples/ao-dai-gate.webp',
+    publicUrl: '/invitation-samples/ao-dai-gate.webp',
+    caption: 'Khoảnh khắc hạnh phúc ngày chung đôi',
+    hasWatermark: false,
+    displayOrder: 1,
+    createdAt: '2026-11-18T00:00:00.000Z',
+  },
+  {
+    id: 'showcase_2',
+    weddingId: 'showcase',
+    uploaderId: 'showcase',
+    type: 'PRE_WEDDING_GALLERY',
+    r2ObjectKey: 'invitation-samples/ao-dai-arch.webp',
+    publicUrl: '/invitation-samples/ao-dai-arch.webp',
+    caption: 'Áo dài truyền thống Việt Nam',
+    hasWatermark: false,
+    displayOrder: 2,
+    createdAt: '2026-11-18T00:00:00.000Z',
+  },
+  {
+    id: 'showcase_3',
+    weddingId: 'showcase',
+    uploaderId: 'showcase',
+    type: 'PRE_WEDDING_GALLERY',
+    r2ObjectKey: 'invitation-samples/aodai-arch-pastel.webp',
+    publicUrl: '/invitation-samples/aodai-arch-pastel.webp',
+    caption: 'Trăm năm tình viên mãn',
+    hasWatermark: false,
+    displayOrder: 3,
+    createdAt: '2026-11-18T00:00:00.000Z',
+  },
+  {
+    id: 'showcase_4',
+    weddingId: 'showcase',
+    uploaderId: 'showcase',
+    type: 'PRE_WEDDING_GALLERY',
+    r2ObjectKey: 'invitation-samples/ao-dai-red.webp',
+    publicUrl: '/invitation-samples/ao-dai-red.webp',
+    caption: 'Bạc đầu nghĩa phu thê',
+    hasWatermark: false,
+    displayOrder: 4,
+    createdAt: '2026-11-18T00:00:00.000Z',
+  },
+  {
+    id: 'showcase_5',
+    weddingId: 'showcase',
+    uploaderId: 'showcase',
+    type: 'PRE_WEDDING_GALLERY',
+    r2ObjectKey: 'invitation-samples/bouquet-veil.webp',
+    publicUrl: '/invitation-samples/bouquet-veil.webp',
+    caption: 'Ngày chung đôi',
+    hasWatermark: false,
+    displayOrder: 5,
+    createdAt: '2026-11-18T00:00:00.000Z',
+  },
+];
+
+/** The photo for a spot: the one the couple picked, else the wedding gallery in order (falling back to real showcase photos when empty) */
 function spotPhoto(prefab: PlacedPrefab, photos: PhotoAssetRecord[], fallbackIndex: number | null): { photo: PhotoAssetRecord | null; index: number } {
   const slot = prefab.meta?.mediaSlotId;
   if (slot === NO_PHOTO) return { photo: null, index: -1 };
@@ -679,8 +742,9 @@ function spotPhoto(prefab: PlacedPrefab, photos: PhotoAssetRecord[], fallbackInd
   }
   if (fallbackIndex === null) return { photo: null, index: -1 };
   const gallery = photos.filter((p) => p.type === 'PRE_WEDDING_GALLERY');
-  const pick = gallery[fallbackIndex] ?? null;
-  return { photo: pick, index: pick ? photos.indexOf(pick) : fallbackIndex };
+  const pool = gallery.length > 0 ? gallery : DEFAULT_SHOWCASE_PHOTOS;
+  const pick = pool[fallbackIndex % pool.length] ?? null;
+  return { photo: pick, index: pick && gallery.length > 0 ? photos.indexOf(pick) : fallbackIndex };
 }
 
 const PrefabMesh: React.FC<{
@@ -1069,7 +1133,9 @@ const PrefabMesh: React.FC<{
 export const VenueScene: React.FC<VenueSceneProps> = (props) => {
   const { layout, tier, photos, localSessionId, players, npcs, bouquet, activeRitual, giftBurstKey, waypointTarget } =
     props;
-  const [lowQuality, setLowQuality] = useState(false);
+  const [autoLowQuality, setAutoLowQuality] = useState(false);
+  const [qualityPreset, setQualityPreset] = useState<'auto' | 'high' | 'low'>('auto');
+  const lowQuality = qualityPreset === 'low' ? true : qualityPreset === 'high' ? false : autoLowQuality;
   const [clickMarker, setClickMarker] = useState<{ x: number; z: number } | null>(null);
   const targetPath = useRef<Array<{ x: number; z: number }>>([]);
   const localPosRef = useRef({
@@ -1172,7 +1238,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
             <ShadowCasters enabled={!lowQuality} />
             {!lowQuality && <PostFX strength={photoComposition ? 0.12 : bloomStrength(theme, photoHall)} ambientOcclusion={photoComposition ? false : undefined} />}
             {/* A still capture (no auto-rotate) must keep full quality however slow the renderer */}
-            {isPreview && props.previewAutoRotate !== false && <FpsGuard onLowFps={setLowQuality} />}
+            {isPreview && props.previewAutoRotate !== false && <FpsGuard onLowFps={setAutoLowQuality} />}
             {isPreview && props.previewAutoRotate === false && <FrameProbe orbit={previewOrbit} />}
 
             <VenueEnvironment theme={theme} photoComposition={photoComposition} reference={photoHall} />
@@ -1334,7 +1400,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
                 targetPath={targetPath}
                 onArriveClickMarker={() => setClickMarker(null)}
                 onMove={props.onMove}
-                onFpsDrop={setLowQuality}
+                onFpsDrop={setAutoLowQuality}
                 enclosed={enclosed}
                 registerCaptureFn={props.registerCaptureFn}
                 focusRef={fireworksFocusRef}
@@ -1342,9 +1408,23 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
             )}
           </Canvas>
           </SceneLabelsContext.Provider>
-          {lowQuality && !isPreview && (
-            <div className="pointer-events-none absolute left-3 top-14 rounded-full bg-slate-900/75 px-2.5 py-0.5 text-[10px] text-amber-300">
-              Chế độ tiết kiệm đồ họa đang bật (FPS &lt; 28)
+          {!isPreview && (
+            <div className="pointer-events-auto absolute left-3 top-14 z-10 flex items-center gap-1 rounded-full border border-white/15 bg-slate-900/75 px-2.5 py-1 text-[10px] font-medium text-slate-200 shadow backdrop-blur-sm">
+              <span className="text-slate-400">Đồ họa:</span>
+              {(['auto', 'high', 'low'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setQualityPreset(mode)}
+                  className={`rounded-full px-2 py-0.5 transition ${
+                    qualityPreset === mode
+                      ? 'bg-rose-600 font-bold text-white'
+                      : 'text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  {mode === 'auto' ? (autoLowQuality ? 'Tự động (Nhẹ)' : 'Tự động') : mode === 'high' ? 'Cao (Photoreal)' : 'Tiết kiệm pin'}
+                </button>
+              ))}
             </div>
           )}
         </div>

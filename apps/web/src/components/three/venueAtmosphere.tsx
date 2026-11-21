@@ -152,7 +152,7 @@ function referenceSetup(theme: VenueTheme, reference: PhotoHallProfile): MoodSet
     ...base,
     sky: {
       ...base.sky, top: light.top, horizon, clouds: light.clouds, sun: position,
-      sunColor: reference.light === 'golden' ? '#ffd8a5' : reference.light === 'clear' ? '#fff4d4' : '#000000',
+      sunColor: reference.light === 'golden' || reference.light === 'twilight' ? '#ffd8a5' : reference.light === 'night' || reference.light === 'interior' ? '#000000' : '#fff4d4',
       cloudLit: mixHex('#f4efea', horizon, 0.28), cloudShade: mixHex('#94a3b7', horizon, 0.35),
     },
     fogColor: horizon,
@@ -275,7 +275,9 @@ export function VenueAtmosphere({ theme, quality, reference }: { theme: VenueThe
   // its horizon haze is, so shadows and fog agree with the picture
   // (Phones keep the painted sky: the photograph is a 4–5 MB download)
   // Night keeps the painted starry sky: the night photograph reads as a pale dusk on screen
-  const photoSky = !reference && !gardenLight && quality === 'high' && (mood === 'day' || mood === 'sunset') && !IS_HANDHELD;
+  // Outdoors, the sky is a real 2K photograph (Poly Haven HDRI); it tells us where its sun is
+  // and what colour its horizon haze is, so shadows and fog agree with the picture.
+  const photoSky = !gardenLight && quality === 'high' && (mood === 'day' || mood === 'sunset') && !IS_HANDHELD;
   const [sky, setSky] = useState<SkyInfo | null>(null);
   const onSky = useCallback((info: SkyInfo | null) => setSky(info), []);
   useEffect(() => setSky(null), [mood, photoSky]);
