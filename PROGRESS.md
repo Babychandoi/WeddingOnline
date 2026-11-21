@@ -301,6 +301,13 @@
 - [x] **Ly rượu/champagne 3D trên tay khi bấm "Nâng ly" (`drink` / `cheers`)** (`RealPerson.tsx`, `HumanAvatar.tsx`):
   - Gắn ly pha lê có rượu champagne vàng (`wineGlass` + `wineFill` + `glass` + `liquid`) bám chính xác giữa ngón cái (`Bip01_R_Finger02`) và ngón trỏ/giữa (`Bip01_R_Finger21`) trên bàn tay phải của cả 51 nhân vật người thật lẫn nhân vật tự phối
 
+### [x] Nhóm 37: Cập Nhật Bảng Gói & Sức Chứa Đồng Thời (CCU) Sảnh Cưới 3D (`199.000đ` · `399.000đ / 50 khách` · `1.199.000đ / 200 khách`)
+- [x] **Bỏ gói miễn phí, chuyển gói khởi đầu sang `199.000đ`** (`packages/shared/src/types.ts`, `apps/web/src/app/page.tsx`, `apps/web/src/app/create/page.tsx`, `apps/web/src/app/api/orders/route.ts`, `apps/web/src/lib/adminFormat.ts`):
+  - `TRIAL_24H` (`Phòng Cưới 24h`): đổi từ `0đ (Miễn phí)` sang **`199.000đ` (`priceVnd: 199000`)**, tối đa `15` khách đồng thời (CCU), thanh toán qua VietQR hoặc mã voucher đối tác Studio
+- [x] **Cập nhật số lượng khách đồng thời (CCU) cho Gói Hạnh Phúc & Gói Viên Mãn VIP** (`packages/shared/src/types.ts`, `packages/database/src/seedData.ts`, PostgreSQL DB):
+  - `HAPPINESS` (`Gói Hạnh Phúc`, **`399.000đ`**): đổi từ `100` xuống **`50` khách đồng thời (`maxCcu: 50`)**
+  - `VIP_FULFILLMENT` (`Gói Viên Mãn VIP`, **`1.199.000đ`**): đổi từ `1000` xuống **`200` khách đồng thời (`maxCcu: 200`)**
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

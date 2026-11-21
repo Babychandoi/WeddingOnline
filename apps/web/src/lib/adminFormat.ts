@@ -81,7 +81,7 @@ export function normalizeSearch(text: string): string {
 
 export const TIER_LABELS: Record<WeddingTier, string> = {
   PUBLIC_PLAZA: 'Quảng trường',
-  TRIAL_24H: 'Dùng thử 24h',
+  TRIAL_24H: 'Phòng Cưới 24h',
   HAPPINESS: 'Hạnh Phúc',
   VIP_FULFILLMENT: 'Viên Mãn VIP',
 };

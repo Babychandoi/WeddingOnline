@@ -58,7 +58,11 @@ export async function POST(req: NextRequest) {
   }
 
   const targetTier: WeddingTier =
-    body.targetTier === 'VIP_FULFILLMENT' ? 'VIP_FULFILLMENT' : 'HAPPINESS';
+    body.targetTier === 'VIP_FULFILLMENT'
+      ? 'VIP_FULFILLMENT'
+      : body.targetTier === 'TRIAL_24H'
+      ? 'TRIAL_24H'
+      : 'HAPPINESS';
   const basePrice = TIER_CATALOG[targetTier].priceVnd;
   let finalAmountVnd = basePrice;
   let appliedDiscountPercent = 0;

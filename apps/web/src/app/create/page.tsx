@@ -79,7 +79,7 @@ export default function CreateWeddingPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Tạo phòng thất bại');
 
-      if (tier === 'TRIAL_24H') {
+      if (TIER_CATALOG[tier].priceVnd === 0) {
         router.push(`/dashboard/${data.wedding.slug}${invitationTemplate.current ? '?tab=thiep' : ''}`);
         return;
       }
@@ -186,7 +186,7 @@ export default function CreateWeddingPage() {
                 Khởi Tạo Sảnh Cưới 3D
               </h1>
               <p className="mt-1 text-xs text-slate-500">
-                Chọn dùng thử 24h miễn phí hoặc mở ngay gói Hạnh Phúc / Viên Mãn VIP qua VietQR. Hai gói trả phí đã kèm thiệp cưới online. Chỉ cần thiệp? <a href="/thiep-cuoi/tao" className="font-semibold text-rose-700 underline underline-offset-2">Thiết kế thiệp riêng</a>.
+                Chọn gói Phòng Cưới 24h (199.000đ), Gói Hạnh Phúc (399.000đ) hoặc Gói Viên Mãn VIP (1.199.000đ) qua VietQR. Gói Hạnh Phúc &amp; Viên Mãn VIP đã kèm thiệp cưới online. Chỉ cần thiệp? <a href="/thiep-cuoi/tao" className="font-semibold text-rose-700 underline underline-offset-2">Thiết kế thiệp riêng</a>.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -344,39 +344,37 @@ export default function CreateWeddingPage() {
                 </div>
               </div>
 
-              {tier !== 'TRIAL_24H' && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3.5 space-y-2">
-                  <label className="block text-xs font-bold text-amber-900">
-                    Mã Voucher Đối Tác Studio Ảnh Cưới (tùy chọn)
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={voucherCode}
-                      onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                      placeholder="VD: STUDIO35, STUDIOVIP100"
-                      className="flex-1 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleCheckVoucher}
-                      className="rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-amber-500"
-                    >
-                      Kiểm tra mã
-                    </button>
-                  </div>
-                  {voucherMsg && (
-                    <p
-                      className={`text-xs font-semibold ${voucherPreview ? 'text-emerald-700' : 'text-rose-600'
-                        }`}
-                    >
-                      {voucherPreview
-                        ? `✅ ${voucherMsg}`
-                        : voucherMsg}
-                    </p>
-                  )}
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3.5 space-y-2">
+                <label className="block text-xs font-bold text-amber-900">
+                  Mã Voucher Đối Tác Studio Ảnh Cưới (tùy chọn)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                    placeholder="VD: STUDIO35, STUDIOVIP100"
+                    className="flex-1 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCheckVoucher}
+                    className="rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-amber-500"
+                  >
+                    Kiểm tra mã
+                  </button>
                 </div>
-              )}
+                {voucherMsg && (
+                  <p
+                    className={`text-xs font-semibold ${voucherPreview ? 'text-emerald-700' : 'text-rose-600'
+                      }`}
+                  >
+                    {voucherPreview
+                      ? `✅ ${voucherMsg}`
+                      : voucherMsg}
+                  </p>
+                )}
+              </div>
 
               {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
 
@@ -387,9 +385,7 @@ export default function CreateWeddingPage() {
               >
                 {submitting
                   ? 'Đang khởi tạo...'
-                  : tier === 'TRIAL_24H'
-                    ? 'Tạo Phòng Dùng Thử 24h Ngay'
-                    : 'Tạo Phòng & Thanh Toán VietQR'}
+                  : 'Tạo Phòng & Thanh Toán VietQR'}
               </button>
             </form>
           )}

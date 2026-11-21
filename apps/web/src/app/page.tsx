@@ -337,7 +337,7 @@ export default function HomePage() {
               Bảng Gói Tổ Chức Lễ Cưới Trực Tuyến
             </h2>
             <p className="mx-auto mt-2 max-w-xl text-sm text-slate-600">
-              Dùng thử miễn phí 24 giờ trước khi nâng cấp qua VietQR hoặc kích hoạt bằng mã đối tác Studio.
+              Chọn gói sảnh cưới 3D phù hợp quy mô khách mời — thanh toán tự động qua VietQR hoặc kích hoạt bằng mã đối tác Studio.
             </p>
           </div>
 
