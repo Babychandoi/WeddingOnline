@@ -352,10 +352,11 @@ export function VenueAtmosphere({ theme, quality, reference }: { theme: VenueThe
   );
 }
 
-/** Lets every solid mesh cast and receive the sun's shadow (re-checked as models stream in) */
+/** Lets every solid mesh near the hall cast and receive the sun's shadow (skips distant trees outside the 25m shadow frustum) */
 export function ShadowCasters({ enabled }: { enabled: boolean }) {
   const { scene } = useThree();
   const frame = useRef(0);
+  const wp = useMemo(() => new THREE.Vector3(), []);
   useFrame(() => {
     if (!enabled || frame.current++ % 60 !== 0) return;
     scene.traverse((obj) => {
@@ -366,7 +367,12 @@ export function ShadowCasters({ enabled }: { enabled: boolean }) {
       const isFlatGround = (mesh.geometry as THREE.PlaneGeometry).type === 'PlaneGeometry';
       mesh.receiveShadow = !isGlow;
       const isClear = ((material as THREE.MeshPhysicalMaterial).transmission ?? 0) > 0;
-      mesh.castShadow = !isGlow && !isFlatGround && !material.transparent && !isClear && !mesh.userData.noCastShadow;
+      if (isGlow || isFlatGround || material.transparent || isClear || mesh.userData.noCastShadow) {
+        mesh.castShadow = false;
+        return;
+      }
+      mesh.getWorldPosition(wp);
+      mesh.castShadow = Math.hypot(wp.x, wp.z) <= 32;
     });
   });
   return null;

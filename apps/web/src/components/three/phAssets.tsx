@@ -87,6 +87,13 @@ function SkyPhoto({ mood, intensity, onSky }: { mood: PhMood; intensity: number;
  * it is missing; reports the sun's direction so the shadows match the photo.
  */
 export function PhSky({ mood, intensity, fallback, onSky }: { mood: PhMood; intensity: number; fallback: React.ReactNode; onSky?: (info: SkyInfo | null) => void }) {
+  // Defer downloading the 4-5 MB 2K HDRI slightly so the procedural sky, hall & avatars render immediately
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setReady(true), 550);
+    return () => window.clearTimeout(t);
+  }, [mood]);
+  if (!ready) return <>{fallback}</>;
   return (
     <PhBoundary fallback={fallback}>
       <Suspense fallback={fallback}>
@@ -219,7 +226,7 @@ export function usePhModel(id: string, handheld = false): THREE.Group | null {
       id.startsWith('rock_moss') ||
       id.startsWith('shrub') ||
       id.startsWith('grass_medium');
-    const delayMs = isHeavyFoliage ? 140 : 15;
+    const delayMs = isHeavyFoliage ? 650 : 15;
     const timer = window.setTimeout(() => {
       if (!alive) return;
       loadGlbCached(phModel(id))

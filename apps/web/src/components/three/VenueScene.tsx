@@ -1222,23 +1222,25 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
         <div className="relative h-full w-full">
           <SceneLabelsContext.Provider value={!isPreview}>
           <Canvas
-            shadows={lowQuality ? false : 'soft'}
-            dpr={lowQuality ? 1 : [1, 1.75]}
+            shadows={lowQuality ? false : qualityPreset === 'high' ? 'soft' : true}
+            dpr={lowQuality ? 1 : qualityPreset === 'high' ? [1, 1.75] : [1, 1.25]}
             camera={{
               position: isPreview ? previewPosition : [0, 8.5, 17.5],
               fov: photoComposition ? 36 : 50,
               near: 0.1,
               far: 2000,
             }}
-            gl={{ preserveDrawingBuffer: true, antialias: !lowQuality }}
+            gl={{ preserveDrawingBuffer: true, antialias: !lowQuality, powerPreference: 'high-performance' }}
           >
             {/* Sky, sun with soft shadows, fill and image-based light */}
             <RendererSetup exposure={(photoHall ? photoHall.light === 'night' || photoHall.light === 'twilight' : theme.mood === 'night') ? 1.15 : 1.05} />
             <VenueAtmosphere theme={theme} quality={lowQuality ? 'low' : 'high'} reference={photoHall} />
             <ShadowCasters enabled={!lowQuality} />
-            {!lowQuality && <PostFX strength={photoComposition ? 0.12 : bloomStrength(theme, photoHall)} ambientOcclusion={!photoComposition && qualityPreset === 'high'} />}
-            {/* A still capture (no auto-rotate) must keep full quality however slow the renderer */}
-            {isPreview && props.previewAutoRotate !== false && <FpsGuard onLowFps={setAutoLowQuality} />}
+            {!lowQuality && (qualityPreset === 'high' || (isPreview && props.previewAutoRotate === false)) && (
+              <PostFX strength={photoComposition ? 0.12 : bloomStrength(theme, photoHall)} ambientOcclusion={!photoComposition && qualityPreset === 'high'} />
+            )}
+            {/* Monitor FPS in live hall and auto-preview so slower GPUs drop to light mode automatically */}
+            {qualityPreset === 'auto' && !(isPreview && props.previewAutoRotate === false) && <FpsGuard onLowFps={setAutoLowQuality} />}
             {isPreview && props.previewAutoRotate === false && <FrameProbe orbit={previewOrbit} />}
 
             <VenueEnvironment theme={theme} photoComposition={photoComposition} reference={photoHall} />
