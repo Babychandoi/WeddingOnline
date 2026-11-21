@@ -949,7 +949,7 @@ const PrefabMesh: React.FC<{
                     <PhotoCanvasPlane url={welcome.photo.publicUrl} />
                   </EaselFrame>
                 </group>
-                <SceneLabel position={[0, 2.2, 0]} center distanceFactor={12}>
+                <SceneLabel position={[0, 2.2, 0]} center>
                   <div className="pointer-events-none whitespace-nowrap rounded bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-rose-800 shadow">
                     💐 {prefab.meta?.customLabel || 'Chào mừng đến lễ cưới'}
                   </div>
@@ -972,7 +972,7 @@ const PrefabMesh: React.FC<{
             }}
           >
             <GuestbookLectern />
-            <SceneLabel position={[0, 1.45, 0]} center distanceFactor={12}>
+            <SceneLabel position={[0, 1.55, 0]} center>
               <button
                 type="button"
                 onClick={onOpenGuestbook}
@@ -1006,7 +1006,7 @@ const PrefabMesh: React.FC<{
         >
           {/* Linen-draped gift table with wrapped presents and a glass card box */}
           <GiftTable accent={naturalTone(palette.accent, 0.2, 0.25)} />
-          <SceneLabel position={[0, 1.8, 0]} center distanceFactor={12}>
+          <SceneLabel position={[0, 1.75, 0]} center>
             <button
               type="button"
               onClick={onOpenGiftBox}
@@ -1100,7 +1100,7 @@ const PrefabMesh: React.FC<{
           <EaselFrame>
             <PhotoCanvasPlane url={photo?.publicUrl} />
           </EaselFrame>
-          <SceneLabel position={[0, 1.72, 0]} center distanceFactor={12}>
+          <SceneLabel position={[0, 1.72, 0]} center>
             <button
               type="button"
               onClick={() => onOpenPhoto(photo, idx)}
