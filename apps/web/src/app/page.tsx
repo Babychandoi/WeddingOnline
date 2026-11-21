@@ -15,6 +15,9 @@ import {
 import { INVITATION_TEMPLATES, TIER_CATALOG, VENUE_THEMES, getVenueTheme, type InvitationTemplateId, type WeddingTier } from '@dco/shared';
 import { VenueCard } from '@/components/venues/VenueCard';
 import { CardFace } from '@/components/invitation/CardFace';
+import { getAdminSession } from '@/lib/adminPage';
+
+export const dynamic = 'force-dynamic';
 
 // One traditional, one stamp, one romantic, one travel: the range of the 100 templates at a glance
 const HOME_INVITATIONS: InvitationTemplateId[] = ['song-hy-do', 'tem-hy', 'i-love-you', 've-ra-dao'];
@@ -64,7 +67,8 @@ const CAPABILITIES = [
 
 const DISPLAY_TIERS: WeddingTier[] = ['TRIAL_24H', 'HAPPINESS', 'VIP_FULFILLMENT'];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const isAdmin = Boolean(await getAdminSession());
   return (
     <div className="min-h-screen bg-[#FFFDF8] text-slate-900">
       {/* Top Navigation */}
@@ -91,9 +95,11 @@ export default function HomePage() {
             <a href="#goi-dich-vu" className="transition hover:text-rose-700">
               Bảng Gói
             </a>
-            <Link href="/partner" className="transition hover:text-rose-700">
-              Đối Tác Studio
-            </Link>
+            {isAdmin && (
+              <Link href="/partner" className="transition hover:text-rose-700">
+                Đối Tác Studio
+              </Link>
+            )}
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -293,21 +299,23 @@ export default function HomePage() {
               Hệ thống cân bằng giữa không khí gần gũi cho ông bà, bạn bè ở xa và tính riêng tư, minh
               bạch tuyệt đối về tài chính cho cặp đôi.
             </p>
-            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs leading-relaxed text-amber-950">
-              <strong className="flex items-center gap-1.5 text-sm font-bold text-rose-800">
-                <Building2 className="h-4 w-4" /> Dành cho Studio Ảnh Cưới &amp; Xưởng In Thiệp
-              </strong>
-              <p className="mt-1.5 text-amber-900/90">
-                Tích hợp sẵn cổng đối tác B2B2C giúp tạo mã ưu đãi 35% hoặc voucher trả trước 100%
-                kích hoạt ngay cho khách đặt gói chụp ảnh.
-              </p>
-              <Link
-                href="/partner"
-                className="mt-2.5 inline-flex items-center gap-1 font-bold text-rose-700 hover:underline"
-              >
-                Mở Cổng Đối Tác Studio <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
+            {isAdmin && (
+              <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs leading-relaxed text-amber-950">
+                <strong className="flex items-center gap-1.5 text-sm font-bold text-rose-800">
+                  <Building2 className="h-4 w-4" /> Dành cho Studio Ảnh Cưới &amp; Xưởng In Thiệp
+                </strong>
+                <p className="mt-1.5 text-amber-900/90">
+                  Tích hợp sẵn cổng đối tác B2B2C giúp tạo mã ưu đãi 35% hoặc voucher trả trước 100%
+                  kích hoạt ngay cho khách đặt gói chụp ảnh.
+                </p>
+                <Link
+                  href="/partner"
+                  className="mt-2.5 inline-flex items-center gap-1 font-bold text-rose-700 hover:underline"
+                >
+                  Mở Cổng Đối Tác Studio <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="divide-y divide-amber-200/70 rounded-3xl border border-amber-200 bg-white px-6 shadow-sm">
@@ -431,9 +439,11 @@ export default function HomePage() {
             <Link href="/create" className="hover:text-rose-700 hover:underline">
               Tạo Sảnh Mới
             </Link>
-            <Link href="/partner" className="hover:text-rose-700 hover:underline">
-              Đối Tác Studio
-            </Link>
+            {isAdmin && (
+              <Link href="/partner" className="hover:text-rose-700 hover:underline">
+                Đối Tác Studio
+              </Link>
+            )}
             <Link href="/w/minh-va-linh" className="hover:text-rose-700 hover:underline">
               Demo Tiệc VIP
             </Link>

@@ -311,6 +311,7 @@
 - [x] **Sửa 2 lỗi phát hiện khi QA trình duyệt trực tiếp trên `poiplegal.online`** (`OAuthModal.tsx`, `VenueScene.tsx`):
   - Khởi tạo `googleConfigured` bằng `null` thay vì `false` để không nháy dòng cảnh báo `Chưa điền GOOGLE_CLIENT_ID` trong lúc `/api/health` đang tải
   - Dời thanh **Đồ họa: Tự động / Cao / Tiết kiệm pin** xuống `sm:top-[6.5rem]` để không đè lên thanh đi nhanh **Cổng Hoa / Sân Khấu / Bàn Tiệc** trên máy tính
+- [x] **Ẩn mục "Đối Tác Studio" (`/partner`) với người dùng thường** (`apps/web/src/app/page.tsx`, `apps/web/src/app/partner/page.tsx`): chỉ hiển thị liên kết/khối **Đối Tác Studio** trên trang chủ và cho phép truy cập `/partner` khi tài khoản **Admin** đã đăng nhập (`getAdminSession()`)
 
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
