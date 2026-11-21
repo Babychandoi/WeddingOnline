@@ -316,6 +316,7 @@
   - Bỏ đổ bóng cho cây/đá ở vòng ngoài bán kính `32m` (`ShadowCasters`), trì hoãn tải HDRI 5MB (`550ms`) và cây nền nặng (`650ms`) để sảnh & nhân vật hiện tức thì
   - Sửa lỗi giật/rung cảnh vật khi di chuyển (`CameraRigAndController` trong `VenueScene.tsx`): đặt `CameraRigAndController` chạy trước `HumanAvatar` để camera và nhân vật luôn đồng bộ đúng 1 khung hình, và bỏ gọi `OrbitControls.update()` 2 lần mỗi frame
   - Bỏ `distanceFactor` trên các nhãn `Ký Sổ Lưu Bút`, `Mừng Cưới VietQR`, `Bàn tiệc`, bảng chào mừng và giá ảnh, đồng thời đưa `CameraRigAndController` lên đầu `<Canvas>` kèm `camera.updateMatrixWorld()` (`VenueScene.tsx`) để toàn bộ nhãn `<Html>` đồng bộ đúng khung hình camera, hết rung giật khi di chuyển
+  - Sửa lỗi trôi/lệch biển tên nhân vật (`HumanAvatar.tsx`, `VenueScene.tsx`): cố định `initPosition`/`initRotation` tránh Colyseus re-render kéo lùi vị trí, tách `AvatarFrameDriver` chạy trước `<Html>` kèm `root.updateMatrixWorld()`, bỏ `distanceFactor` và đặt `eps={0}` để biển tên bám khít đỉnh đầu nhân vật ở mọi khung hình
 - [x] **Ẩn mục "Đối Tác Studio" (`/partner`) với người dùng thường** (`apps/web/src/app/page.tsx`, `apps/web/src/app/partner/page.tsx`): chỉ hiển thị liên kết/khối **Đối Tác Studio** trên trang chủ và cho phép truy cập `/partner` khi tài khoản **Admin** đã đăng nhập (`getAdminSession()`)
 
 ## Các Bước Tiếp Theo Khi Go-Live

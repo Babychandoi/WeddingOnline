@@ -45,7 +45,7 @@ const SceneLabelsContext = createContext(true);
 
 function SceneLabel(props: React.ComponentProps<typeof Html>) {
   // Labels stay under the hall's own panels and dialogs (z-20 and up); drei's default stacks them on top
-  return useContext(SceneLabelsContext) ? <Html zIndexRange={[15, 0]} {...props} /> : null;
+  return useContext(SceneLabelsContext) ? <Html zIndexRange={[15, 0]} eps={0} {...props} /> : null;
 }
 
 export interface RemotePlayerView {

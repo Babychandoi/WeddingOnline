@@ -10,7 +10,7 @@
  */
 
 import React, { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, type RootState } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import type { MotionStore } from '@dco/shared';
@@ -309,6 +309,14 @@ interface Joints {
 
 const REST: Joints = { thighA: 0, thighB: 0, kneeA: 0.05, kneeB: 0.05, armAx: 0.04, armAz: 0.08, armBx: 0.04, armBz: 0.08, elbowA: -0.15, elbowB: -0.15, pitch: 0, bodyY: 0 };
 
+/** Runs as the first child of the avatar root group so its useFrame updates root.position before <Html> projects. */
+function AvatarFrameDriver({ onFrame }: { onFrame: (state: RootState, delta: number) => void }) {
+  useFrame((state, delta) => {
+    onFrame(state, delta);
+  });
+  return null;
+}
+
 export const HumanAvatar: React.FC<AvatarRenderProps> = ({
   id,
   displayName,
@@ -361,6 +369,18 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
   const trimDetailRef = useRef<THREE.Group>(null);
   const personMotion = useRef<PersonMotion>({ walk: 0, speed: 0 });
 
+  // Seed initial group transform once so Colyseus re-renders never reset root.position back to stale network props
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const initPosition = useMemo<[number, number, number]>(
+    () => [liveLocalRef?.current?.x ?? targetX, 0, liveLocalRef?.current?.z ?? targetZ],
+    []
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const initRotation = useMemo<[number, number, number]>(
+    () => [0, liveLocalRef?.current?.rotY ?? targetRotY, 0],
+    []
+  );
+
   const st = useRef({
     phase: 0,
     walk: 0,
@@ -371,7 +391,7 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
     seed: (hashString(id) % 1000) / 160,
   });
 
-  useFrame((state, delta) => {
+  const handleFrame = (state: RootState, delta: number) => {
     const root = rootRef.current;
     const body = bodyRef.current;
     const upper = upperRef.current;
@@ -416,6 +436,7 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
     while (dr > Math.PI) dr -= Math.PI * 2;
     while (dr < -Math.PI) dr += Math.PI * 2;
     root.rotation.y += dr * (1 - Math.exp(-14 * dt));
+    root.updateMatrixWorld();
 
     // ── Walk cycle driven by distance covered ──
     const moved = Math.hypot(x - s.lastX, z - s.lastZ);
@@ -516,7 +537,7 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
       const sit = seated ? 1 : 0;
       skirtRef.current.scale.set(1 + sit * 0.15, 1 - sit * 0.4, 1 + sit * 0.35);
     }
-  });
+  };
 
   const badge =
     role === 'BRIDE' || (isNpc && outfitId === 'vay_cuoi_trang')
@@ -672,8 +693,8 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
   return (
     <group
       ref={rootRef}
-      position={[targetX, 0, targetZ]}
-      rotation={[0, targetRotY, 0]}
+      position={initPosition}
+      rotation={initRotation}
       onClick={(e) => {
         if (onClick) {
           e.stopPropagation();
@@ -690,6 +711,7 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
         if (onClick && typeof document !== 'undefined') document.body.style.cursor = 'auto';
       }}
     >
+      <AvatarFrameDriver onFrame={handleFrame} />
       {/* Soft contact shadow (the sun shadow does the rest when it is on) */}
       <mesh geometry={g.blob} material={blobMat('#1e1b2e', 0.16)} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]} />
       {(isLocal || isSpeaking) && (
@@ -721,7 +743,7 @@ export const HumanAvatar: React.FC<AvatarRenderProps> = ({
       )}
 
       {(showLabel || bubbleText) && (
-        <Html position={[0, personId ? 2.05 : fem ? 1.95 : 2.02, 0]} center distanceFactor={11} zIndexRange={[10, 0]}>
+        <Html position={[0, personId ? 2.05 : fem ? 1.95 : 2.02, 0]} center eps={0} zIndexRange={[10, 0]}>
           <div className="pointer-events-none flex select-none flex-col items-center gap-1">
             {bubbleText && (
               <div className="max-w-[180px] rounded-2xl border border-amber-200 bg-white/95 px-2.5 py-1 text-center text-[11px] font-medium text-slate-900 shadow-md">
