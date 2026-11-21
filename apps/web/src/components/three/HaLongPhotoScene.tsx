@@ -6,7 +6,7 @@ import {
   BackSide, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, MeshBasicMaterial, Shape, SRGBColorSpace,
   ShaderMaterial, TextureLoader, Vector3,
 } from 'three';
-import { usePhSurface } from './phAssets';
+import { PhScatter, usePhSurface, type ScatterItem } from './phAssets';
 import { HA_LONG_PHOTO_REFERENCE } from './HaLongPhotoReference';
 
 const SEA_LEVEL = -1.18;
@@ -403,15 +403,37 @@ const DECK_RAILS = [
   { x: 0, z: 15.12, yaw: 0 },
 ];
 
+const DECK_PLANTS: ScatterItem[] = [
+  { position: [-14.2, 0, -13.8], rotationY: 0.4, scale: 1 },
+  { position: [14.2, 0, -13.8], rotationY: -0.4, scale: 1 },
+  { position: [-14.2, 0, 13.8], rotationY: 2.5, scale: 1 },
+  { position: [14.2, 0, 13.8], rotationY: -2.5, scale: 1 },
+];
+const DECK_BENCHES: ScatterItem[] = [
+  { position: [-14.3, 0, -4], rotationY: Math.PI / 2, scale: 1 },
+  { position: [14.3, 0, -4], rotationY: -Math.PI / 2, scale: 1 },
+  { position: [-14.3, 0, 5], rotationY: Math.PI / 2, scale: 1 },
+  { position: [14.3, 0, 5], rotationY: -Math.PI / 2, scale: 1 },
+];
+
 /** The playable room keeps its walkable floor and wedding objects. */
 export function HaLongHallScenery() {
+  const deckWood = usePhSurface('wood', 32);
   return (
     <>
       <group position-y={-SEA_LEVEL - 0.82}><Bay /></group>
       <mesh position-y={-1.23} rotation-x={-Math.PI / 2} receiveShadow>
         <extrudeGeometry args={[HULL_OUTLINE, HULL_DEPTH]} />
-        <meshStandardMaterial color="#ede4cf" roughness={0.6} />
+        <meshStandardMaterial
+          color={deckWood ? '#e5d4bc' : '#ede4cf'}
+          map={deckWood?.map}
+          normalMap={deckWood?.normalMap}
+          roughnessMap={deckWood?.roughnessMap}
+          roughness={deckWood ? 1 : 0.6}
+        />
       </mesh>
+      <PhScatter id="potted_plant_01" items={DECK_PLANTS} height={1.65} handheld />
+      <PhScatter id="painted_wooden_bench" items={DECK_BENCHES} height={0.88} />
       {DECK_RAILS.map(({ x, z, yaw }) => (
         <group key={`${x},${z}`} position={[x, 0, z]} rotation-y={yaw}>
           <mesh position-y={1.05}>

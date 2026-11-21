@@ -665,6 +665,7 @@ function pineSlope(items: PlantInstances, ground: Ground, random: Random) {
 export function PhotoVegetation({ style, seed, variant, palette, groundHeight = FLAT_GROUND }: {
   style: PlantStyle; seed: number; variant: string; palette: Palette; groundHeight?: Ground;
 }) {
+  // All 17 PlantStyles across the 101 venues receive photo-scanned Poly Haven 3D trees/foliage/rocks
   const canUseScannedTrees =
     style === 'broadleaf' ||
     style === 'tropical' ||
@@ -672,12 +673,16 @@ export function PhotoVegetation({ style, seed, variant, palette, groundHeight = 
     style === 'birch' ||
     style === 'cedar' ||
     style === 'acacia' ||
-    style === 'pine';
+    style === 'pine' ||
+    style === 'cypress' ||
+    style === 'baobab' ||
+    style === 'palm' ||
+    style === 'bamboo';
   const scannedIds = useMemo(
     () =>
       style === 'blossom'
         ? ['jacaranda_tree', 'tree_small_02']
-        : style === 'tropical'
+        : style === 'tropical' || style === 'palm' || style === 'bamboo'
           ? ['island_tree_01', 'island_tree_02', 'island_tree_03']
           : ['island_tree_01', 'island_tree_02', 'tree_small_02'],
     [style],

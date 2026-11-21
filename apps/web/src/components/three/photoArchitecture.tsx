@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { IS_HANDHELD } from './deviceTier';
 import { detailNormal, detailRoughness } from './pbr';
+import { PhScatter, usePhSurface, type ScatterItem } from './phAssets';
 import { flutedColumn, pleatedCurtain } from './realGeometry';
 import { fabric, painted, wood } from './realMaterials';
 import { InstancedSet } from './realProps';
@@ -891,6 +892,47 @@ const SURFACES: Record<Geometry, [THREE.BufferGeometry, THREE.Material]> = {
 /** Walkable display remains clear inside the hall's 30 m footprint. The surroundings are solid and orbitable. */
 export function PhotoArchitecture({ style, seed, variant, palette }: { style: ArchitectureStyle; seed: number; variant: string; palette: Palette }) {
   const { primary, secondary, accent, shadow } = palette;
+  const stonePhoto = usePhSurface('stone', 4);
+  const tilePhoto = usePhSurface('tile', 3);
+  const woodPhoto = usePhSurface('wood', 3);
+
+  const surfaces = useMemo<Record<Geometry, [THREE.BufferGeometry, THREE.Material]>>(() => {
+    const stoneMat = STONE.clone();
+    if (stonePhoto) {
+      stoneMat.map = stonePhoto.map;
+      stoneMat.normalMap = stonePhoto.normalMap;
+      stoneMat.roughnessMap = stonePhoto.roughnessMap;
+    }
+    const tileMat = TILE_MATERIAL.clone();
+    if (tilePhoto) {
+      tileMat.map = tilePhoto.map;
+      tileMat.normalMap = tilePhoto.normalMap;
+      tileMat.roughnessMap = tilePhoto.roughnessMap;
+    }
+    const timberMat = wood('#ffffff', 0.16).clone();
+    if (woodPhoto) {
+      timberMat.map = woodPhoto.map;
+      timberMat.normalMap = woodPhoto.normalMap;
+      timberMat.roughnessMap = woodPhoto.roughnessMap;
+    }
+    return {
+      block: [BOX, stoneMat],
+      timber: [BOX, timberMat],
+      arch: [ARCH, stoneMat],
+      hip: [HIP, tileMat],
+      gable: [GABLE, tileMat],
+      asian: [ASIAN, tileMat],
+      tile: [TILE, tileMat],
+      column: [COLUMN, stoneMat],
+      spire: [SPIRE, tileMat],
+      dome: [DOME, tileMat],
+      glass: [BOX, WINDOW],
+      light: [BOX, LIT_WINDOW],
+      cloth: [CURTAIN, CLOTH],
+      sail: [SAIL, PORCELAIN_TILE],
+    };
+  }, [stonePhoto, tilePhoto, woodPhoto]);
+
   const parts = useMemo(() => {
     const builder: Builder = { parts: {}, pick: seeded(seed), palette: { primary, secondary, accent, shadow } };
     switch (style) {
@@ -915,12 +957,101 @@ export function PhotoArchitecture({ style, seed, variant, palette }: { style: Ar
     }
     return builder.parts;
   }, [style, seed, variant, primary, secondary, accent, shadow]);
+
+  // Photo-scanned Poly Haven 3D props tailored to every single one of the 12 architecture styles
+  const scannedSets = useMemo(() => {
+    const out: Array<{ id: string; items: ScatterItem[]; height: number; handheld?: boolean }> = [];
+    const perimeterSpots: ScatterItem[] = [
+      { position: [-15.6, 0, -12], rotationY: 0.4, scale: 1 },
+      { position: [15.6, 0, -12], rotationY: -0.4, scale: 1 },
+      { position: [-15.6, 0, 0], rotationY: 1.2, scale: 1.05 },
+      { position: [15.6, 0, 0], rotationY: -1.2, scale: 1.05 },
+      { position: [-15.6, 0, 12], rotationY: 2.1, scale: 0.95 },
+      { position: [15.6, 0, 12], rotationY: -2.1, scale: 0.95 },
+    ];
+    const benchSpots: ScatterItem[] = [
+      { position: [-15.8, 0, -6], rotationY: Math.PI / 2, scale: 1 },
+      { position: [15.8, 0, -6], rotationY: -Math.PI / 2, scale: 1 },
+      { position: [-15.8, 0, 6], rotationY: Math.PI / 2, scale: 1 },
+      { position: [15.8, 0, 6], rotationY: -Math.PI / 2, scale: 1 },
+    ];
+    const lampSpots: ScatterItem[] = [
+      { position: [-16.2, 0, -14], rotationY: 0, scale: 1 },
+      { position: [16.2, 0, -14], rotationY: Math.PI, scale: 1 },
+      { position: [-16.2, 0, -3], rotationY: 0, scale: 1 },
+      { position: [16.2, 0, -3], rotationY: Math.PI, scale: 1 },
+      { position: [-16.2, 0, 8], rotationY: 0, scale: 1 },
+      { position: [16.2, 0, 8], rotationY: Math.PI, scale: 1 },
+    ];
+
+    if (style === 'ballroom') {
+      out.push({
+        id: variant === 'luxury_ballroom' ? 'Chandelier_01' : variant === 'ar_tango' ? 'Chandelier_03' : 'Chandelier_02',
+        height: 2.1,
+        items: [
+          { position: [-6.5, 7.3, -6], rotationY: 0, scale: 1 },
+          { position: [6.5, 7.3, -6], rotationY: 0.8, scale: 1 },
+          { position: [-6.5, 7.3, 5], rotationY: 1.6, scale: 1 },
+          { position: [6.5, 7.3, 5], rotationY: 2.4, scale: 1 },
+        ],
+      });
+      out.push({ id: 'potted_plant_01', height: 1.7, handheld: true, items: perimeterSpots.slice(0, 4) });
+      out.push({ id: 'potted_plant_02', height: 1.5, items: perimeterSpots.slice(2, 6) });
+    } else if (style === 'shrine' || style === 'heritage' || style === 'courtyard') {
+      const eastAsian = ['vn_gia_tien', 'vn_hue_imperial', 'jp_shinto', 'jp_sakura', 'jp_ryokan_autumn', 'kr_hanok', 'cn_courtyard'].includes(variant);
+      out.push({
+        id: eastAsian ? 'chinese_chandelier' : 'wooden_lantern_01',
+        height: 0.95,
+        handheld: true,
+        items: [
+          { position: [-8.5, 3.8, -15.5], rotationY: 0, scale: 1 },
+          { position: [8.5, 3.8, -15.5], rotationY: 0.6, scale: 1 },
+          { position: [-15.5, 3.6, -6], rotationY: 1.57, scale: 0.95 },
+          { position: [15.5, 3.6, -6], rotationY: -1.57, scale: 0.95 },
+        ],
+      });
+      out.push({ id: 'potted_plant_02', height: 1.45, handheld: true, items: perimeterSpots.slice(0, 4) });
+      out.push({ id: 'planter_box_01', height: 0.78, items: benchSpots.slice(0, 2) });
+      out.push({ id: 'painted_wooden_bench', height: 0.88, items: benchSpots.slice(2, 4) });
+    } else if (style === 'old-town' || style === 'canal' || style === 'skyline') {
+      out.push({ id: 'street_lamp_01', height: 3.6, handheld: true, items: lampSpots });
+      out.push({ id: 'planter_box_01', height: 0.8, handheld: true, items: perimeterSpots });
+      out.push({ id: 'painted_wooden_bench', height: 0.88, items: benchSpots });
+      out.push({ id: 'potted_plant_04', height: 1.2, items: perimeterSpots.slice(0, 4) });
+    } else if (style === 'palace' || style === 'villa' || style === 'chapel') {
+      out.push({ id: 'street_lamp_01', height: 3.5, handheld: true, items: lampSpots.slice(0, 4) });
+      out.push({ id: 'potted_plant_01', height: 1.75, handheld: true, items: perimeterSpots.slice(0, 4) });
+      out.push({ id: 'planter_box_01', height: 0.82, items: perimeterSpots.slice(2, 6) });
+      out.push({ id: 'painted_wooden_bench', height: 0.9, items: benchSpots });
+    } else {
+      // pavilion & barn
+      out.push({
+        id: style === 'barn' ? 'lantern_chandelier_01' : 'Lantern_01',
+        height: style === 'barn' ? 1.25 : 0.75,
+        handheld: true,
+        items: [
+          { position: [-6, 4.4, -14.8], rotationY: 0, scale: 1 },
+          { position: [6, 4.4, -14.8], rotationY: 1.1, scale: 1 },
+          { position: [-14.8, 4.2, 0], rotationY: 1.57, scale: 1 },
+          { position: [14.8, 4.2, 0], rotationY: -1.57, scale: 1 },
+        ],
+      });
+      out.push({ id: 'planter_box_01', height: 0.8, handheld: true, items: perimeterSpots.slice(0, 4) });
+      out.push({ id: 'potted_plant_04', height: 1.25, items: perimeterSpots.slice(2, 6) });
+      out.push({ id: 'painted_wooden_bench', height: 0.88, items: benchSpots.slice(0, 2) });
+    }
+    return out;
+  }, [style, variant]);
+
   return (
     <group name={`photo-architecture-${style}`} dispose={null}>
       {Object.entries(parts).map(([kind, pieces]) => {
-        const [geometry, material] = SURFACES[kind as Geometry];
+        const [geometry, material] = surfaces[kind as Geometry];
         return <InstancedSet key={kind} geometry={geometry} material={material} items={pieces} castShadow={false} />;
       })}
+      {scannedSets.map((s) => (
+        <PhScatter key={s.id} id={s.id} items={s.items} height={s.height} handheld={s.handheld} castShadow={!IS_HANDHELD} />
+      ))}
     </group>
   );
 }

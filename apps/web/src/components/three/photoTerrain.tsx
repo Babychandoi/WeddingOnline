@@ -5,7 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { IS_HANDHELD } from './deviceTier';
 import { detailNormal, detailRoughness } from './pbr';
-import { usePhSurface, type PhSurfaceKind } from './phAssets';
+import { PhScatter, usePhSurface, type PhSurfaceKind, type ScatterItem } from './phAssets';
 import { InstancedSet } from './realProps';
 
 export type TerrainStyle = 'coast' | 'karst' | 'lake' | 'alpine' | 'fjord' | 'volcanic' | 'dune' | 'canyon' | 'terraces' | 'field' | 'meadow' | 'river';
@@ -610,9 +610,11 @@ const STONE_GEOMETRY = new THREE.DodecahedronGeometry(1, 1);
 const STONE_MATERIAL = new THREE.MeshStandardMaterial({ roughness: 0.94 });
 
 function LooseStone({ seed, variant, shape, palette }: { seed: number; variant: string; shape: TerrainShape; palette: TerrainPalette }) {
-  const rocks = useMemo(() => {
+  const { rocks, scannedBoulders, scannedMossRocks } = useMemo(() => {
     const count = IS_HANDHELD ? 65 : 152;
     const pieces: Instance[] = [];
+    const boulders: ScatterItem[] = [];
+    const mossRocks: ScatterItem[] = [];
     const stone = new THREE.Color(variant === 'is_black_sand' ? '#393d3c' : '#807163').lerp(new THREE.Color(palette.secondary), 0.31);
     for (let i = 0; i < count; i++) {
       const side = i % 2 ? -1 : 1;
@@ -624,10 +626,21 @@ function LooseStone({ seed, variant, shape, palette }: { seed: number; variant: 
       const y = height + radius * 0.11;
       const col = stone.clone().multiplyScalar(0.64 + random(i, 46, seed) * 0.71);
       pieces.push({ position: [x, y, z], scale: [radius * 1.28, radius * 0.68, radius * 0.86], rotation: [random(i, 24, seed), random(i, 52, seed) * 6.28, -0.37 + random(i, 6, seed)], color: `#${col.getHexString()}` });
+      if (i < 16) {
+        boulders.push({ position: [x, height - 0.04, z], rotationY: random(i, 52, seed) * 6.28, scale: 0.65 + random(i, 14, seed) * 1.15 });
+      } else if (i < 42) {
+        mossRocks.push({ position: [x, height - 0.03, z], rotationY: random(i, 31, seed) * 6.28, scale: 0.7 + random(i, 19, seed) * 0.95 });
+      }
     }
-    return pieces;
+    return { rocks: pieces, scannedBoulders: boulders, scannedMossRocks: mossRocks };
   }, [seed, variant, shape, palette]);
-  return <InstancedSet geometry={STONE_GEOMETRY} material={STONE_MATERIAL} items={rocks} castShadow={false} />;
+  return (
+    <group>
+      <InstancedSet geometry={STONE_GEOMETRY} material={STONE_MATERIAL} items={rocks} castShadow={false} />
+      <PhScatter id="boulder_01" items={scannedBoulders} castShadow={!IS_HANDHELD} />
+      <PhScatter id="rock_moss_set_01" items={scannedMossRocks} variants handheld castShadow={!IS_HANDHELD} />
+    </group>
+  );
 }
 
 export function PhotoTerrain({ style, seed, variant, palette }: TerrainProps) {

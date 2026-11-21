@@ -447,12 +447,34 @@ export function HoiAnPhotoScene() {
   );
 }
 
+const HOI_AN_PLANTERS: ScatterItem[] = [
+  { position: [-15.8, 0.13, -10], rotationY: 0, scale: 1 },
+  { position: [15.8, 0.13, -10], rotationY: Math.PI, scale: 1 },
+  { position: [-15.8, 0.13, 2], rotationY: 0, scale: 1 },
+  { position: [15.8, 0.13, 2], rotationY: Math.PI, scale: 1 },
+];
+const HOI_AN_BENCHES: ScatterItem[] = [
+  { position: [-16.0, 0.13, -4], rotationY: Math.PI / 2, scale: 1 },
+  { position: [16.0, 0.13, -4], rotationY: -Math.PI / 2, scale: 1 },
+  { position: [-16.0, 0.13, 8], rotationY: Math.PI / 2, scale: 1 },
+  { position: [16.0, 0.13, 8], rotationY: -Math.PI / 2, scale: 1 },
+];
+const HOI_AN_LANTERNS: ScatterItem[] = [
+  { position: [-16.2, 3.2, -12], rotationY: 0, scale: 1 },
+  { position: [16.2, 3.2, -12], rotationY: 0.8, scale: 1 },
+  { position: [-16.2, 3.2, 0], rotationY: 1.6, scale: 1 },
+  { position: [16.2, 3.2, 0], rotationY: 2.4, scale: 1 },
+];
+
 /** Perimeter only. Eaves, foliage trunks and lights stay clear of the 30 m hall footprint. */
 export function HoiAnHallScenery() {
   return (
     <>
       <TownFrontages live />
       <StreetTrees live />
+      <PhScatter id="potted_plant_02" items={HOI_AN_PLANTERS} height={1.45} handheld />
+      <PhScatter id="painted_wooden_bench" items={HOI_AN_BENCHES} height={0.88} />
+      <PhScatter id="wooden_lantern_01" items={HOI_AN_LANTERNS} height={0.85} handheld />
     </>
   );
 }
