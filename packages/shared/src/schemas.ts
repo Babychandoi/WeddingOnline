@@ -19,6 +19,20 @@ export const WS_MESSAGES = {
   GIFT_CELEBRATION_EVENT: 'GIFT_CELEBRATION_EVENT',
   SPEAKING_STATE: 'SPEAKING_STATE',
   ROOM_SYSTEM_NOTICE: 'ROOM_SYSTEM_NOTICE',
+  /** Client → server: a line for the shared congratulations chat */
+  HALL_CHAT_SEND: 'HALL_CHAT_SEND',
+  /** Server → client: one new chat line (HallChatMessage) */
+  HALL_CHAT: 'HALL_CHAT',
+  /** Server → client on joining: recent chat lines */
+  HALL_CHAT_HISTORY: 'HALL_CHAT_HISTORY',
+  /** Client → server: a private message to one guest */
+  DM_SEND: 'DM_SEND',
+  /** Server → the two people in it: a private message (PrivateMessage) */
+  DM: 'DM',
+  /** Server → sender: why a private message was not sent */
+  DM_FAILED: 'DM_FAILED',
+  /** Server → client: a paid fireworks show starts (FireworksShow + delayMs) */
+  FIREWORKS_SHOW: 'FIREWORKS_SHOW',
 } as const;
 
 export class PlayerSchema extends Schema {

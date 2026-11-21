@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbRepo } from '@dco/database';
-import { filterVietnameseProfanity, type GuestSide } from '@dco/shared';
+import { filterVietnameseProfanity, invitationAccess, type GuestSide } from '@dco/shared';
 import { allowRequest, clientIp } from '@/lib/rateLimit';
 
 const SIDES: GuestSide[] = ['GROOM_SIDE', 'BRIDE_SIDE', 'FRIEND', 'COLLEAGUE'];
@@ -35,10 +35,8 @@ export async function GET(_req: NextRequest, context: { params: { slug: string }
 export async function POST(req: NextRequest, context: { params: { slug: string } }) {
   const wedding = await dbRepo.getWeddingBySlug(context.params.slug);
   if (!wedding) return NextResponse.json({ error: 'WEDDING_NOT_FOUND' }, { status: 404 });
-  // An expired trial room is closed; the permanent 2D memorial still collects wishes
-  if (wedding.status === 'EXPIRED_TRIAL') {
-    return NextResponse.json({ error: 'INVITATION_CLOSED' }, { status: 410 });
-  }
+  // Only a published invitation takes wishes (the 3D hall has its own guestbook)
+  if (!invitationAccess(wedding).published) return NextResponse.json({ error: 'INVITATION_NOT_PUBLISHED', message: 'Thiệp chưa được phát hành hoặc đang tạm ngưng.' }, { status: 403 });
 
   const ip = clientIp(req);
   if (!allowRequest(`wish:${wedding.id}:${ip}`, 5, 10 * 60 * 1000)) {

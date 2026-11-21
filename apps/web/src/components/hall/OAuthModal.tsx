@@ -9,6 +9,8 @@ interface OAuthModalProps {
   title?: string;
   subtitle?: string;
   onAuthenticated: (user: { id: string; displayName: string; provider: AuthProvider }) => void;
+  /** Shown over the hall (not as a gate): a way back instead of the home link */
+  onClose?: () => void;
 }
 
 const GOOGLE_OAUTH_ERRORS: Record<string, string> = {
@@ -23,6 +25,7 @@ export const OAuthModal: React.FC<OAuthModalProps> = ({
   title = 'Đăng Nhập Dự Tiệc Cưới',
   subtitle = 'Phòng cưới yêu cầu đăng nhập bằng tài khoản Google để bảo vệ không gian riêng tư của Cô Dâu & Chú Rể.',
   onAuthenticated,
+  onClose,
 }) => {
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -113,12 +116,22 @@ export const OAuthModal: React.FC<OAuthModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
       <div className="dco-fade-up w-full max-w-md rounded-3xl border border-amber-200 bg-[#FFFDF8] p-6 shadow-2xl sm:p-7">
         <div className="mb-4 flex items-center justify-between">
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex min-h-[36px] items-center gap-1 text-xs font-semibold text-rose-800/80 transition hover:text-rose-700"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Quay lại sảnh
+            </button>
+          ) : (
           <Link
             href="/"
             className="inline-flex items-center gap-1 text-xs font-semibold text-rose-800/80 transition hover:text-rose-700"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Trang chủ
           </Link>
+          )}
           <span className="text-[11px] font-medium text-amber-800">DamCuoiOnline.vn</span>
         </div>
 

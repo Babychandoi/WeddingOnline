@@ -50,38 +50,46 @@ function cardTexture(kind: CardKind): THREE.CanvasTexture | null {
     ctx.moveTo(S / 2, S);
     ctx.lineTo(S / 2, 0);
     ctx.stroke();
-    for (let y = S - 6; y > 4; y -= 5) {
+    for (let y = S - 7; y > 5; y -= 6) {
       const t = 1 - y / S;
-      const len = (S / 2) * (0.35 + Math.sin(t * Math.PI) * 0.65) * (0.85 + r() * 0.15);
+      const len = (S / 2) * (0.11 + Math.sin(t * Math.PI) ** 0.72 * 0.89) * (0.84 + r() * 0.16);
       for (const side of [-1, 1]) {
-        const tone = 150 + r() * 80;
-        ctx.strokeStyle = `rgb(${tone},${tone},${tone})`;
-        ctx.lineWidth = 3 + r() * 1.5;
+        const root = 120 + r() * 48;
+        const tip = 190 + r() * 40;
+        const dx = side * len;
+        const dy = len * (0.23 + t * 0.18);
+        const shade = ctx.createLinearGradient(S / 2, y, S / 2 + dx, y - dy);
+        shade.addColorStop(0, `rgb(${root},${root},${root})`);
+        shade.addColorStop(1, `rgb(${tip},${tip},${tip})`);
+        ctx.fillStyle = shade;
         ctx.beginPath();
-        ctx.moveTo(S / 2, y);
-        ctx.quadraticCurveTo(S / 2 + side * len * 0.5, y - 10, S / 2 + side * len, y + 6 + r() * 10);
-        ctx.stroke();
+        ctx.moveTo(S / 2, y + 2.4);
+        ctx.quadraticCurveTo(S / 2 + dx * 0.44, y - dy * 0.15 + 2, S / 2 + dx, y - dy);
+        ctx.quadraticCurveTo(S / 2 + dx * 0.4, y - dy * 0.62 - 4, S / 2, y - 2);
+        ctx.fill();
       }
     }
   } else if (kind === 'needles') {
     // Conifer spray: twigs covered in short needles
-    for (let b = 0; b < 26; b++) {
-      const x0 = S * (0.1 + r() * 0.8);
-      const y0 = S * (0.15 + r() * 0.75);
-      const ang = -Math.PI / 2 + (r() - 0.5) * 1.6;
-      const len = 60 + r() * 80;
-      for (let i = 0; i < 70; i++) {
-        const t = i / 70;
+    for (let b = 0; b < 16; b++) {
+      const side = b % 2 ? 1 : -1;
+      const x0 = S * (0.48 + r() * 0.04);
+      const y0 = S * (0.42 + (b / 16) * 0.51);
+      const ang = -Math.PI / 2 + side * (0.28 + r() * 0.66);
+      const len = 65 + r() * 72;
+      for (let i = 0; i < 48; i++) {
+        const t = i / 48;
         const px = x0 + Math.cos(ang) * len * t;
         const py = y0 + Math.sin(ang) * len * t;
         for (const side of [-1, 1]) {
           const a2 = ang + side * (0.9 + r() * 0.3);
           const tone = 120 + r() * 110;
           ctx.strokeStyle = `rgb(${tone},${tone},${tone})`;
-          ctx.lineWidth = 1.6;
+          ctx.lineWidth = 1.35;
           ctx.beginPath();
           ctx.moveTo(px, py);
-          ctx.lineTo(px + Math.cos(a2) * 11, py + Math.sin(a2) * 11);
+          const needle = 9 + r() * 15 * Math.sin(t * Math.PI);
+          ctx.lineTo(px + Math.cos(a2) * needle, py + Math.sin(a2) * needle);
           ctx.stroke();
         }
       }
@@ -226,13 +234,13 @@ function taperedLimb(from: THREE.Vector3, to: THREE.Vector3, r0: number, r1: num
 function cardPlane(kind: CardKind): THREE.BufferGeometry {
   if (kind === 'frond') {
     // Long strip, arching: bent along its length and folded slightly at the midrib
-    const g = new THREE.PlaneGeometry(1.1, 3.2, 4, 12);
+    const g = new THREE.PlaneGeometry(1.3, 3.2, 4, 10);
     const pos = g.attributes.position as THREE.BufferAttribute;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       const y = pos.getY(i) + 1.6;
       const t = y / 3.2;
-      pos.setXYZ(i, x * (1 - t * 0.3), y * Math.cos(t * 1.2) * 0.95, -Math.sin(t * 1.5) * 1.1 * t + Math.abs(x) * 0.25);
+      pos.setXYZ(i, x, Math.sin(t * Math.PI) * 0.63 - t * t * 1.65 - Math.abs(x) * 0.22, y);
     }
     g.computeVertexNormals();
     return g;
@@ -241,7 +249,7 @@ function cardPlane(kind: CardKind): THREE.BufferGeometry {
   return g;
 }
 
-function buildTree(kind: TreeKind, seed: number, height: number): TreeBuild {
+function buildTree(kind: TreeKind, seed: number, height: number, distant: boolean): TreeBuild {
   const r = rng(seed);
   const limbs: THREE.BufferGeometry[] = [];
   const cards: CardInstance[] = [];
@@ -256,28 +264,59 @@ function buildTree(kind: TreeKind, seed: number, height: number): TreeBuild {
 
   if (kind === 'palm') {
     // Leaning, slightly curved trunk with ring scars, crown of arching fronds
-    const lean = (r() - 0.5) * 0.9;
-    const top = new THREE.Vector3(lean, height, (r() - 0.5) * 0.5);
-    limbs.push(taperedLimb(new THREE.Vector3(0, 0, 0), top, 0.2, 0.13, 0.6, seed));
-    const n = 13;
+    const top = new THREE.Vector3((r() - 0.5) * 2.35, height, (r() - 0.5) * 1.5);
+    limbs.push(taperedLimb(new THREE.Vector3(0, 0, 0), top, 0.23, 0.105, 1.2, seed));
+    const n = distant ? 9 : 18;
     for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2 + r() * 0.3;
-      const droop = 0.25 + r() * 0.75;
-      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-(Math.PI / 2) + droop, a, 0, 'YXZ'));
-      addCard(top.clone(), top.clone(), 0.85 + r() * 0.3, q);
+      const a = i * 2.39996 + r() * 0.42;
+      const lower = i < n * 0.68;
+      const pitch = lower ? (r() - 0.5) * 0.45 : -0.6 - r() * 0.6;
+      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, a, (r() - 0.5) * 0.35, 'YXZ'));
+      const base = top.clone().add(new THREE.Vector3(Math.sin(a) * 0.10, lower ? -0.12 : 0.11, Math.cos(a) * 0.10));
+      addCard(base, top, (lower ? 0.90 : 0.67) + r() * 0.32, q);
     }
     // A few coconuts
     return { trunks: mergeGeometries(limbs.map(clean)) ?? null, cards, cardKind, cardGeo: cardPlane('frond') };
   }
 
-  if (kind === 'pine' || kind === 'cypress') {
+  if (kind === 'pine') {
+    const top = new THREE.Vector3((r() - 0.5) * 0.6, height, (r() - 0.5) * 0.7);
+    const base = new THREE.Vector3();
+    limbs.push(taperedLimb(base, top, 0.18, 0.022, 0.24, seed));
+    const firstBranch = 0.26 + r() * 0.19;
+    const width = height * (0.23 + r() * 0.12);
+    const count = distant ? 20 : 39;
+    for (let i = 0; i < count; i++) {
+      const t = i / (count - 1);
+      const y = firstBranch + t * (0.97 - firstBranch);
+      const a = i * 2.39996 + (r() - 0.5) * 0.8;
+      const root = base.clone().lerp(top, y);
+      root.y += (r() - 0.5) * 0.32;
+      const length = (width * (1 - t) ** 0.75 + 0.24) * (0.62 + r() * 0.52);
+      const tip = root.clone().add(new THREE.Vector3(Math.cos(a) * length, length * (r() * 0.32 - 0.24), Math.sin(a) * length));
+      if (!distant && i < count * 0.72) limbs.push(taperedLimb(root, tip, 0.042 * (1 - t) + 0.01, 0.009, 0.18, seed + i));
+      const clusters = (distant ? 2 : 3) + (t < 0.55 ? 1 : 0);
+      for (let j = 0; j < clusters; j++) {
+        const along = 0.47 + (j / (clusters - 1)) * 0.5;
+        const tuft = root.clone().lerp(tip, along);
+        const side = (j % 2 ? 1 : -1) * length * 0.19;
+        tuft.x += Math.sin(a) * side;
+        tuft.z -= Math.cos(a) * side;
+        const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.6 - r() * 0.57, -a + r() * 1.4, (r() - 0.5) * 0.8, 'YXZ'));
+        addCard(tuft, root, (0.65 + length * 0.50) * (0.84 + r() * 0.28), q);
+      }
+    }
+    return { trunks: mergeGeometries(limbs.map(clean)) ?? null, cards, cardKind, cardGeo: cardPlane(cardKind) };
+  }
+
+  if (kind === 'cypress') {
     const trunkTop = new THREE.Vector3(0, height * 0.97, 0);
-    limbs.push(taperedLimb(new THREE.Vector3(0, 0, 0), trunkTop, kind === 'cypress' ? 0.14 : 0.2, 0.03, 0.1, seed));
-    const tiers = kind === 'cypress' ? 20 : 16;
+    limbs.push(taperedLimb(new THREE.Vector3(0, 0, 0), trunkTop, 0.14, 0.03, 0.1, seed));
+    const tiers = distant ? 12 : 20;
     for (let i = 0; i < tiers; i++) {
       const t = i / (tiers - 1);
-      const y = height * (kind === 'cypress' ? 0.1 + t * 0.88 : 0.22 + t * 0.74);
-      const rad = kind === 'cypress' ? 0.75 * Math.sin(Math.min(1, (1 - t) * 1.4 + 0.15) * Math.PI * 0.55) : (1 - t) * height * 0.32 + 0.25;
+      const y = height * (0.1 + t * 0.88);
+      const rad = 0.75 * Math.sin(Math.min(1, (1 - t) * 1.4 + 0.15) * Math.PI * 0.55);
       const count = Math.max(7, Math.round(rad * 22));
       const center = new THREE.Vector3(0, y, 0);
       for (let k = 0; k < count; k++) {
@@ -286,7 +325,7 @@ function buildTree(kind: TreeKind, seed: number, height: number): TreeBuild {
         const p = new THREE.Vector3(Math.cos(a) * d, y - d * 0.25 + (r() - 0.5) * 0.25, Math.sin(a) * d);
         // Needle sprays droop outward, facing up-and-out
         const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.9 - r() * 0.4, -a + Math.PI / 2, (r() - 0.5) * 0.4, 'YXZ'));
-        addCard(p, center, (kind === 'cypress' ? 0.9 : 1.3) + r() * 0.6, q);
+        addCard(p, center, 0.9 + r() * 0.6, q);
       }
     }
     return { trunks: mergeGeometries(limbs.map(clean)) ?? null, cards, cardKind, cardGeo: cardPlane(cardKind) };
@@ -313,7 +352,7 @@ function buildTree(kind: TreeKind, seed: number, height: number): TreeBuild {
   }
   clumps.push(crownC.clone().add(new THREE.Vector3(0, crownH * 0.45, 0)));
   // Fill the crown ellipsoid with cards, denser on the outside where light falls
-  const total = Math.round((kind === 'acacia' ? 70 : 85) * (height / 5));
+  const total = Math.round((distant ? 42 : kind === 'acacia' ? 70 : 85) * (height / 5));
   for (let i = 0; i < total; i++) {
     const anchor = clumps[i % clumps.length];
     const u = r() * Math.PI * 2;
@@ -364,7 +403,7 @@ const BARK: Record<TreeKind, string> = {
 export function Forest({ kind, spots, leafColor, seed = 1, castShadow = true }: { kind: TreeKind; spots: TreeSpot[]; leafColor: string; seed?: number; castShadow?: boolean }) {
   const built = useMemo(() => {
     const nominal = DEFAULT_HEIGHT[kind];
-    const variants = [0, 1, 2].map((v) => buildTree(kind, seed * 13 + v * 101, nominal));
+    const variants = [0, 1, 2].map((v) => buildTree(kind, seed * 13 + v * 101, nominal, !castShadow));
     const trunkParts: THREE.BufferGeometry[] = [];
     const cards: Array<{ m: THREE.Matrix4; center: THREE.Vector3; color: THREE.Color }> = [];
     const r = rng(seed + 5);
@@ -393,7 +432,7 @@ export function Forest({ kind, spots, leafColor, seed = 1, castShadow = true }: 
     cards.forEach((c, i) => c.center.toArray(centers, i * 3));
     cardGeo.setAttribute('aCenter', new THREE.InstancedBufferAttribute(centers, 3));
     return { trunks, cards, cardGeo, cardKind: variants[0].cardKind };
-  }, [kind, spots, leafColor, seed]);
+  }, [kind, spots, leafColor, seed, castShadow]);
 
   const material = useMemo(() => foliageMaterial(built.cardKind, '#ffffff'), [built.cardKind]);
   const ref = useRef<THREE.InstancedMesh>(null);
@@ -416,24 +455,31 @@ export function Forest({ kind, spots, leafColor, seed = 1, castShadow = true }: 
 
   return (
     <group>
-      {built.trunks && <mesh geometry={built.trunks} material={bark(BARK[kind])} castShadow={castShadow} receiveShadow />}
-      <instancedMesh ref={ref} args={[built.cardGeo, material, built.cards.length]} castShadow={castShadow} receiveShadow frustumCulled={false} />
+      {built.trunks && <mesh geometry={built.trunks} material={bark(BARK[kind])} castShadow={castShadow} receiveShadow userData={{ noCastShadow: !castShadow }} />}
+      <instancedMesh ref={ref} args={[built.cardGeo, material, built.cards.length]} castShadow={castShadow} receiveShadow userData={{ noCastShadow: !castShadow }} />
     </group>
   );
 }
 
 /** Ring of distant woodland so outdoor venues meet a real horizon instead of fog */
-export function DistantTreeline({ leafColor, kind = 'broadleaf', inner = 48, outer = 85, count = IS_HANDHELD ? 70 : 140, seed = 3 }: { leafColor: string; kind?: TreeKind; inner?: number; outer?: number; count?: number; seed?: number }) {
+export function DistantTreeline({ leafColor, kind = 'broadleaf', inner = 35, outer = 90, count = IS_HANDHELD ? 62 : 105, seed = 3, groundHeight }: { leafColor: string; kind?: TreeKind; inner?: number; outer?: number; count?: number; seed?: number; groundHeight?: (x: number, z: number) => number }) {
   const spots = useMemo(() => {
     const r = rng(seed);
     const out: TreeSpot[] = [];
+    const groves = Array.from({ length: 9 }, (_, i) => ({
+      angle: i * Math.PI * 2 / 9 + r() * 0.45,
+      radius: inner + (outer - inner) * (0.27 + r() * 0.50),
+    }));
     for (let i = 0; i < count; i++) {
-      const a = r() * Math.PI * 2;
-      const d = inner + Math.pow(r(), 0.7) * (outer - inner);
-      out.push({ position: [Math.cos(a) * d, 0, Math.sin(a) * d], height: DEFAULT_HEIGHT[kind] * (1.1 + r() * 0.9) });
+      const grove = groves[i % groves.length];
+      const a = grove.angle + (r() - 0.5) * 0.56;
+      const d = THREE.MathUtils.clamp(grove.radius + (r() - 0.5) * (outer - inner) * 0.69, inner, outer);
+      const x = Math.cos(a) * d;
+      const z = Math.sin(a) * d;
+      out.push({ position: [x, groundHeight?.(x, z) ?? 0, z], height: DEFAULT_HEIGHT[kind] * (0.74 + r() * 0.83) });
     }
     return out;
-  }, [inner, outer, count, seed, kind]);
+  }, [inner, outer, count, seed, kind, groundHeight]);
   return <Forest kind={kind} spots={spots} leafColor={leafColor} seed={seed} castShadow={false} />;
 }
 

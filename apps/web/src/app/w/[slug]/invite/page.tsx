@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { dbRepo } from '@dco/database';
-import { TIER_CATALOG, isVenueId, resolveInvitationConfig } from '@dco/shared';
+import Link from 'next/link';
+import { invitationAccess, isVenueId, resolveInvitationConfig } from '@dco/shared';
+import { getSessionFromRequest } from '@/lib/session';
 import { InvitationView } from '@/components/invitation/InvitationView';
 import { OwnerEditBar } from '@/components/invitation/OwnerEditBar';
 import { BANK_NAMES } from '@/components/invitation/themes';
@@ -25,6 +27,21 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function InvitationPage({ params, searchParams }: { params: { slug: string }; searchParams: { khach?: string } }) {
   const wedding = await dbRepo.getWeddingBySlug(params.slug);
   if (!wedding) notFound();
+
+  // Drafts and lapsed plans are hidden from guests; the couple still sees their invitation as a preview
+  const access = invitationAccess(wedding);
+  let isHost = false;
+  if (!access.published) {
+    const auth = await getSessionFromRequest();
+    if (auth) {
+      const member = wedding.ownerId === auth.user.id ? null : await dbRepo.getMember(wedding.id, auth.user.id);
+      isHost = wedding.ownerId === auth.user.id || Boolean(member && ['OWNER', 'BRIDE', 'GROOM'].includes(member.role));
+    }
+    if (!isHost) {
+      const config = resolveInvitationConfig(wedding.invitationConfig, wedding);
+      return <NotPublished names={`${config.groomFullName} & ${config.brideFullName}`} expired={access.expired} />;
+    }
+  }
 
   const [photos, guestbook, ledger, scene] = await Promise.all([
     dbRepo.listPhotos(wedding.id),
@@ -52,6 +69,14 @@ export default async function InvitationPage({ params, searchParams }: { params:
   return (
     <>
     <OwnerEditBar slug={wedding.slug} />
+    {!access.published && (
+      <div className="fixed inset-x-0 top-0 z-[70] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-400 px-4 py-2 text-center text-sm font-bold text-amber-950 shadow">
+        <span>{access.expired ? 'Thiệp đã hết hạn: khách đang thấy “tạm ngưng”.' : 'Bản xem trước: khách chưa mở được thiệp này.'}</span>
+        <Link href={`/dashboard/${wedding.slug}?tab=thiep&phat-hanh=1`} className="rounded-full bg-amber-950 px-3 py-1 text-amber-50 hover:bg-amber-900">
+          {access.expired ? 'Gia hạn thiệp' : 'Phát hành thiệp'}
+        </Link>
+      </div>
+    )}
     <InvitationView
       slug={wedding.slug}
       groomName={wedding.groomName}
@@ -61,13 +86,35 @@ export default async function InvitationPage({ params, searchParams }: { params:
       photos={gallery}
       guestName={guestName}
       gift={{
-        enabled: TIER_CATALOG[wedding.tier].allowVietQr && Boolean(wedding.bankBin && wedding.bankAccountNo),
+        // A published invitation can take gifts into the couple's own account
+        enabled: Boolean(wedding.bankBin && wedding.bankAccountNo),
         bankName: wedding.bankBin ? BANK_NAMES[wedding.bankBin] ?? null : null,
       }}
       hallUrl={wedding.status === 'EXPIRED_TRIAL' || wedding.invitationOnly ? null : `/w/${wedding.slug}`}
       venueThumb={venueId && isVenueId(venueId) ? venueThumbnail(venueId) : null}
       initialWishes={wishes}
+      demo={!access.published}
     />
     </>
+  );
+}
+
+/** What guests see before the invitation is published, or after its plan has run out */
+function NotPublished({ names, expired }: { names: string; expired: boolean }) {
+  return (
+    <main className="grid min-h-screen place-items-center bg-[#f6efe8] px-6 py-16 text-center text-[#3b2a2a]">
+      <div className="max-w-md">
+        <p className="text-[13px] uppercase tracking-[0.3em] text-[#9a7b6f]">Thiệp cưới</p>
+        <h1 className="mt-4 font-serif text-4xl leading-tight [text-wrap:balance]">{names}</h1>
+        <p className="mx-auto mt-6 max-w-[34ch] text-[17px] leading-relaxed text-[#6b5550] [text-wrap:pretty]">
+          {expired
+            ? 'Thiệp đang tạm ngưng. Cô dâu chú rể sẽ mở lại thiệp sớm, bạn quay lại sau nhé.'
+            : 'Cô dâu chú rể đang hoàn thiện thiệp cưới. Bạn quay lại sau ít phút nhé.'}
+        </p>
+        <p className="mt-10 text-[13px] text-[#9a7b6f]">
+          Thiệp cưới online · <Link href="/thiep-cuoi" className="underline underline-offset-4">DamCuoiOnline</Link>
+        </p>
+      </div>
+    </main>
   );
 }

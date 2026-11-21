@@ -243,11 +243,10 @@ export function usePhSurface(kind: PhSurfaceKind, sizeMetres: number): SurfaceSe
 /* ───────────────────────── Models ───────────────────────── */
 
 /** Loads a scanned model once; null until ready (or if missing) */
-export function usePhModel(id: string): THREE.Group | null {
+export function usePhModel(id: string, handheld = false): THREE.Group | null {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   useEffect(() => {
-    // Phones keep the procedural trees and skip ground cover / plants (MBs of scans each)
-    if (IS_HANDHELD) return;
+    if (IS_HANDHELD && !handheld) return;
     let alive = true;
     loadGlbCached(phModel(id))
       .then((s) => alive && setScene(s))
@@ -255,7 +254,7 @@ export function usePhModel(id: string): THREE.Group | null {
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, handheld]);
   return scene;
 }
 
@@ -301,8 +300,8 @@ type Part = { geometry: THREE.BufferGeometry; material: THREE.Material | THREE.M
  * instanced mesh per part. With `variants`, the model is a pack of separate pieces (as Poly
  * Haven ships grass and shrub sets): each piece is re-centred and every item uses one of them.
  */
-export function PhScatter({ id, items, height, variants = false, castShadow = true }: { id: string; items: ScatterItem[]; height?: number; variants?: boolean; castShadow?: boolean }) {
-  const src = usePhModel(id);
+export function PhScatter({ id, items, height, variants = false, castShadow = true, handheld = false }: { id: string; items: ScatterItem[]; height?: number; variants?: boolean; castShadow?: boolean; handheld?: boolean }) {
+  const src = usePhModel(id, handheld);
   const parts = useMemo<Part[]>(() => {
     if (!src) return [];
     src.updateMatrixWorld(true);
@@ -356,7 +355,7 @@ function ScatterPart({ part, items, base, castShadow }: { part: Part; items: Sca
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
   }, [items, base, part]);
-  return <instancedMesh ref={ref} args={[part.geometry, part.material, items.length]} castShadow={castShadow} receiveShadow frustumCulled={false} />;
+  return <instancedMesh ref={ref} args={[part.geometry, part.material, items.length]} castShadow={castShadow} receiveShadow userData={{ noCastShadow: !castShadow }} />;
 }
 
 /** True once a scanned model has loaded (to swap a procedural stand-in out) */

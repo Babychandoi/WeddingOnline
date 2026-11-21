@@ -9,3 +9,4 @@ export * from './motionTrack';
 export * from './lunar';
 export * from './invitation';
 export * from './people';
+export * from './hallSocial';

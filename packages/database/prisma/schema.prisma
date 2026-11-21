@@ -37,6 +37,7 @@ model User {
   giftLedgers    GiftLedger[]
   bouquetCatches BouquetCatch[]
   saasOrders     SaasOrder[]
+  fireworkOrders FireworkOrder[]
 }
 
 model Account {
@@ -103,6 +104,8 @@ model Wedding {
   invitationConfig   Json?
   /// Invitation only: an online invitation for an offline wedding, no 3D hall, never expires
   invitationOnly     Boolean       @default(false)
+  /// End of the paid invitation period (published until then); 2999-12-31 = lifetime
+  invitationPaidUntil DateTime?
 
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -117,6 +120,7 @@ model Wedding {
   bouquetCatches     BouquetCatch[]
   saasOrders         SaasOrder[]
   invitationRsvps    InvitationRsvp[]
+  fireworkOrders     FireworkOrder[]
 
   @@index([status, archiveAt])
   @@index([status, trialExpiresAt])
@@ -303,6 +307,9 @@ model SaasOrder {
   weddingId  String
   buyerId    String
   targetTier WeddingTier
+  /// HALL = 3D hall package (targetTier), INVITATION = online invitation plan (invitationPlan)
+  kind       String      @default("HALL")
+  invitationPlan String?
   amountVnd  Int
   orderCode  String      @unique
   status     OrderStatus @default(PENDING)
@@ -314,6 +321,28 @@ model SaasOrder {
   webhookLog PaymentWebhookLog?
 
   @@index([status, orderCode])
+}
+
+/// Fireworks bought by a guest in the 3D hall. Paid by bank transfer to the platform account;
+/// the show plays in every shard of the wedding once SePay confirms the transfer.
+model FireworkOrder {
+  id         String      @id @default(cuid())
+  weddingId  String
+  buyerId    String
+  buyerName  String      @db.VarChar(80)
+  packId     String      @db.VarChar(20)
+  amountVnd  Int
+  message    String      @db.VarChar(120)
+  orderCode  String      @unique
+  status     OrderStatus @default(PENDING)
+  paidAt     DateTime?
+  createdAt  DateTime    @default(now())
+
+  wedding    Wedding     @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  buyer      User        @relation(fields: [buyerId], references: [id])
+
+  @@index([weddingId, status])
+  @@index([buyerId, createdAt])
 }
 
 model PaymentWebhookLog {

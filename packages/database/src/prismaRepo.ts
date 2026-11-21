@@ -2,6 +2,7 @@ import {
   Prisma,
   PrismaClient,
   type BouquetCatch as PrismaBouquetCatch,
+  type FireworkOrder as PrismaFireworkOrder,
   type GiftIntent as PrismaGiftIntent,
   type GiftLedger as PrismaGiftLedger,
   type GuestbookEntry as PrismaGuestbookEntry,
@@ -25,9 +26,12 @@ import {
   type SceneLayoutDocument,
   type TemplateId,
   type WeddingTier,
+  invitationPlanEnd,
+  isInvitationPlanId,
 } from '@dco/shared';
 import { createSeedSnapshot } from './seedData';
 import type {
+  FireworkOrderRecord,
   AdminUserRecord,
   BouquetCatchRecord,
   GiftIntentRecord,
@@ -98,6 +102,7 @@ function mapWedding(w: PrismaWedding): WeddingRecord {
     ceremonyConfig: (w.ceremonyConfig as unknown as CeremonyConfig | null) ?? null,
     invitationConfig: w.invitationConfig ?? null,
     invitationOnly: w.invitationOnly,
+    invitationPaidUntil: w.invitationPaidUntil ? w.invitationPaidUntil.toISOString() : null,
     createdAt: w.createdAt.toISOString(),
     updatedAt: w.updatedAt.toISOString(),
   };
@@ -210,7 +215,25 @@ function mapSaasOrder(o: PrismaSaasOrder): SaasOrderRecord {
     weddingId: o.weddingId,
     buyerId: o.buyerId,
     targetTier: o.targetTier,
+    kind: o.kind === 'INVITATION' ? 'INVITATION' : 'HALL',
+    invitationPlan: o.invitationPlan ?? null,
     amountVnd: o.amountVnd,
+    orderCode: o.orderCode,
+    status: o.status,
+    paidAt: o.paidAt ? o.paidAt.toISOString() : null,
+    createdAt: o.createdAt.toISOString(),
+  };
+}
+
+function mapFireworkOrder(o: PrismaFireworkOrder): FireworkOrderRecord {
+  return {
+    id: o.id,
+    weddingId: o.weddingId,
+    buyerId: o.buyerId,
+    buyerName: o.buyerName,
+    packId: o.packId,
+    amountVnd: o.amountVnd,
+    message: o.message,
     orderCode: o.orderCode,
     status: o.status,
     paidAt: o.paidAt ? o.paidAt.toISOString() : null,
@@ -708,7 +731,10 @@ export const prismaRepo = {
         });
         if (
           !intent ||
-          (intent.wedding.tier !== 'HAPPINESS' && intent.wedding.tier !== 'VIP_FULFILLMENT')
+          // paid halls, or a published invitation (paid plan)
+          (intent.wedding.tier !== 'HAPPINESS' &&
+            intent.wedding.tier !== 'VIP_FULFILLMENT' &&
+            !(intent.wedding.invitationPaidUntil && intent.wedding.invitationPaidUntil.getTime() > Date.now()))
         ) {
           return { duplicate: false };
         }
@@ -770,12 +796,16 @@ export const prismaRepo = {
     targetTier: WeddingTier;
     amountVnd: number;
     orderCode: string;
+    kind?: 'HALL' | 'INVITATION';
+    invitationPlan?: string | null;
   }): Promise<SaasOrderRecord> {
     const created = await getPrismaClient().saasOrder.create({
       data: {
         weddingId: input.weddingId,
         buyerId: input.buyerId,
         targetTier: input.targetTier,
+        kind: input.kind ?? 'HALL',
+        invitationPlan: input.invitationPlan ?? null,
         amountVnd: input.amountVnd,
         orderCode: input.orderCode,
       },
@@ -818,6 +848,27 @@ export const prismaRepo = {
           data: { status: 'PAID', paidAt: now },
         });
 
+        // An invitation plan publishes (or extends) the online invitation; the hall is untouched
+        if (order.kind === 'INVITATION' && isInvitationPlanId(order.invitationPlan)) {
+          const paidWedding = await tx.wedding.update({
+            where: { id: order.weddingId },
+            data: {
+              invitationPaidUntil: new Date(
+                invitationPlanEnd(order.invitationPlan, order.wedding.invitationPaidUntil?.toISOString() ?? null, now),
+              ),
+            },
+          });
+          await tx.paymentWebhookLog.create({
+            data: {
+              provider: input.provider,
+              providerTxId: input.providerTxId,
+              saasOrderId: order.id,
+              rawPayload: input.rawPayload as Prisma.InputJsonValue,
+            },
+          });
+          return { duplicate: false, upgraded: true, wedding: mapWedding(paidWedding) };
+        }
+
         const updatedWedding = await tx.wedding.update({
           where: { id: order.weddingId },
           data: {
@@ -845,6 +896,73 @@ export const prismaRepo = {
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
         return { duplicate: true, upgraded: false };
+      }
+      throw err;
+    }
+  },
+
+  async createFireworkOrder(input: {
+    weddingId: string;
+    buyerId: string;
+    buyerName: string;
+    packId: string;
+    amountVnd: number;
+    message: string;
+    orderCode: string;
+  }): Promise<FireworkOrderRecord> {
+    return mapFireworkOrder(await getPrismaClient().fireworkOrder.create({ data: input }));
+  },
+
+  async getFireworkOrderByCode(orderCode: string): Promise<FireworkOrderRecord | null> {
+    const row = await getPrismaClient().fireworkOrder.findUnique({ where: { orderCode } });
+    return row ? mapFireworkOrder(row) : null;
+  },
+
+  async listFireworkOrders(): Promise<FireworkOrderRecord[]> {
+    const rows = await getPrismaClient().fireworkOrder.findMany({ orderBy: { createdAt: 'desc' }, take: 500 });
+    return rows.map(mapFireworkOrder);
+  },
+
+  async settleFireworkOrderByWebhook(input: {
+    orderCode: string;
+    amountVnd: number;
+    provider: string;
+    providerTxId: string;
+    rawPayload: unknown;
+  }): Promise<{ duplicate: boolean; launched: boolean; order?: FireworkOrderRecord; reason?: string }> {
+    const prisma = getPrismaClient();
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const dupLog = await tx.paymentWebhookLog.findUnique({ where: { providerTxId: input.providerTxId } });
+        if (dupLog) return { duplicate: true, launched: false };
+
+        const order = await tx.fireworkOrder.findUnique({ where: { orderCode: input.orderCode } });
+        if (!order) return { duplicate: false, launched: false, reason: 'ORDER_NOT_FOUND' };
+        if (order.status === 'PAID') return { duplicate: false, launched: false, reason: 'ALREADY_PAID', order: mapFireworkOrder(order) };
+        if (input.amountVnd < order.amountVnd) {
+          return { duplicate: false, launched: false, reason: 'INSUFFICIENT_AMOUNT', order: mapFireworkOrder(order) };
+        }
+
+        // Only one webhook may flip the order (two deliveries of different transfers race here)
+        const flipped = await tx.fireworkOrder.updateMany({
+          where: { id: order.id, status: 'PENDING' },
+          data: { status: 'PAID', paidAt: new Date() },
+        });
+        if (flipped.count === 0) return { duplicate: false, launched: false, reason: 'ALREADY_PAID' };
+
+        await tx.paymentWebhookLog.create({
+          data: {
+            provider: input.provider,
+            providerTxId: input.providerTxId,
+            rawPayload: input.rawPayload as Prisma.InputJsonValue,
+          },
+        });
+        const paid = await tx.fireworkOrder.findUniqueOrThrow({ where: { id: order.id } });
+        return { duplicate: false, launched: true, order: mapFireworkOrder(paid) };
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        return { duplicate: true, launched: false };
       }
       throw err;
     }

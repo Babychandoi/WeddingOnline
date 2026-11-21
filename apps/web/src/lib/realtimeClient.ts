@@ -36,8 +36,13 @@ export async function publishRealtimeEvent(event: {
     | 'FORCE_ARCHIVE_ROOM'
     | 'ROOM_EXPIRED'
     | 'MOD_BAN_USER'
-    | 'ACCOUNT_LOCKED';
+    | 'ACCOUNT_LOCKED'
+    | 'FIREWORKS_LAUNCH';
   weddingId: string;
+  orderId?: string;
+  buyerName?: string;
+  packId?: string;
+  message?: string;
   guestName?: string;
   wishMessage?: string;
   tier?: string;

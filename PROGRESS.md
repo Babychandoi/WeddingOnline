@@ -210,6 +210,40 @@
 - [x] `InvitationView` nhận `onEditPart`: chỉ ở trang soạn mới bấm được; khách xem thiệp không đổi gì
 - [x] Kiểm chứng: E2E sửa trực quan 19/19 (tạo thiệp kèm 3 ảnh trong đó 1 ảnh 35 MB, bìa đúng ảnh chọn, bấm bìa → sửa tên → bìa đổi ngay và tên cuộn vào tầm nhìn, bấm các lễ → đổi địa điểm, ô trống chuyện tình → thêm cột mốc, tự lưu lên server, máy tính: bảng sửa bên phải, chuyển sang Sửa theo mục), E2E soạn thiệp 15/15, E2E thiệp 18/18, E2E chỉ-thiệp 19/19, quét tràn ngang không lỗi, `npm test` 11/11
 
+### [x] Nhóm 28: Nhạc Cưới Có Sẵn + Hộp Mừng Cưới & SePay Cho Thiệp Miễn Phí
+- [x] Thư viện 7 bài phát ngay trong trình duyệt (không file, không bản quyền): Canon in D (Pachelbel), Here Comes the Bride (Wagner), Ode to Joy (Beethoven) — nhạc cổ điển đã hết bản quyền, phối lại — và 4 bài tự soạn: Hộp nhạc ngọt ngào, Piano lãng mạn, Sáo trúc đồng quê (ngũ cung), Đàn tranh ngày vui; tiếng hộp nhạc, piano, violin, đàn dây nền, sáo trúc (luyến lên + hơi thổi), đàn tranh (rung nhấn); nút nghe thử từng bài; vẫn có "Nhạc của chúng mình (link)" và "Không phát nhạc"
+- [x] `InvitationConfig.music.track` (thiệp cũ tự là "Hộp nhạc"); kiểm tra nhịp mọi bài khớp số phách
+- [x] Theo lựa chọn của bạn: thiệp miễn phí được dùng hộp mừng cưới (mở ở thiệp, API tạo mã, webhook SePay, ghi sổ mừng cưới); tab "Sổ Mừng Cưới" hiện cho thiệp miễn phí
+- [x] Phần "Hộp mừng cưới" trong trang soạn (cả sửa trực quan, dùng được trên điện thoại; bấm hộp mừng cưới trên thiệp cũng mở): bật/tắt trên thiệp, ngân hàng (xếp theo tên), số tài khoản (6–19 số), tên chủ tài khoản tự viết hoa không dấu; "Tự xác nhận bằng SePay": hướng dẫn 3 bước, đường dẫn webhook, nút tạo/đổi/tắt khoá API riêng của đám cưới
+- [x] API `/api/weddings/[slug]/gift-settings` (GET/PUT, chỉ cô dâu/chú rể/chủ tiệc)
+- [x] Sửa: ô cài đặt trùng mã với ô "tên người gửi" trong hộp mừng cưới xem trước (bấm nhãn nhảy nhầm ô)
+- [x] Kiểm chứng: E2E nhạc + mừng cưới 30/30 (7 bài đều phát ra tiếng, lưu bài chọn, chặn số tài khoản sai, lưu tài khoản, tạo khoá SePay, thiệp miễn phí hiện hộp mừng cưới, khách nhận QR, webhook sai khoá bị từ chối, webhook đúng khoá xác nhận "Đã nhận"), các E2E cũ đạt, quét tràn ngang không lỗi, `npm test` 11/11
+
+### [x] Nhóm 29: Bán Thiệp Cưới Riêng Với Phòng 3D (thiết kế miễn phí, trả phí khi phát hành)
+- [x] Thiệp và sảnh 3D là hai sản phẩm riêng: soạn thiệp, tải ảnh, xem trước thoải mái, mọi thứ tự lưu nháp ("Đã lưu nháp"); khách chỉ mở được thiệp khi đã phát hành
+- [x] Gói phát hành (`INVITATION_PLANS`): 1 tháng 150.000đ · 3 tháng 400.000đ · 6 tháng 750.000đ · 1 năm 1.400.000đ · trọn đời 3.000.000đ; gia hạn cộng dồn vào thời gian còn lại; hết hạn thì thiệp tạm ẩn, gia hạn là hiện lại
+- [x] Gói Hạnh Phúc / Viên Mãn VIP của sảnh 3D đã kèm thiệp, nhưng chỉ khi sảnh đã trả tiền (PUBLISHED_3D / GRACE_PERIOD_7D); sảnh chọn gói trả phí mà chưa thanh toán không được phát hành thiệp miễn phí
+- [x] Hộp "Phát hành thiệp" trong trang soạn: trạng thái (nháp / đến ngày / trọn đời / kèm sảnh 3D / đã hết hạn), "Xem trước như khách" mở đúng trang thật, chọn gói → VietQR (mã DCOPLAN, tài khoản nền tảng) → SePay xác nhận là thiệp phát hành ngay
+- [x] Trang thiệp khi chưa phát hành: khách thấy "Cô dâu chú rể đang hoàn thiện thiệp…", cô dâu chú rể thấy bản xem trước kèm dải "Phát hành thiệp"; RSVP, lời chúc, mừng cưới trả 403 cho tới khi phát hành
+- [x] Bảng giá ở `/thiep-cuoi`, đơn thiệp hiện trong trang quản trị ("Thiệp · gói")
+- [x] Kiểm chứng: E2E phát hành 24/24, E2E nhạc + mừng cưới (sửa lại cho luồng trả phí) đạt, các E2E thiệp cũ đạt, `npm test` 12/12
+- [x] Đã triển khai: `npm run db:push` (thêm `Wedding.invitationPaidUntil`, `SaasOrder.kind`, `SaasOrder.invitationPlan`) → `npm run docker:up`
+
+### [x] Nhóm 30: Rà Soát Phòng 3D Sân Vườn (chỉnh sửa của chủ dự án)
+- [x] "Tiệc Sân Vườn Hoàng Hôn": góc ảnh 3D dựng theo ảnh tham khảo (cổng hoa cẩm tú cầu, sofa vải, bàn ký, ghế gỗ chữ X, viền hoa lối đi, hàng cây), nút "Góc ảnh 3D / Toàn sảnh"; sân khấu trong sảnh thật dùng cổng hoa + màn hình video
+- [x] Cây cọ / thông vẽ lại, rừng xa thành từng cụm, đồi thoải quanh sân cỏ, nước biển / hồ có sóng và bọt; điện thoại tải thêm cỏ, dương xỉ, bụi cây (~700 KB)
+- [x] Kiểm tra: build sạch, không lỗi shader / console; chụp sân vườn, Phú Quốc, Hội An, Đà Lạt trên máy tính và điện thoại; đã triển khai cùng Nhóm 29
+
+### [x] Nhóm 31: Chat Chung, Nhắn Tin Riêng & Bắn Pháo Hoa Trả Phí Trong Sảnh 3D (đã triển khai)
+- [x] Khung "Chúc mừng" (góc phải): lời chúc chung cho mọi shard của đám cưới, lời chúc nhanh, giữ 80 dòng gần nhất cho người vào sau; dòng quà mừng / pháo hoa (không bao giờ hiện số tiền)
+- [x] Bấm vào một khách → thẻ người chơi → "Nhắn tin riêng": chỉ hai người nhận, không lưu trên server, chủ tiệc không đọc được, có chặn; quảng trường công cộng không có tin riêng; chống spam (1,2 giây/dòng chat, 20 tin riêng/30 giây)
+- [x] Pháo hoa 3 gói (nhỏ 20.000đ · lớn 50.000đ · đại tiệc 100.000đ, sửa giá ở `/admin/settings/payment`), trả bằng VietQR vào tài khoản nền tảng (mã DCOFW); SePay xác nhận một lần, bắn cho mọi khách cùng lúc, nhiều đơn thì xếp hàng; camera ngước lên trời; trang quản trị có danh sách đơn pháo hoa
+- [x] Áp dụng patch `0001-feat-hall-public-chat-private-messages-and-paid-fire.patch` (VenueScene gộp tay với phần sân vườn); băng rôn pháo hoa trên điện thoại dời lên trên cần điều khiển
+- [x] Kiểm chứng: E2E realtime 15/15 (chat tới mọi người, chặn spam, lịch sử cho người vào sau, tin riêng chỉ 2 người, mua pháo hoa cần đăng nhập, trả thiếu không bắn, trả đủ bắn cùng seed cho mọi người, webhook lặp không bắn lại, đơn thứ hai xếp hàng), E2E trình duyệt 16/16 trên máy tính và điện thoại, các E2E thiệp đạt, `npm test` 12/12
+- [x] Triển khai: `npm run db:push` (thêm bảng `FireworkOrder`) → `npm run docker:up` (web + realtime); kiểm tra sau triển khai: trang 200, API gói pháo hoa trả 3 gói, trạng thái đơn đòi đăng nhập (401)
+- [x] Sảnh 3D trên điện thoại gọn lại: các nút nổi (Nhạc, Lưu bút, Photobooth, Video, Mừng cưới, nút chat, thanh cảm xúc, bảng điều khiển chủ tiệc) gom vào một thanh điều hướng dưới đáy: Chúc mừng (có số tin mới) · Mừng cưới · Pháo hoa · Cảm xúc · Thêm (nhạc, lưu bút, chụp ảnh, video, đi nhanh tới cổng hoa / sân khấu / bàn tiệc, điều khiển chủ tiệc); cần điều khiển nằm trên thanh và ẩn khi đang ngồi bàn; máy tính giữ nguyên. E2E trình duyệt điện thoại + máy tính đạt, đã triển khai web
+- [ ] Cấu hình tài khoản ngân hàng nền tảng + SePay API key ở `/admin/settings/payment` — chưa có thì khách bấm mua pháo hoa sẽ báo "Hệ thống chưa cấu hình tài khoản nhận thanh toán" (gói 3D/thiệp trả phí cũng vậy)
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

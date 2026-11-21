@@ -17,7 +17,13 @@ import {
   sanitizeBubbleText,
   couplePersonId,
   sanitizePersonId,
+  getFireworkPack,
+  HALL_CHAT_MAX_LENGTH,
+  PRIVATE_MESSAGE_MAX_LENGTH,
   type CeremonyConfig,
+  type FireworksShow,
+  type HallChatMessage,
+  type PrivateMessage,
   type JoinTokenPayload,
   type SceneLayoutDocument,
 } from '@dco/shared';
@@ -31,6 +37,14 @@ interface RoomOptions {
 }
 
 const HOST_ROLES = new Set(['OWNER', 'BRIDE', 'GROOM', 'MC']);
+
+/** Private messages: at most this many in the window, per sender */
+const DM_BURST = 20;
+const DM_WINDOW_MS = 30_000;
+
+export function socialId(): string {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
 const ALLOWED_EMOTES = new Set(['wave', 'clap', 'bow']);
 
 export class WeddingHallRoom extends Room<WeddingRoomState> {
@@ -39,6 +53,10 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
   private originalOutfits = new Map<string, string>();
   private originalPeople = new Map<string, string>();
   private lastChatTs = new Map<string, number>();
+  private lastHallChatTs = new Map<string, number>();
+  private dmTimes = new Map<string, number[]>();
+  /** When the fireworks already queued in this shard finish */
+  private fireworksBusyUntil = 0;
   private plazaNextAutoCeremonyAt = Date.now() + 25 * 60 * 1000;
   private bouquetCountdownEndsAt = 0;
   private ceremonyConfig: CeremonyConfig = {};
@@ -188,6 +206,9 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
     this.originalPeople.set(client.sessionId, player.personId);
     this.state.players.set(client.sessionId, player);
     this.updateShardRegistry();
+
+    // The congratulations so far, so a late guest does not walk into a silent chat
+    client.send(WS_MESSAGES.HALL_CHAT_HISTORY, eventBus.getChatHistory(this.state.weddingId));
   }
 
   onLeave(client: Client): void {
@@ -200,6 +221,8 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
     this.originalOutfits.delete(client.sessionId);
     this.originalPeople.delete(client.sessionId);
     this.lastChatTs.delete(client.sessionId);
+    this.lastHallChatTs.delete(client.sessionId);
+    this.dmTimes.delete(client.sessionId);
     this.updateShardRegistry();
   }
 
@@ -209,6 +232,9 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
       this.unsubscribeBus = null;
     }
     eventBus.removeShard(this.roomId);
+    if (eventBus.getShardsForWedding(this.state.weddingId).length === 0) {
+      eventBus.forgetWedding(this.state.weddingId);
+    }
   }
 
   private updateShardRegistry(): void {
@@ -306,6 +332,78 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
       this.lastChatTs.set(client.sessionId, now);
       player.bubbleText = clean;
       player.bubbleExpiresAt = now + 5000;
+    });
+
+    // Shared congratulations chat: every shard of this wedding sees it; the line also floats
+    // over the sender's head for a few seconds
+    this.onMessage(WS_MESSAGES.HALL_CHAT_SEND, (client, msg: { text?: unknown }) => {
+      const player = this.state.players.get(client.sessionId);
+      if (!player || player.isMuted) return;
+
+      const now = Date.now();
+      if (now - (this.lastHallChatTs.get(client.sessionId) ?? 0) < 1200) return;
+      const text = sanitizeBubbleText(String(msg?.text ?? ''), HALL_CHAT_MAX_LENGTH);
+      if (!text) return;
+      this.lastHallChatTs.set(client.sessionId, now);
+
+      const line: HallChatMessage = {
+        id: socialId(),
+        kind: 'chat',
+        name: player.displayName,
+        userId: player.userId,
+        side: player.side,
+        role: player.role,
+        text,
+        ts: now,
+      };
+      eventBus.publish({ type: 'HALL_CHAT', weddingId: this.state.weddingId, message: line });
+
+      player.bubbleText = text.length > 80 ? `${text.slice(0, 78)}…` : text;
+      player.bubbleExpiresAt = now + 5000;
+    });
+
+    // Private messages go to the two people in them and nobody else. They are not stored,
+    // not logged, not written to the room state, and the hosts cannot read them.
+    this.onMessage(WS_MESSAGES.DM_SEND, (client, msg: { toUserId?: unknown; toName?: unknown; text?: unknown }) => {
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+      const fail = (reason: string) => client.send(WS_MESSAGES.DM_FAILED, { reason, toUserId: String(msg?.toUserId ?? '') });
+
+      // Strangers in the public plaza are anonymous: no private messages there
+      if (this.state.tier === 'PUBLIC_PLAZA') return fail('PLAZA');
+      if (player.isMuted) return fail('MUTED');
+
+      const toUserId = typeof msg?.toUserId === 'string' ? msg.toUserId.slice(0, 64) : '';
+      if (!toUserId || toUserId === player.userId) return;
+
+      const now = Date.now();
+      const times = (this.dmTimes.get(client.sessionId) ?? []).filter((t) => now - t < DM_WINDOW_MS);
+      if (times.length >= DM_BURST || (times.length > 0 && now - times[times.length - 1] < 500)) {
+        this.dmTimes.set(client.sessionId, times);
+        return fail('TOO_FAST');
+      }
+
+      const text = sanitizeBubbleText(String(msg?.text ?? ''), PRIVATE_MESSAGE_MAX_LENGTH);
+      if (!text) return;
+      times.push(now);
+      this.dmTimes.set(client.sessionId, times);
+
+      let toName = '';
+      this.state.players.forEach((p) => {
+        if (p.userId === toUserId) toName = p.displayName;
+      });
+      if (!toName) toName = sanitizeBubbleText(String(msg?.toName ?? ''), 60) || 'Khách';
+
+      const message: PrivateMessage = {
+        id: socialId(),
+        fromUserId: player.userId,
+        fromName: player.displayName,
+        toUserId,
+        toName,
+        text,
+        ts: now,
+      };
+      eventBus.publish({ type: 'DM', weddingId: this.state.weddingId, message });
     });
 
     this.onMessage(WS_MESSAGES.EMOTE, (client, msg: { anim: string }) => {
@@ -485,6 +583,34 @@ export class WeddingHallRoom extends Room<WeddingRoomState> {
   }
 
   private handleCrossShardEvent(ev: CrossShardEvent): void {
+    if (ev.type === 'HALL_CHAT') {
+      this.broadcast(WS_MESSAGES.HALL_CHAT, ev.message);
+      return;
+    }
+
+    if (ev.type === 'DM') {
+      const { fromUserId, toUserId } = ev.message;
+      for (const client of this.clients) {
+        const p = this.state.players.get(client.sessionId);
+        if (p && (p.userId === toUserId || p.userId === fromUserId)) client.send(WS_MESSAGES.DM, ev.message);
+      }
+      return;
+    }
+
+    if (ev.type === 'FIREWORKS_LAUNCH') {
+      const pack = getFireworkPack(ev.packId);
+      if (!pack) return;
+      // Shows queue one after another; every guest in this shard gets the same delay and seed
+      const now = Date.now();
+      const delayMs = Math.max(1200, this.fireworksBusyUntil - now);
+      this.fireworksBusyUntil = now + delayMs + pack.durationMs + 800;
+      let seed = 0;
+      for (const ch of ev.orderId) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+      const show: FireworksShow = { id: ev.orderId, packId: pack.id, buyerName: ev.buyerName, message: ev.message, seed };
+      this.broadcast(WS_MESSAGES.FIREWORKS_SHOW, { ...show, delayMs });
+      return;
+    }
+
     if (ev.type === 'GIFT_CELEBRATION_EVENT') {
       // STRICT PRIVACY: Only guestName + wishMessage, NEVER monetary amountVnd
       this.broadcast(WS_MESSAGES.GIFT_CELEBRATION_EVENT, {

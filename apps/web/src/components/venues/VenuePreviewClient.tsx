@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { DEFAULT_BRIDE_PERSON, DEFAULT_GROOM_PERSON, getPrefabCenterWorld, getTableSeatAnchors, type SceneLayoutDocument } from '@dco/shared';
 import type { BouquetView, RemoteNpcView, RemotePlayerView } from '../three/VenueScene';
+import { GARDEN_PHOTO_CAMERA, GARDEN_REFERENCE, GARDEN_VENUE } from '../three/gardenReference';
 
 const VenueScene = dynamic(() => import('../three/VenueScene').then((mod) => mod.VenueScene), {
   ssr: false,
@@ -101,23 +102,27 @@ export function VenuePreviewClient({
   camera?: number[];
 }) {
   const guests = React.useMemo(() => sampleGuests(layout), [layout]);
+  const hasReference = venue.id === GARDEN_VENUE;
+  const [referenceView, setReferenceView] = React.useState(true);
+  const photoComposition = hasReference && referenceView;
   const previewCamera =
     camera && camera.length === 6
       ? { position: [camera[0], camera[1], camera[2]] as [number, number, number], target: [camera[3], camera[4], camera[5]] as [number, number, number] }
-      : undefined;
+      : photoComposition ? GARDEN_PHOTO_CAMERA : undefined;
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden" style={{ backgroundColor: venue.sky }}>
       <VenueScene
-        key={venue.id}
+        key={`${venue.id}-${photoComposition}`}
         mode="preview"
+        photoComposition={photoComposition}
         previewAutoRotate={!capture}
         previewCamera={previewCamera}
         layout={layout}
         tier="VIP_FULFILLMENT"
         photos={[]}
         localSessionId=""
-        players={guests}
-        npcs={COUPLE}
+        players={photoComposition ? [] : guests}
+        npcs={photoComposition ? [] : COUPLE}
         bouquet={IDLE_BOUQUET}
         activeRitual="NONE"
         giftBurstKey={0}
@@ -165,7 +170,21 @@ export function VenuePreviewClient({
               <p className="mt-1 text-xs font-medium text-slate-500">
                 {venue.place} · {venue.regionName}
               </p>
-              <p className="mt-2.5 text-[13px] leading-relaxed text-slate-700">{venue.descriptionVi}</p>
+              {hasReference ? (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                  <button type="button" onClick={() => setReferenceView(true)} aria-pressed={photoComposition} className={`min-h-11 rounded-lg px-2.5 ${photoComposition ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'}`}>
+                    Góc ảnh 3D
+                  </button>
+                  <button type="button" onClick={() => setReferenceView(false)} aria-pressed={!photoComposition} className={`min-h-11 rounded-lg px-2.5 ${!photoComposition ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'}`}>
+                    Toàn sảnh
+                  </button>
+                  <a href={GARDEN_REFERENCE} target="_blank" rel="noreferrer" className="ml-1 inline-flex min-h-11 items-center rounded-lg px-2 text-slate-700 underline underline-offset-4 hover:text-rose-700">
+                    Ảnh gốc
+                  </a>
+                </div>
+              ) : (
+                <p className="mt-2.5 text-[13px] leading-relaxed text-slate-700">{venue.descriptionVi}</p>
+              )}
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <Link
                   href={`/create?template=${encodeURIComponent(venue.id)}`}

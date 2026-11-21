@@ -78,7 +78,7 @@ interface Xform {
   color?: string;
 }
 
-function InstancedSet({ geometry, material, items, castShadow = true }: { geometry: THREE.BufferGeometry; material: THREE.Material; items: Xform[]; castShadow?: boolean }) {
+export function InstancedSet({ geometry, material, items, castShadow = true }: { geometry: THREE.BufferGeometry; material: THREE.Material; items: Xform[]; castShadow?: boolean }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   useLayoutEffect(() => {
     const mesh = ref.current;
@@ -103,7 +103,7 @@ function InstancedSet({ geometry, material, items, castShadow = true }: { geomet
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
   }, [items]);
-  return <instancedMesh ref={ref} args={[geometry, material, items.length]} castShadow={castShadow} receiveShadow frustumCulled={false} />;
+  return <instancedMesh ref={ref} args={[geometry, material, items.length]} castShadow={castShadow} receiveShadow userData={{ noCastShadow: !castShadow }} />;
 }
 
 /* ───────────────────────── Flowers ───────────────────────── */

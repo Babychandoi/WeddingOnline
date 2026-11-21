@@ -11,21 +11,33 @@ function randomSuffix(length = 6): string {
 }
 
 export function generateGiftCode(): string {
-  return `DCO${randomSuffix(6)}`;
+  // A gift code must never read as a plan or fireworks code when a bank glues text after it
+  let suffix = randomSuffix(6);
+  while (suffix.startsWith('FW') || suffix.startsWith('PL')) suffix = randomSuffix(6);
+  return `DCO${suffix}`;
 }
 
 export function generatePlanOrderCode(): string {
   return `DCOPLAN${randomSuffix(6)}`;
 }
 
+/** Fireworks bought in the 3D hall, paid to the platform account */
+export function generateFireworkCode(): string {
+  return `DCOFW${randomSuffix(6)}`;
+}
+
 export function extractTransferCode(description: string): {
-  kind: 'PLAN' | 'GIFT' | null;
+  kind: 'PLAN' | 'FIREWORK' | 'GIFT' | null;
   code: string | null;
 } {
   const cleaned = description.toUpperCase().replace(/[^A-Z0-9]/g, '');
   const planMatch = cleaned.match(/DCOPLAN[A-Z0-9]{6}/);
   if (planMatch) {
     return { kind: 'PLAN', code: planMatch[0] };
+  }
+  const fireworkMatch = cleaned.match(/DCOFW[A-Z0-9]{6}/);
+  if (fireworkMatch) {
+    return { kind: 'FIREWORK', code: fireworkMatch[0] };
   }
   const giftMatch = cleaned.match(/DCO[A-Z0-9]{6}/);
   if (giftMatch) {

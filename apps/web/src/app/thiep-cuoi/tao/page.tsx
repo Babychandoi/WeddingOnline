@@ -212,7 +212,7 @@ function CreateInvitation() {
           <form onSubmit={submit} className="min-w-0 rounded-3xl border border-amber-200 bg-white p-5 shadow-sm sm:p-8">
             <h1 className="font-serif text-3xl font-bold leading-tight text-rose-950 sm:text-4xl">Tạo thiệp cưới online</h1>
             <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-slate-600">
-              Dành cho đám cưới tổ chức ngoài đời: gửi thiệp qua Zalo, Facebook, khách mở ra xem giờ, địa điểm, chỉ đường, xác nhận tham dự và gửi lời chúc. Miễn phí, không cần sảnh 3D, thiệp mở mãi không hết hạn.
+              Dành cho đám cưới tổ chức ngoài đời: gửi thiệp qua Zalo, Facebook, khách mở ra xem giờ, địa điểm, chỉ đường, xác nhận tham dự và gửi lời chúc. Không cần sảnh 3D. Thiết kế và xem trước miễn phí, mọi thứ tự lưu nháp; khi ưng ý mới chọn gói để phát hành (từ 150.000đ/tháng).
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">

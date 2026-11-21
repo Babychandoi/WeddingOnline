@@ -7,6 +7,7 @@ import { WebSocketTransport } from '@colyseus/ws-transport';
 import { requireSecret } from '@dco/shared/server';
 import { WeddingHallRoom } from './rooms/WeddingHallRoom';
 import { eventBus, type CrossShardEvent } from './services/eventBus';
+import { socialId } from './rooms/WeddingHallRoom';
 import { startLifecycleCron } from './jobs/lifecycleWorker';
 
 const PORT = Number(process.env.PORT || 2567);
@@ -55,6 +56,23 @@ app.post('/internal/events', (req, res) => {
     return;
   }
   eventBus.publish(event);
+
+  // Gifts and fireworks also get a line in the shared chat (once, here at the ingress, so
+  // shards on other instances receive it through the bus instead of each writing their own)
+  if (event.type === 'GIFT_CELEBRATION_EVENT') {
+    eventBus.publish({
+      type: 'HALL_CHAT',
+      weddingId: event.weddingId,
+      // STRICT PRIVACY: who and the wish, never the amount
+      message: { id: socialId(), kind: 'gift', name: event.guestName, text: event.wishMessage, ts: Date.now() },
+    });
+  } else if (event.type === 'FIREWORKS_LAUNCH') {
+    eventBus.publish({
+      type: 'HALL_CHAT',
+      weddingId: event.weddingId,
+      message: { id: socialId(), kind: 'fireworks', name: event.buyerName, text: event.message, packId: event.packId, ts: Date.now() },
+    });
+  }
   res.json({ ok: true });
 });
 

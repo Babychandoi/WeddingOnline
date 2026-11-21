@@ -12,11 +12,14 @@ import {
   Crown,
   Gift,
   Hand,
+  LayoutGrid,
   Loader2,
   LogOut,
   Mail,
   Megaphone,
+  MessageCircleHeart,
   ShieldAlert,
+  Smile,
   Sparkles,
   Tv,
   Users,
@@ -35,9 +38,13 @@ import type { GuestbookEntryRecord, PhotoAssetRecord, PublicWeddingDTO } from '@
 import {
   TIER_CATALOG,
   WS_MESSAGES,
+  getFireworkPack,
   getPrefabCenterWorld,
   type AuthProvider,
+  type FireworksShow,
   type GuestSide,
+  type HallChatMessage,
+  type PrivateMessage,
   type SceneLayoutDocument,
 } from '@dco/shared';
 import { soundEngine } from '@/lib/soundEngine';
@@ -49,6 +56,10 @@ import { PhotoboothModal } from './PhotoboothModal';
 import { VietQrGiftModal } from './VietQrGiftModal';
 import { GuestbookModal } from './GuestbookModal';
 import { TableVoiceManager } from './TableVoiceManager';
+import { HallChatPanel, type DmThread } from './HallChatPanel';
+import { FireworksModal } from './FireworksModal';
+import { PlayerCard } from './PlayerCard';
+import type { ScheduledFireworks } from '../three/Fireworks';
 
 const VenueScene = dynamic(
   () => import('../three/VenueScene').then((mod) => mod.VenueScene),
@@ -183,7 +194,36 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
   const [photoboothDataUrl, setPhotoboothDataUrl] = useState<string | null>(null);
   const [lightboxPhoto, setLightboxPhoto] = useState<PhotoAssetRecord | null>(null);
   const [selectedTarget, setSelectedTarget] = useState<RemotePlayerView | null>(null);
-  const [chatInput, setChatInput] = useState('');
+
+  // Shared congratulations chat, private messages, fireworks
+  const [myUserId, setMyUserId] = useState('');
+  const [hallChat, setHallChat] = useState<HallChatMessage[]>([]);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatTab, setChatTab] = useState<'chat' | 'dm'>('chat');
+  const [chatUnread, setChatUnread] = useState(0);
+  const [dmThreads, setDmThreads] = useState<Record<string, DmThread>>({});
+  const [dmPeer, setDmPeer] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<Set<string>>(new Set());
+  const [fireworks, setFireworks] = useState<ScheduledFireworks[]>([]);
+  const [fireworksBanner, setFireworksBanner] = useState<FireworksShow | null>(null);
+  const [showFireworksModal, setShowFireworksModal] = useState(false);
+  /** Phone nav bar: which pop-up above it is open */
+  const [mobileMenu, setMobileMenu] = useState<'none' | 'emotes' | 'more'>('none');
+  const [showSignIn, setShowSignIn] = useState(false);
+  // The message handlers are bound once per connection; they read the live UI state from here
+  const socialRef = useRef({ open: false, tab: 'chat' as 'chat' | 'dm', peer: null as string | null, me: '', blocked: new Set<string>() });
+  socialRef.current = { open: chatOpen, tab: chatTab, peer: dmPeer, me: myUserId, blocked };
+
+  useEffect(() => {
+    // Desktop starts with the chat open; phones start with it folded away
+    setChatOpen(window.matchMedia('(min-width: 1024px)').matches);
+    try {
+      const saved = JSON.parse(window.localStorage.getItem('dco_dm_blocked') || '[]');
+      if (Array.isArray(saved)) setBlocked(new Set(saved.filter((x) => typeof x === 'string')));
+    } catch {
+      /* nothing blocked */
+    }
+  }, []);
   const [toastBanner, setToastBanner] = useState<string>('');
   const [bgmOn, setBgmOn] = useState(false);
   const [joystickInput, setJoystickInput] = useState({ dx: 0, dz: 0 });
@@ -279,6 +319,8 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
 
         roomRef.current = room;
         setLocalSessionId(room.sessionId);
+        setMyUserId(String(joinData.userId ?? ''));
+        setHallChat([]);
         setMyRole(joinData.role);
         setShardIndex(joinData.shardIndex);
         setShards(joinData.shards ?? []);
@@ -338,13 +380,14 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
               isSpeaking: p.isSpeaking,
               takingOverNpc: p.takingOverNpc,
               bubbleText: p.bubbleText,
+              isMuted: p.isMuted,
             });
           });
 
           const positionsDue = now - lastPositionsFlush >= RERENDER_POSITIONS_MS;
           const playersKey = pList
             .map((p) =>
-              [p.sessionId, p.displayName, p.role, p.side, p.outfitId, p.hairId, p.hairColor, p.personId, p.anim, p.seatedTableNo, p.seatIndex, p.hasBouquetCrown, p.isSpeaking, p.takingOverNpc, p.bubbleText].join('|'),
+              [p.sessionId, p.displayName, p.role, p.side, p.outfitId, p.hairId, p.hairColor, p.personId, p.anim, p.seatedTableNo, p.seatIndex, p.hasBouquetCrown, p.isSpeaking, p.takingOverNpc, p.bubbleText, p.isMuted].join('|'),
             )
             .join('§');
           const positionsKey = pList.map((p) => `${p.x},${p.z},${p.rotY}`).join(';');
@@ -413,6 +456,70 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
             showNotice(`💝 ${payload.guestName} vừa gửi lời chúc: "${payload.wishMessage}"`);
           }
         );
+
+        room.onMessage(WS_MESSAGES.HALL_CHAT_HISTORY, (list: HallChatMessage[]) => {
+          if (!Array.isArray(list)) return;
+          // Merge rather than replace: a line may have arrived just before the history did
+          setHallChat((prev) => {
+            const ids = new Set(list.map((m) => m.id));
+            return [...list, ...prev.filter((m) => !ids.has(m.id))].slice(-150);
+          });
+        });
+
+        room.onMessage(WS_MESSAGES.HALL_CHAT, (m: HallChatMessage) => {
+          setHallChat((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev.slice(-149), m]));
+          const ui = socialRef.current;
+          if (m.userId !== ui.me && !(ui.open && ui.tab === 'chat')) setChatUnread((n) => n + 1);
+        });
+
+        room.onMessage(WS_MESSAGES.DM, (m: PrivateMessage) => {
+          const ui = socialRef.current;
+          const incoming = m.fromUserId !== ui.me;
+          const peerId = incoming ? m.fromUserId : m.toUserId;
+          if (incoming && ui.blocked.has(peerId)) return;
+          const viewing = ui.open && ui.tab === 'dm' && ui.peer === peerId;
+          setDmThreads((prev) => {
+            const t = prev[peerId] ?? { userId: peerId, name: incoming ? m.fromName : m.toName, messages: [], unread: 0, lastTs: 0 };
+            if (t.messages.some((x) => x.id === m.id)) return prev;
+            return {
+              ...prev,
+              [peerId]: {
+                ...t,
+                name: incoming ? m.fromName : t.name,
+                messages: [...t.messages.slice(-199), m],
+                unread: incoming && !viewing ? t.unread + 1 : t.unread,
+                lastTs: m.ts,
+              },
+            };
+          });
+          if (incoming && !viewing) {
+            soundEngine.playMessagePing();
+            if (!(ui.open && ui.tab === 'dm')) showNotice(`✉️ Tin nhắn riêng từ ${m.fromName}`);
+          }
+        });
+
+        room.onMessage(WS_MESSAGES.DM_FAILED, (p: { reason: string }) => {
+          showNotice(
+            p.reason === 'TOO_FAST'
+              ? 'Bạn nhắn hơi nhanh, chờ một chút rồi gửi tiếp nhé.'
+              : p.reason === 'MUTED'
+                ? 'Bạn đang bị tắt tiếng nên chưa nhắn được.'
+                : 'Quảng trường công cộng không có tin nhắn riêng.',
+          );
+        });
+
+        room.onMessage(WS_MESSAGES.FIREWORKS_SHOW, (p: FireworksShow & { delayMs: number }) => {
+          const now = performance.now() / 1000;
+          const startAt = now + Math.max(0, Number(p.delayMs) || 0) / 1000;
+          const pack = getFireworkPack(p.packId);
+          setFireworks((prev) => [...prev.filter((f) => f.startAt > now - 40), { ...p, startAt }]);
+          window.setTimeout(() => {
+            setFireworksBanner(p);
+            // On a phone the open chat covers the sky: fold it for the show
+            if (!window.matchMedia('(min-width: 1024px)').matches) setChatOpen(false);
+            window.setTimeout(() => setFireworksBanner((cur) => (cur?.id === p.id ? null : cur)), Math.max(6000, (pack?.durationMs ?? 8000) - 1000));
+          }, Math.max(0, Number(p.delayMs) || 0));
+        });
 
         room.onMessage(WS_MESSAGES.BOUQUET_WON, (payload: { winnerName: string }) => {
           soundEngine.playBouquetSfx(true);
@@ -494,12 +601,38 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
     setWaypointTarget({ x: c.x, z: c.z + zOffset, key: Date.now() });
   };
 
-  const handleChatSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-    sendMsg(WS_MESSAGES.CHAT_BUBBLE, { text: chatInput.trim() });
-    setChatInput('');
+  const sendHallChat = (text: string) => sendMsg(WS_MESSAGES.HALL_CHAT_SEND, { text });
+
+  const sendDm = (toUserId: string, toName: string, text: string) => sendMsg(WS_MESSAGES.DM_SEND, { toUserId, toName, text });
+
+  const openDmWith = (p: { userId: string; displayName: string }) => {
+    setDmThreads((prev) => (prev[p.userId] ? prev : { ...prev, [p.userId]: { userId: p.userId, name: p.displayName, messages: [], unread: 0, lastTs: Date.now() } }));
+    setDmPeer(p.userId);
+    setChatTab('dm');
+    setChatOpen(true);
   };
+
+  const toggleBlock = (userId: string) => {
+    setBlocked((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      try {
+        window.localStorage.setItem('dco_dm_blocked', JSON.stringify(Array.from(next)));
+      } catch {
+        /* kept for this visit */
+      }
+      return next;
+    });
+  };
+
+  // Reading a tab / thread clears its unread count
+  useEffect(() => {
+    if (chatOpen && chatTab === 'chat') setChatUnread(0);
+    if (chatOpen && chatTab === 'dm' && dmPeer) {
+      setDmThreads((prev) => (prev[dmPeer]?.unread ? { ...prev, [dmPeer]: { ...prev[dmPeer], unread: 0 } } : prev));
+    }
+  }, [chatOpen, chatTab, dmPeer, hallChat.length, dmThreads]);
 
   const handleCapturePhotobooth = () => {
     const dataUrl = captureCanvasRef.current?.();
@@ -507,6 +640,86 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
       setPhotoboothDataUrl(dataUrl);
     }
   };
+
+  const chatBadge = chatUnread + Object.values(dmThreads).reduce((n, t) => n + t.unread, 0);
+
+  const sendEmote = (anim: 'wave' | 'clap' | 'bow') => {
+    if (anim === 'clap') soundEngine.playClapSfx();
+    sendMsg(WS_MESSAGES.EMOTE, { anim });
+  };
+
+  const mobileNavItemClass = (active: boolean) =>
+    `relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-xl text-[10.5px] font-bold transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 ${
+      active ? 'bg-rose-100/80 text-rose-800' : 'text-rose-950/80'
+    }`;
+
+  /** Run a phone-menu action and fold the menu away */
+  const fromMobileMenu = (action: () => void) => () => {
+    setMobileMenu('none');
+    action();
+  };
+
+  /** Couple / MC controls: a floating panel on desktop, inside "Thêm" on phones */
+  const renderHostControls = () => (
+    <>
+      <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-rose-700">
+        <Crown className="h-3 w-3" /> Điều khiển {myRole}
+      </div>
+      {!localPlayer?.takingOverNpc ? (
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            type="button"
+            onClick={() => sendMsg(WS_MESSAGES.NPC_TAKEOVER, { targetNpc: 'BRIDE' })}
+            className="rounded-lg bg-rose-100 px-2 py-1 text-[11px] font-semibold text-rose-800"
+          >
+            Nhập vai Cô Dâu
+          </button>
+          <button
+            type="button"
+            onClick={() => sendMsg(WS_MESSAGES.NPC_TAKEOVER, { targetNpc: 'GROOM' })}
+            className="rounded-lg bg-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-800"
+          >
+            Nhập vai Chú Rể
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => sendMsg(WS_MESSAGES.NPC_RELEASE)}
+          className="rounded-lg bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-900"
+        >
+          Trả lại Auto-NPC
+        </button>
+      )}
+
+      <div className="grid grid-cols-2 gap-1">
+        <button
+          type="button"
+          onClick={() => sendMsg(WS_MESSAGES.TRIGGER_CEREMONY, { ritual: 'SPARKLERS' })}
+          className="flex items-center justify-center gap-1 rounded-lg bg-amber-500 px-2 py-1 text-[11px] font-bold text-white"
+        >
+          <Sparkles className="h-3 w-3" /> Pháo Điện
+        </button>
+        <button
+          type="button"
+          onClick={() => sendMsg(WS_MESSAGES.TOSS_BOUQUET)}
+          className="rounded-lg bg-pink-600 px-2 py-1 text-[11px] font-bold text-white"
+        >
+          💐 Tung Hoa
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => sendMsg(WS_MESSAGES.TRIGGER_CEREMONY, { stageBroadcast: !stageBroadcastActive })}
+        className={`flex items-center justify-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold ${
+          stageBroadcastActive ? 'bg-emerald-600 text-white' : 'bg-white text-rose-950'
+        }`}
+      >
+        <Megaphone className="h-3 w-3" /> {stageBroadcastActive ? 'Tắt Mic Sân Khấu' : 'Phát Biểu Sân Khấu'}
+      </button>
+    </>
+  );
 
   if (!isPlaza && !authChecked) {
     return (
@@ -877,8 +1090,9 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                     else showNotice('Khung ảnh này đang chờ Cô Dâu Chú Rể tải ảnh mới lên!');
                   }}
                   onSelectPlayer={(p) => {
-                    if (isHostOrMc && p.sessionId !== localSessionId) setSelectedTarget(p);
+                    if (p.sessionId !== localSessionId) setSelectedTarget(p);
                   }}
+                  fireworks={fireworks}
                   registerCaptureFn={(fn) => {
                     captureCanvasRef.current = fn;
                   }}
@@ -917,7 +1131,8 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                         )}
                       </div>
 
-                      <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
+                      {/* Desktop action row; phones get the bottom nav bar instead */}
+                      <div className="pointer-events-auto hidden flex-wrap items-center gap-1.5 sm:flex">
                         <button
                           type="button"
                           onClick={() => setBgmOn(soundEngine.toggleBgm())}
@@ -1005,6 +1220,45 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                       </div>
       )}
 
+                      {/* Congratulations chat + private messages, top right */}
+                      <div className="pointer-events-none fixed right-2 top-[3.75rem] z-30 flex justify-end sm:right-3 sm:top-16">
+                        <HallChatPanel
+                          hideTriggerOnMobile
+                          myUserId={myUserId}
+                          isPlaza={isPlaza}
+                          muted={Boolean(localPlayer?.isMuted)}
+                          open={chatOpen}
+                          onOpenChange={setChatOpen}
+                          tab={chatTab}
+                          onTabChange={setChatTab}
+                          messages={hallChat}
+                          chatUnread={chatUnread}
+                          threads={Object.values(dmThreads).sort((a, b) => b.lastTs - a.lastTs)}
+                          dmPeer={dmPeer}
+                          onDmPeerChange={setDmPeer}
+                          onlineUserIds={new Set(players.map((p) => p.userId))}
+                          blocked={blocked}
+                          onToggleBlock={toggleBlock}
+                          onSendChat={sendHallChat}
+                          onSendDm={sendDm}
+                          canGift={canGiftVietQr}
+                          onGift={() => setShowGiftModal(true)}
+                          onFireworks={() => setShowFireworksModal(true)}
+                        />
+                      </div>
+
+                      {/* Who the fireworks are from, while they play (on phones it sits above the joystick) */}
+                      {fireworksBanner && (
+                        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(10.75rem+env(safe-area-inset-bottom))] z-30 flex justify-center px-4 sm:bottom-auto sm:top-[4.5rem]">
+                          <div className="dco-toast-in max-w-md rounded-2xl border border-amber-300/60 bg-gradient-to-r from-[#2a1638]/95 to-[#5a1d42]/95 px-5 py-2.5 text-center text-amber-50 shadow-2xl backdrop-blur">
+                            <p className="text-[13px] font-bold sm:text-sm">
+                              🎆 {fireworksBanner.buyerName} bắn {getFireworkPack(fireworksBanner.packId)?.label.toLowerCase() ?? 'pháo hoa'} chúc mừng cô dâu chú rể
+                            </p>
+                            {fireworksBanner.message && <p className="mt-0.5 text-[12.5px] italic text-amber-100/90">“{fireworksBanner.message}”</p>}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Stage Broadcast Indicator */}
                       {stageBroadcastActive && (
                         <div className="pointer-events-none fixed left-1/2 top-28 z-20 -translate-x-1/2 rounded-full bg-amber-500 px-4 py-1 text-xs font-bold text-white shadow">
@@ -1014,7 +1268,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
 
                       {/* Bouquet Catch Action Prompt */}
                       {(bouquet.status === 'COUNTDOWN' || bouquet.status === 'IN_FLIGHT') && (
-                        <div className="fixed bottom-32 left-1/2 z-30 -translate-x-1/2">
+                        <div className="fixed bottom-[calc(10.75rem+env(safe-area-inset-bottom))] left-1/2 z-30 -translate-x-1/2 sm:bottom-32">
                           <button
                             type="button"
                             onClick={() => sendMsg(WS_MESSAGES.ATTEMPT_CATCH)}
@@ -1025,74 +1279,16 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                         </div>
                       )}
 
-                      {/* Host / MC Control Panel */}
+                      {/* Host / MC Control Panel (desktop; on phones it lives under "Thêm") */}
                       {isHostOrMc && (
-                        <div className="fixed right-3 top-16 z-20 flex flex-col gap-1.5 rounded-2xl glass-panel p-2.5 shadow-xl">
-                          <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-rose-700">
-                            <Crown className="h-3 w-3" /> Điều khiển {myRole}
-                          </div>
-                          {!localPlayer?.takingOverNpc ? (
-                            <div className="grid grid-cols-2 gap-1">
-                              <button
-                                type="button"
-                                onClick={() => sendMsg(WS_MESSAGES.NPC_TAKEOVER, { targetNpc: 'BRIDE' })}
-                                className="rounded-lg bg-rose-100 px-2 py-1 text-[11px] font-semibold text-rose-800"
-                              >
-                                Nhập vai Cô Dâu
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => sendMsg(WS_MESSAGES.NPC_TAKEOVER, { targetNpc: 'GROOM' })}
-                                className="rounded-lg bg-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-800"
-                              >
-                                Nhập vai Chú Rể
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => sendMsg(WS_MESSAGES.NPC_RELEASE)}
-                              className="rounded-lg bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-900"
-                            >
-                              Trả lại Auto-NPC
-                            </button>
-                          )}
-
-                          <div className="grid grid-cols-2 gap-1">
-                            <button
-                              type="button"
-                              onClick={() => sendMsg(WS_MESSAGES.TRIGGER_CEREMONY, { ritual: 'SPARKLERS' })}
-                              className="flex items-center justify-center gap-1 rounded-lg bg-amber-500 px-2 py-1 text-[11px] font-bold text-white"
-                            >
-                              <Sparkles className="h-3 w-3" /> Pháo Điện
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => sendMsg(WS_MESSAGES.TOSS_BOUQUET)}
-                              className="rounded-lg bg-pink-600 px-2 py-1 text-[11px] font-bold text-white"
-                            >
-                              💐 Tung Hoa
-                            </button>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              sendMsg(WS_MESSAGES.TRIGGER_CEREMONY, { stageBroadcast: !stageBroadcastActive })
-                            }
-                            className={`flex items-center justify-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold ${
-                              stageBroadcastActive ? 'bg-emerald-600 text-white' : 'bg-white text-rose-950'
-                            }`}
-                          >
-                            <Megaphone className="h-3 w-3" />{' '}
-                            {stageBroadcastActive ? 'Tắt Mic Sân Khấu' : 'Phát Biểu Sân Khấu'}
-                          </button>
-        </div>
-                  )}
+                        <div className="fixed left-3 top-[6.5rem] z-20 hidden flex-col gap-1.5 rounded-2xl glass-panel p-2.5 shadow-xl sm:flex">
+                          {renderHostControls()}
+                        </div>
+                      )}
 
                   {/* Seated Table HUD + Voice Chat */}
                   {localPlayer && localPlayer.seatedTableNo >= 0 && (
-                    <div className="fixed bottom-20 left-1/2 z-20 flex -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-2xl glass-panel px-4 py-2 shadow-xl">
+                    <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] left-1/2 z-20 flex w-max max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-2xl glass-panel px-4 py-2 shadow-xl sm:bottom-20">
                       <span className="text-xs font-bold text-rose-700">
                         🪑 Bàn {localPlayer.seatedTableNo}
                       </span>
@@ -1123,7 +1319,8 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                     </div>
                   )}
 
-                  {/* Mobile Touch Thumbstick */}
+                  {/* Mobile Touch Thumbstick (hidden while seated: "Đứng dậy" stands you up) */}
+                  {!(localPlayer && localPlayer.seatedTableNo >= 0) && (
                   <div
                     onPointerDown={(e) => {
                       joyOriginRef.current = { x: e.clientX, y: e.clientY };
@@ -1142,7 +1339,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                       joyOriginRef.current = null;
                       setJoystickInput({ dx: 0, dz: 0 });
                     }}
-                    className="fixed bottom-16 left-4 z-20 flex h-20 w-20 touch-none items-center justify-center rounded-full border-2 border-white/50 bg-slate-900/35 backdrop-blur-sm sm:hidden"
+                    className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] left-4 z-20 flex h-20 w-20 touch-none items-center justify-center rounded-full border-2 border-white/50 bg-slate-900/35 backdrop-blur-sm sm:hidden"
                   >
                     <div
                       style={{
@@ -1151,6 +1348,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                       className="h-8 w-8 rounded-full bg-white/80 shadow"
                     />
                   </div>
+                  )}
 
                   {/* Subtle Dismissible Controls Hint */}
                   {showControlsHint && localPlayer && localPlayer.seatedTableNo < 0 && (
@@ -1169,9 +1367,9 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                     </div>
                   )}
 
-                  {/* Bottom Chat & Emotes Bar */}
-                  <div className="fixed inset-x-0 bottom-3 z-20 flex justify-center px-3">
-                        <div className="flex w-full max-w-2xl items-center gap-1.5 rounded-2xl glass-panel p-2 shadow-xl sm:gap-2">
+                  {/* Desktop emotes + fireworks bar (phones use the nav bar below) */}
+                  <div className="fixed inset-x-0 bottom-3 z-20 hidden justify-center px-3 sm:flex">
+                        <div className="flex items-center gap-2 rounded-2xl glass-panel p-2 shadow-xl">
                           <div className="flex shrink-0 gap-1">
                             {(
                               [
@@ -1185,10 +1383,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                                 type="button"
                                 title={label}
                                 aria-label={label}
-                                onClick={() => {
-                                  if (anim === 'clap') soundEngine.playClapSfx();
-                                  sendMsg(WS_MESSAGES.EMOTE, { anim });
-                                }}
+                                onClick={() => sendEmote(anim)}
                                 className="inline-flex items-center gap-1 rounded-xl border border-amber-200/70 bg-white px-2 py-1.5 text-[11px] font-bold text-rose-950 shadow-sm transition hover:bg-rose-50 hover:text-rose-700"
                               >
                                 <Icon className="h-3.5 w-3.5 text-rose-600" />
@@ -1196,24 +1391,187 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                               </button>
                             ))}
                           </div>
-                          <form onSubmit={handleChatSubmit} className="flex flex-1 gap-2">
-                            <input
-                              type="text"
-                              maxLength={80}
-                              value={chatInput}
-                              onChange={(e) => setChatInput(e.target.value)}
-                              placeholder="Nhắn bong bóng chúc mừng (tối đa 80 ký tự)..."
-                              className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none focus:border-rose-500 sm:text-sm"
-                            />
-                            <button
-                              type="submit"
-                              className="rounded-xl bg-rose-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-rose-500"
-                            >
-                              Gửi
-                            </button>
-                          </form>
+                          <button
+                            type="button"
+                            onClick={() => setShowFireworksModal(true)}
+                            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#3a1b4a] to-[#7a2350] px-3 text-[12px] font-bold text-amber-100 shadow-sm transition hover:brightness-110"
+                          >
+                            <PartyPopper className="h-4 w-4 text-amber-300" /> Bắn pháo hoa
+                          </button>
                         </div>
                       </div>
+
+                  {/* ---------- Phone nav bar: every hall action in one strip at the bottom ---------- */}
+                  {mobileMenu === 'more' && (
+                    <button
+                      type="button"
+                      aria-label="Đóng menu"
+                      onClick={() => setMobileMenu('none')}
+                      className="fixed inset-0 z-30 cursor-default bg-slate-950/25 sm:hidden"
+                    />
+                  )}
+
+                  {mobileMenu === 'emotes' && (
+                    <div className="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-2 sm:hidden">
+                      <div role="group" aria-label="Cảm xúc" className="dco-toast-in flex gap-1.5 rounded-2xl border border-amber-200/70 bg-[#fffdf8]/95 p-1.5 shadow-[0_10px_28px_-8px_rgba(76,5,25,0.35)] backdrop-blur-md">
+                        {(
+                          [
+                            ['wave', 'Vẫy tay', Hand],
+                            ['clap', 'Vỗ tay', Sparkles],
+                            ['bow', 'Cúi chào', Crown],
+                          ] as const
+                        ).map(([anim, label, Icon]) => (
+                          <button
+                            key={anim}
+                            type="button"
+                            onClick={() => sendEmote(anim)}
+                            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-white px-3.5 text-[12.5px] font-bold text-rose-950 ring-1 ring-amber-200/70 transition active:scale-95 active:bg-rose-50"
+                          >
+                            <Icon className="h-4 w-4 text-rose-600" aria-hidden="true" /> {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {mobileMenu === 'more' && (
+                    <div
+                      role="dialog"
+                      aria-label="Thêm tiện ích"
+                      className="dco-toast-in fixed inset-x-2 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 max-h-[calc(100dvh-10rem)] overflow-y-auto rounded-2xl border border-amber-200/70 bg-[#fffdf8] p-3 shadow-[0_14px_36px_-10px_rgba(76,5,25,0.45)] sm:hidden"
+                    >
+                      <div className="grid grid-cols-4 gap-1.5">
+                        <button
+                          type="button"
+                          aria-pressed={bgmOn}
+                          onClick={() => setBgmOn(soundEngine.toggleBgm())}
+                          className="flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl bg-white text-[11.5px] font-bold text-rose-950 ring-1 ring-amber-100 transition active:scale-95 active:bg-rose-50"
+                        >
+                          {bgmOn ? (
+                            <Volume2 className="h-5 w-5 text-amber-600" aria-hidden="true" />
+                          ) : (
+                            <VolumeX className="h-5 w-5 text-slate-400" aria-hidden="true" />
+                          )}
+                          {bgmOn ? 'Nhạc: bật' : 'Nhạc: tắt'}
+                        </button>
+                        {(
+                          [
+                            { key: 'guestbook', label: 'Lưu bút', Icon: BookHeart, tone: 'text-rose-600', run: () => setShowGuestbook(true) },
+                            { key: 'photo', label: 'Chụp ảnh', Icon: Camera, tone: 'text-amber-600', run: handleCapturePhotobooth },
+                            { key: 'video', label: 'Video', Icon: Tv, tone: 'text-indigo-600', run: () => setShowVideoPip(true) },
+                          ] as const
+                        ).map((item) => (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={fromMobileMenu(item.run)}
+                            className="flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl bg-white text-[11.5px] font-bold text-rose-950 ring-1 ring-amber-100 transition active:scale-95 active:bg-rose-50"
+                          >
+                            <item.Icon className={`h-5 w-5 ${item.tone}`} aria-hidden="true" />
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <p className="mb-1.5 mt-3 flex items-center gap-1 px-0.5 text-[11.5px] font-bold text-rose-900/70">
+                        <Compass className="h-3.5 w-3.5" aria-hidden="true" /> Đi nhanh tới
+                      </p>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {(
+                          [
+                            ['GATE', 'Cổng hoa'],
+                            ['STAGE', 'Sân khấu'],
+                            ['TABLES', 'Bàn tiệc'],
+                          ] as const
+                        ).map(([target, label]) => (
+                          <button
+                            key={target}
+                            type="button"
+                            onClick={fromMobileMenu(() => goToWaypoint(target))}
+                            className="min-h-[40px] rounded-xl bg-rose-50 text-[12px] font-bold text-rose-900 transition active:scale-95 active:bg-rose-100"
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {isHostOrMc && (
+                        <div className="mt-3 flex flex-col gap-1.5 rounded-xl bg-amber-50/70 p-2.5 ring-1 ring-amber-100">
+                          {renderHostControls()}
+                          <Link
+                            href={`/dashboard/${wedding.slug}`}
+                            className="mt-0.5 rounded-lg bg-slate-900 px-2 py-1.5 text-center text-[11.5px] font-bold text-amber-300"
+                          >
+                            Trang quản trị đám cưới
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <nav
+                    aria-label="Tiện ích sảnh cưới"
+                    className="fixed inset-x-2 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-40 grid auto-cols-fr grid-flow-col gap-0.5 rounded-2xl border border-amber-200/70 bg-[#fffdf8]/95 p-1 shadow-[0_10px_28px_-8px_rgba(76,5,25,0.4)] backdrop-blur-md sm:hidden"
+                  >
+                    <button
+                      type="button"
+                      aria-pressed={chatOpen}
+                      aria-label={chatBadge ? `Chúc mừng, ${chatBadge} tin mới` : 'Chúc mừng'}
+                      onClick={() => {
+                        setMobileMenu('none');
+                        setChatOpen(!chatOpen);
+                      }}
+                      className={mobileNavItemClass(chatOpen)}
+                    >
+                      <MessageCircleHeart className="h-5 w-5 text-rose-600" aria-hidden="true" />
+                      Chúc mừng
+                      {chatBadge > 0 && (
+                        <span className="absolute left-1/2 top-0.5 ml-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-rose-600 px-1 text-[10px] font-bold tabular-nums text-white ring-2 ring-[#fffdf8]">
+                          {chatBadge > 99 ? '99+' : chatBadge}
+                        </span>
+                      )}
+                    </button>
+                    {canGiftVietQr && (
+                      <button type="button" onClick={fromMobileMenu(() => setShowGiftModal(true))} className={mobileNavItemClass(false)}>
+                        <Gift className="h-5 w-5 text-rose-600" aria-hidden="true" />
+                        Mừng cưới
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={fromMobileMenu(() => {
+                        setChatOpen(false);
+                        setShowFireworksModal(true);
+                      })}
+                      className={mobileNavItemClass(false)}
+                    >
+                      <span className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-[#3a1b4a] to-[#7a2350]" aria-hidden="true">
+                        <PartyPopper className="h-3.5 w-3.5 text-amber-300" />
+                      </span>
+                      Pháo hoa
+                    </button>
+                    <button
+                      type="button"
+                      aria-expanded={mobileMenu === 'emotes'}
+                      onClick={() => setMobileMenu(mobileMenu === 'emotes' ? 'none' : 'emotes')}
+                      className={mobileNavItemClass(mobileMenu === 'emotes')}
+                    >
+                      <Smile className="h-5 w-5 text-amber-600" aria-hidden="true" />
+                      Cảm xúc
+                    </button>
+                    <button
+                      type="button"
+                      aria-expanded={mobileMenu === 'more'}
+                      onClick={() => {
+                        setChatOpen(false);
+                        setMobileMenu(mobileMenu === 'more' ? 'none' : 'more');
+                      }}
+                      className={mobileNavItemClass(mobileMenu === 'more')}
+                    >
+                      <LayoutGrid className="h-5 w-5 text-rose-900/70" aria-hidden="true" />
+                      Thêm
+                    </button>
+                  </nav>
 
                       {/* Modals */}
                       {showVideoPip && (
@@ -1285,45 +1643,48 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                         </div>
                       )}
 
-                      {selectedTarget && isHostOrMc && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
-                          <div className="w-full max-w-xs rounded-2xl bg-white p-4 shadow-xl">
-                            <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
-                              <ShieldAlert className="h-4 w-4 text-rose-600" />
-                              Kiểm duyệt: {selectedTarget.displayName}
-                            </div>
-                            <div className="mt-3 grid grid-cols-3 gap-2">
-                              {(
-                                [
-                                  ['MUTE', 'Tắt Tiếng'],
-                                  ['KICK', 'Mời Ra'],
-                                  ['BAN', 'Chặn UID'],
-                                ] as const
-                              ).map(([action, label]) => (
-                                <button
-                                  key={action}
-                                  type="button"
-                                  onClick={() => {
-                                    sendMsg(WS_MESSAGES.MOD_ACTION, {
-                                      targetUserId: selectedTarget.userId,
-                                      action,
-                                    });
-                                    setSelectedTarget(null);
-                                  }}
-                                  className="rounded-xl bg-rose-100 py-2 text-xs font-bold text-rose-700 hover:bg-rose-200"
-                                >
-                                  {label}
-                                </button>
-                              ))}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedTarget(null)}
-                              className="mt-2 w-full rounded-xl bg-slate-100 py-1.5 text-xs text-slate-600"
-                            >
-                              Đóng
-                            </button>
-                          </div>
+                      {selectedTarget && (
+                        <PlayerCard
+                          player={selectedTarget}
+                          canMessage={!isPlaza && Boolean(selectedTarget.userId) && selectedTarget.userId !== myUserId}
+                          isHostOrMc={isHostOrMc}
+                          online={players.some((p) => p.userId === selectedTarget.userId)}
+                          onMessage={() => {
+                            openDmWith(selectedTarget);
+                            setSelectedTarget(null);
+                          }}
+                          onWave={() => {
+                            sendMsg(WS_MESSAGES.EMOTE, { anim: 'wave' });
+                            setSelectedTarget(null);
+                          }}
+                          onModerate={(action) => {
+                            sendMsg(WS_MESSAGES.MOD_ACTION, { targetUserId: selectedTarget.userId, action });
+                            setSelectedTarget(null);
+                          }}
+                          onClose={() => setSelectedTarget(null)}
+                        />
+                      )}
+
+                      {showFireworksModal && (
+                        <FireworksModal
+                          slug={wedding.slug}
+                          signedIn={Boolean(authUser)}
+                          onNeedSignIn={() => setShowSignIn(true)}
+                          onClose={() => setShowFireworksModal(false)}
+                        />
+                      )}
+
+                      {showSignIn && !authUser && (
+                        <div className="fixed inset-0 z-[60]">
+                          <OAuthModal
+                            title="Đăng nhập để mua pháo hoa"
+                            subtitle="Đơn pháo hoa gắn với tài khoản của bạn để xác nhận khi tiền về."
+                            onClose={() => setShowSignIn(false)}
+                            onAuthenticated={(u) => {
+                              setAuthUser(u);
+                              setShowSignIn(false);
+                            }}
+                          />
                         </div>
                       )}
                     </div>

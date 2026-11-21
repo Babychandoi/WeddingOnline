@@ -1,5 +1,6 @@
 import { STARTER_TEMPLATES } from '@dco/shared';
 import type {
+  FireworkOrderRecord,
   AccountRecord,
   BouquetCatchRecord,
   GiftIntentRecord,
@@ -35,6 +36,8 @@ export interface LocalDatabaseSnapshot {
   platformSettings?: PlatformSettingRecord[];
   /** Optional: snapshots written before online invitations existed don't have it */
   invitationRsvps?: InvitationRsvpRecord[];
+  /** Optional: snapshots written before hall fireworks existed don't have it */
+  fireworkOrders?: FireworkOrderRecord[];
 }
 
 export function createSampleSvgPhoto(title: string, subtitle: string, bg: string): string {

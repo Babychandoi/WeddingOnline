@@ -23,6 +23,11 @@ const GROUP_COPY: Record<SettingGroup, { title: string; description: string }> =
     description:
       'SePay gọi về hệ thống khi tiền vào tài khoản. Chưa có khoá thật thì mọi xác nhận bị từ chối để chống giả mạo thanh toán.',
   },
+  fireworks: {
+    title: 'Giá pháo hoa trong sảnh cưới 3D',
+    description:
+      'Khách mua pháo hoa để bắn chúc mừng cô dâu chú rể, chuyển khoản vào tài khoản nền tảng ở trên. Pháo hoa bắn ngay khi SePay xác nhận tiền vào.',
+  },
   storage: {
     title: 'Cloudflare R2',
     description: 'Để trống để lưu ảnh cưới và photobooth trên ổ đĩa máy chủ.',

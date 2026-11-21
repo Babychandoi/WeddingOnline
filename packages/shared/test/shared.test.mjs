@@ -260,4 +260,38 @@ test('Invitation config sanitiser keeps content bounded and links safe', async (
   assert.equal(out.sections.wishes, true);
   // Untouched fields keep the defaults
   assert.equal(out.groomFullName, 'Minh');
+  // Built-in music: known pieces only; invitations saved before the library default to the music box
+  assert.equal(out.music.track, 'hop-nhac');
+  assert.equal(sanitizeInvitationConfig({ music: { mode: 'SYNTH', track: 'canon' } }, base).music.track, 'canon');
+  assert.equal(sanitizeInvitationConfig({ music: { mode: 'SYNTH', track: '../../etc' } }, base).music.track, 'hop-nhac');
+  const legacy = { ...base, music: { mode: 'SYNTH', url: '' } };
+  assert.equal(sanitizeInvitationConfig({}, legacy).music.track, 'hop-nhac');
+});
+
+test('Invitation plans: published only when paid, renewals add on, a paid 3D hall includes it', async () => {
+  const { INVITATION_PLANS, invitationAccess, invitationPlanEnd, INVITATION_LIFETIME_UNTIL } = await import('../dist/index.js');
+  assert.deepEqual(INVITATION_PLANS.map((p) => p.priceVnd), [150000, 400000, 750000, 1400000, 3000000]);
+  const now = Date.parse('2026-11-20T00:00:00Z');
+  const draft = { tier: 'TRIAL_24H', status: 'DRAFT', invitationPaidUntil: null };
+  assert.equal(invitationAccess(draft, now).published, false);
+  assert.equal(invitationAccess(draft, now).expired, false);
+  // 3 months from now, then a 1-month renewal adds onto the remaining time
+  const end3 = invitationPlanEnd('3m', null, new Date(now));
+  assert.equal(end3, '2027-02-20T00:00:00.000Z');
+  assert.equal(invitationPlanEnd('1m', end3, new Date(now)), '2027-03-20T00:00:00.000Z');
+  const paid = { ...draft, invitationPaidUntil: end3 };
+  assert.deepEqual(
+    { ...invitationAccess(paid, now) },
+    { published: true, source: 'plan', until: end3, lifetime: false, expired: false },
+  );
+  // Lapsed plan: hidden and marked expired; a lapsed plan restarts from today
+  const lapsed = invitationAccess(paid, Date.parse('2027-03-01T00:00:00Z'));
+  assert.equal(lapsed.published, false);
+  assert.equal(lapsed.expired, true);
+  assert.equal(invitationPlanEnd('1m', end3, new Date('2027-03-01T00:00:00Z')), '2027-04-01T00:00:00.000Z');
+  assert.equal(invitationPlanEnd('life', end3, new Date(now)), INVITATION_LIFETIME_UNTIL);
+  // A paid hall includes it; the paid tier alone (still DRAFT, not paid yet) does not
+  assert.equal(invitationAccess({ tier: 'HAPPINESS', status: 'PUBLISHED_3D' }, now).source, 'hall');
+  assert.equal(invitationAccess({ tier: 'VIP_FULFILLMENT', status: 'DRAFT' }, now).published, false);
+  assert.equal(invitationAccess({ tier: 'HAPPINESS', status: 'ARCHIVED_2D_FOREVER' }, now).published, false);
 });

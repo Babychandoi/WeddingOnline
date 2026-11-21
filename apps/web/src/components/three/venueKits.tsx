@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Low-poly kits that build each venue theme's world around the shared hall floor plan.
+ * Scenery kits that build each venue theme around the shared hall floor plan.
  * The hall is 30 m × 30 m centred on the origin; the stage sits at the back (−z), the
  * reception gate at the front (+z). Scenery is placed beyond the hall edges so it never
  * blocks the walkable grid.
@@ -19,6 +19,9 @@ import { gold, marble } from './realMaterials';
 import { CoconutLeafGate, DistantTreeline, Forest, WindClock } from './realNature';
 import { IS_HANDHELD } from './deviceTier';
 import { PhScatter, ringScatter, usePhReady, usePhSurface, type ScatterItem } from './phAssets';
+import { landscapeHeight, ShoreWater, useLandscapeGeometry } from './outdoorScenery';
+import { GardenGrove } from './GardenCeremony';
+import { GARDEN_VENUE } from './gardenReference';
 
 type Vec3 = [number, number, number];
 
@@ -36,13 +39,12 @@ export function SurfaceMaterial({ color: swatch, theme, role, size }: { color: s
   // A photographed surface already has its true colour: only hint at the theme
   const photoTint = useMemo(() => {
     // Poly Haven's ground photos are dry meadow: shift them to a watered lawn green
-    if (kind === 'grass') return '#b9e08f';
+    if (kind === 'grass') return '#c6e6aa';
     // The sand scan is a grey, damp sand: lean well towards the venue's own sand colour
     if (kind === 'sand') return `#${new THREE.Color('#ffffff').lerp(new THREE.Color(swatch), 0.55).multiplyScalar(1.12).getHexString()}`;
     return `#${new THREE.Color('#ffffff').lerp(new THREE.Color(swatch), kind === 'snow' ? 0.08 : 0.22).getHexString()}`;
   }, [swatch, kind]);
   const normalScale = useMemo(() => new THREE.Vector2(0.8, 0.8), []);
-  const big = size > 100;
   // Polished floors get a clear lacquer coat so they mirror chandeliers and the stage
   const polished = kind === 'marble' || kind === 'tile' || (kind === 'wood' && role === 'floor');
   // Photographed maps only where the photo matches the venue. The sand scan is cracked, damp
@@ -77,7 +79,7 @@ export function SurfaceMaterial({ color: swatch, theme, role, size }: { color: s
       normalScale={normalScale}
       roughnessMap={maps.roughnessMap}
       roughness={roughness}
-      onBeforeCompile={big && usePhoto ? antiTile : undefined}
+      onBeforeCompile={kind === 'grass' || (size > 100 && usePhoto) ? antiTile : undefined}
     />
   );
 }
@@ -90,8 +92,10 @@ function antiTile(shader: THREE.WebGLProgramParametersWithUniforms) {
       vec2 uvA = vMapUv;
       vec2 uvB = vec2(vMapUv.y, -vMapUv.x) * 0.37 + vec2(0.31, 0.17);
       vec4 sampledDiffuseColor = mix(texture2D(map, uvA), texture2D(map, uvB), 0.45);
-      float drift = texture2D(map, vMapUv * 0.031).g / max(0.05, texture2D(map, vMapUv * 0.031 + 0.5).g);
-      sampledDiffuseColor.rgb *= clamp(mix(1.0, drift, 0.35), 0.75, 1.25);
+      vec2 broad = uvA * 0.21;
+      float drift = sin(broad.x * 0.59 + sin(broad.y * 0.67) * 1.9) * cos(broad.y * 0.46);
+      float patches = drift * 0.5 + 0.5;
+      sampledDiffuseColor.rgb *= mix(vec3(0.79, 0.83, 0.77), vec3(1.19, 1.14, 1.04), patches);
       diffuseColor *= sampledDiffuseColor;
     #endif`,
   );
@@ -201,7 +205,11 @@ function Perimeter({ kind, colors }: { kind: PerimeterKit; colors: VenueColors }
           kind="palm"
           leafColor={k ?? '#4f7a32'}
           seed={11}
-          spots={[-15.5, 15.5].flatMap((x) => [-12, -2, 8, 15].map((z, i) => ({ position: [x + (i % 2 ? 0.6 : -0.4), 0, z] as Vec3, height: 6 + ((i * 7) % 4) })))}
+          spots={[-1, 1].flatMap((side, k) => [-12, -4, 6, 14].map((z, i) => {
+            const n = i + k * 4;
+            const x = (i === 3 ? 20.5 : 16.2) + rand(n + 7) * 2.4;
+            return { position: [side * x, 0, z + rand(n + 11) * 2] as Vec3, height: 5.3 + rand(n + 2) * (i === 3 ? 2.0 : 4.9) };
+          }))}
         />
       );
     case 'pines':
@@ -210,7 +218,10 @@ function Perimeter({ kind, colors }: { kind: PerimeterKit; colors: VenueColors }
           kind="pine"
           leafColor={k ?? '#2f5a2c'}
           seed={21}
-          spots={[-17, -11, 11, 17].flatMap((x) => [-16, -6, 6, 16].map((z, i) => ({ position: [x + ((i * 3) % 2) * 0.7, 0, z + (x % 3)] as Vec3, height: 5.5 + ((i * 5 + Math.abs(x)) % 4) })))}
+          spots={[-1, 1].flatMap((side, k) => [-14, -8, -1, 8, 13].map((z, i) => {
+            const n = i + k * 5;
+            return { position: [side * (16.6 + rand(n + 23) * 5), 0, z + rand(n + 3) * 3] as Vec3, height: 5.2 + rand(n + 19) * 5.2 };
+          }))}
         />
       );
     case 'round-trees':
@@ -725,27 +736,9 @@ function Backdrop({ kind, colors, mood }: { kind: BackdropKit; colors: VenueColo
   const sc = colors.sc;
   switch (kind) {
     case 'sea':
-      return (
-        <group>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -95]}>
-            <planeGeometry args={[400, 140]} />
-            <Std color={sc ?? '#0ea5e9'} roughness={0.25} metalness={0.1} />
-          </mesh>
-          {[-30, -12, 8, 26].map((x, i) => (
-            <mesh key={x} position={[x, 0.05, -27 - i * 1.5]}>
-              <boxGeometry args={[14, 0.05, 0.35]} />
-              <meshBasicMaterial color="#f8fafc" />
-            </mesh>
-          ))}
-        </group>
-      );
+      return <ShoreWater sea color={sc ?? '#24899f'} sky={colors.s} night={mood === 'night'} />;
     case 'lake':
-      return (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-10, 0.01, -48]}>
-          <planeGeometry args={[150, 40]} />
-          <Std color={sc ?? '#0e7490'} roughness={0.2} metalness={0.1} />
-        </mesh>
-      );
+      return <ShoreWater sea={false} color={sc ?? '#3d686b'} sky={colors.s} night={mood === 'night'} />;
     case 'mountains':
     case 'snow-peaks': {
       const peaks = [
@@ -1604,19 +1597,28 @@ export function VenueGate({ theme }: { theme: VenueTheme }) {
 
 /* ───────────────────────────── Environment & lighting ───────────────────────────── */
 
-export function VenueEnvironment({ theme }: { theme: VenueTheme }) {
+export function VenueEnvironment({ theme, photoComposition = false }: { theme: VenueTheme; photoComposition?: boolean }) {
   const { colors, kits, mood } = theme;
+  const groundKind = surfaceFor(colors.g, theme, 'ground');
+  const rolling = mood !== 'indoor' && groundKind === 'grass' && kits.b.every((kit) => kit === 'hills' || kit === 'forest');
+  const terrain = useLandscapeGeometry(rolling);
+  const isLawn = surfaceFor(colors.f, theme, 'floor') === 'grass';
   return (
     <group>
       {/* Ground beyond the 30 m hall */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.035, 0]} receiveShadow>
         {/* Reaches the horizon so the photographed sky never shows below it */}
         <planeGeometry args={[2400, 2400]} />
         <SurfaceMaterial color={colors.g} theme={theme} role="ground" size={2400} />
       </mesh>
+      {rolling && (
+        <mesh geometry={terrain} position-y={-0.024} receiveShadow userData={{ noCastShadow: true }}>
+          <SurfaceMaterial color={colors.g} theme={theme} role="ground" size={224} />
+        </mesh>
+      )}
 
       {/* Hall floor border */}
-      {(
+      {!isLawn && !photoComposition && (
         [
           { pos: [0, 0.03, -15], size: [30.3, 0.06, 0.25] },
           { pos: [0, 0.03, 15], size: [30.3, 0.06, 0.25] },
@@ -1635,13 +1637,14 @@ export function VenueEnvironment({ theme }: { theme: VenueTheme }) {
         <Backdrop key={b} kind={b} colors={colors} mood={mood} />
       ))}
       <WindClock />
-      {mood !== 'indoor' && <GroundCover theme={theme} />}
+      {mood !== 'indoor' && !photoComposition && <GroundCover theme={theme} rolling={rolling} />}
       {mood !== 'indoor' && kits.b.length === 0 && !snowyOrDesert(theme) && (
-        <DistantTreeline leafColor={lighten(colors.g, -0.08)} kind={kits.p === 'pines' ? 'pine' : kits.p === 'palms' ? 'palm' : 'broadleaf'} />
+        <DistantTreeline leafColor={lighten(colors.g, -0.08)} kind={kits.p === 'pines' && theme.id !== GARDEN_VENUE ? 'pine' : kits.p === 'palms' ? 'palm' : 'broadleaf'} groundHeight={rolling ? landscapeHeight : undefined} />
       )}
       {mood === 'indoor' && <BallroomWalls wallColor={naturalTone(colors.f, 0.15, 0.3)} drape={naturalTone(colors.c, 0, 0.15)} />}
-      <Perimeter kind={kits.p} colors={colors} />
-      <Canopy kind={kits.c} colors={colors} mood={mood} />
+      {theme.id === GARDEN_VENUE && !photoComposition && <GardenGrove behindHall />}
+      {theme.id !== GARDEN_VENUE && <Perimeter kind={kits.p} colors={colors} />}
+      {!photoComposition && <Canopy kind={kits.c} colors={colors} mood={mood} />}
       <Centerpiece kind={kits.ce} colors={colors} />
     </group>
   );
@@ -1682,37 +1685,41 @@ function ScannedTrees({ ids, spots, height, fallback }: { ids: string[]; spots: 
  * shrubs, ferns and mossy rocks (all photo-scanned), thick at the hall's edge and thinning
  * out into the distance.
  */
-function GroundCover({ theme }: { theme: VenueTheme }) {
+function GroundCover({ theme, rolling }: { theme: VenueTheme; rolling: boolean }) {
   const kind = surfaceFor(theme.colors.g, theme, 'ground');
   const open = theme.kits.b.length === 0;
-  const outer = open ? 44 : 19;
+  const outer = open ? 43 : 25;
   const sets = useMemo(() => {
-    const out: Array<{ id: string; items: ScatterItem[] }> = [];
+    const out: Array<{ id: string; items: ScatterItem[]; handheld?: boolean }> = [];
     if (kind === 'grass') {
-      out.push({ id: 'grass_medium_01', items: ringScatter(open ? 300 : 110, 15.7, outer, 11, [0.7, 1.3]) });
-      out.push({ id: 'grass_medium_02', items: ringScatter(open ? 220 : 80, 15.7, outer, 12, [0.8, 1.4]) });
-      out.push({ id: 'flower_gazania', items: ringScatter(open ? 90 : 40, 15.8, Math.min(outer, 30), 13, [0.8, 1.2]) });
-      out.push({ id: 'fern_02', items: ringScatter(open ? 60 : 20, 16.5, outer, 14, [0.8, 1.3]) });
-      out.push({ id: 'shrub_02', items: ringScatter(open ? 36 : 10, 17.5, outer, 15, [0.8, 1.3]) });
-      out.push({ id: 'shrub_04', items: ringScatter(open ? 50 : 14, 16.2, outer, 16, [1.2, 2]) });
+      out.push({ id: 'grass_medium_01', items: ringScatter(open ? 210 : 95, 16.2, outer, 11, [0.72, 1.42]) });
+      // Concentrate the shorter meadow grasses at the edges where guests can see the blades.
+      out.push({ id: 'grass_medium_02', handheld: true, items: ringScatter(IS_HANDHELD ? 120 : 260, 15.15, 26, 12, [0.75, 1.5]) });
+      out.push({ id: 'flower_gazania', items: ringScatter(open ? 64 : 36, 15.45, 26, 13, [0.75, 1.35]) });
+      out.push({ id: 'fern_02', handheld: true, items: ringScatter(IS_HANDHELD ? 24 : 55, 16.3, 28, 14, [0.8, 1.55]) });
+      out.push({ id: 'shrub_03', handheld: true, items: ringScatter(IS_HANDHELD ? 12 : 27, 17, outer, 15, [0.85, 1.5]) });
+      out.push({ id: 'shrub_04', items: ringScatter(open ? 42 : 14, 17, outer, 16, [0.95, 1.7]) });
       if (open) out.push({ id: 'rock_moss_set_01', items: ringScatter(16, 20, outer, 17, [0.7, 1.2]) });
     } else if (kind === 'sand') {
-      out.push({ id: 'grass_medium_02', items: ringScatter(open ? 120 : 40, 16, outer, 21, [0.7, 1.2]) });
+      out.push({ id: 'grass_medium_02', handheld: true, items: ringScatter(IS_HANDHELD ? 36 : 85, 16, 25, 21, [0.65, 1.15]) });
       if (open) out.push({ id: 'rock_moss_set_01', items: ringScatter(10, 20, outer, 22, [0.6, 1]) });
     } else if (kind === 'snow') {
       if (open) out.push({ id: 'rock_moss_set_01', items: ringScatter(10, 20, outer, 23, [0.6, 1]) });
     }
-    return out;
-  }, [kind, open, outer]);
+    return out.map((set) => ({
+      ...set,
+      items: set.items.map(({ position: [x, , z], ...rest }) => ({ ...rest, position: [x, (rolling ? landscapeHeight(x, z) : 0) - 0.03, z] as Vec3 })),
+    }));
+  }, [kind, open, outer, rolling]);
   return (
     <group>
       {sets.map((s) => (
-        <PhScatter key={s.id} id={s.id} items={s.items} variants castShadow={s.id.startsWith('shrub') || s.id.startsWith('rock')} />
+        <PhScatter key={s.id} id={s.id} items={s.items} variants handheld={s.handheld} castShadow={!IS_HANDHELD && (s.id.startsWith('shrub') || s.id.startsWith('rock'))} />
       ))}
       {kind === 'grass' && open && (
         <PhScatter
           id="boulder_01"
-          items={ringScatter(5, 24, 42, 18, [0.8, 1.4])}
+          items={ringScatter(5, 24, 42, 18, [0.8, 1.4]).map(({ position: [x, , z], ...rest }) => ({ ...rest, position: [x, rolling ? landscapeHeight(x, z) - 0.03 : 0, z] }))}
         />
       )}
     </group>

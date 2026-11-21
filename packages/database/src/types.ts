@@ -60,6 +60,8 @@ export interface WeddingRecord {
   invitationConfig?: unknown;
   /** Online invitation for an offline wedding: no 3D hall, no trial expiry */
   invitationOnly?: boolean;
+  /** End of the paid invitation period, ISO; null = never bought */
+  invitationPaidUntil?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -168,7 +170,26 @@ export interface SaasOrderRecord {
   weddingId: string;
   buyerId: string;
   targetTier: WeddingTier;
+  /** HALL = 3D hall package, INVITATION = online invitation plan */
+  kind?: 'HALL' | 'INVITATION';
+  invitationPlan?: string | null;
   amountVnd: number;
+  orderCode: string;
+  status: 'PENDING' | 'PAID' | 'CANCELLED';
+  paidAt: string | null;
+  createdAt: string;
+}
+
+/** Fireworks a guest bought in the 3D hall; paid to the platform account */
+export interface FireworkOrderRecord {
+  id: string;
+  weddingId: string;
+  buyerId: string;
+  buyerName: string;
+  packId: string;
+  amountVnd: number;
+  /** Short wish shown in the hall with the show */
+  message: string;
   orderCode: string;
   status: 'PENDING' | 'PAID' | 'CANCELLED';
   paidAt: string | null;
@@ -232,6 +253,7 @@ export interface PublicWeddingDTO {
   bankAccountName: string | null;
   ceremonyConfig: CeremonyConfig | null;
   invitationOnly: boolean;
+  invitationPaidUntil: string | null;
 }
 
 export function toPublicWedding(w: WeddingRecord): PublicWeddingDTO {
@@ -252,6 +274,7 @@ export function toPublicWedding(w: WeddingRecord): PublicWeddingDTO {
     videoEmbedUrl: w.videoEmbedUrl,
     videoIsLive: w.videoIsLive,
     invitationOnly: Boolean(w.invitationOnly),
+    invitationPaidUntil: w.invitationPaidUntil ?? null,
     hasBankConfig: Boolean(w.bankBin && w.bankAccountNo),
     bankAccountName: w.bankAccountName,
     ceremonyConfig: w.ceremonyConfig,

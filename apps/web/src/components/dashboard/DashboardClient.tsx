@@ -428,7 +428,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700">
-                {wedding.invitationOnly ? 'Thiệp cưới online · miễn phí' : `${TIER_CATALOG[wedding.tier].nameVi} • ${wedding.status}`}
+                {wedding.invitationOnly ? 'Thiệp cưới online' : `${TIER_CATALOG[wedding.tier].nameVi} • ${wedding.status}`}
               </span>
               {authUser && (
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700">
@@ -519,7 +519,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
             ] as const
           )
             // An invitation-only wedding has no 3D hall: just the invitation and its photos
-            .filter((item) => !wedding.invitationOnly || item.id === 'thiep' || item.id === 'photos')
+            .filter((item) => !wedding.invitationOnly || item.id === 'thiep' || item.id === 'photos' || item.id === 'ledger')
             .map((item) => {
             const Icon = item.icon;
             return (
@@ -857,6 +857,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
             photos={photos}
             albumLimit={wedding.invitationOnly ? 12 : TIER_CATALOG[wedding.tier].maxPhotos}
             onPhotosChange={setPhotos}
+            onWeddingChange={setWedding}
           />
         )}
 

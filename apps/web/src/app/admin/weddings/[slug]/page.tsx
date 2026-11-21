@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { dbRepo, type WeddingMemberRecord } from '@dco/database';
-import { STARTER_TEMPLATES, TIER_CATALOG } from '@dco/shared';
+import { INVITATION_PLANS, STARTER_TEMPLATES, TIER_CATALOG, invitationAccess } from '@dco/shared';
 import { ArrowLeft, ExternalLink, HeartHandshake, Mail, MessageSquareHeart } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -89,7 +89,7 @@ export default async function AdminWeddingDetailPage({ params }: { params: { slu
   const lifecycle = describeLifecycle(wedding, now);
   const couple = `${wedding.groomName} & ${wedding.brideName}`;
   const liveGuests = shards.reduce((sum, s) => sum + s.clients, 0);
-  const giftsEnabled = TIER_CATALOG[wedding.tier].allowVietQr;
+  const giftsEnabled = TIER_CATALOG[wedding.tier].allowVietQr || invitationAccess(wedding).published;
 
   const stageDates = [
     `Tạo ${formatDate(wedding.createdAt)}`,
@@ -347,7 +347,7 @@ export default async function AdminWeddingDetailPage({ params }: { params: { slu
                       {o.orderCode}
                     </td>
                     <td className={tableStyles.td}>
-                      <TierBadge tier={o.targetTier} />
+                      {o.kind === 'INVITATION' ? <Pill tone="emerald">Thiệp · {INVITATION_PLANS.find((p) => p.id === o.invitationPlan)?.nameVi ?? 'gói thiệp'}</Pill> : <TierBadge tier={o.targetTier} />}
                     </td>
                     <td className={cx(tableStyles.td, 'whitespace-nowrap text-right tabular-nums text-slate-900')}>
                       {o.status === 'PAID' && o.amountVnd === 0 ? 'Voucher 100%' : formatVnd(o.amountVnd)}

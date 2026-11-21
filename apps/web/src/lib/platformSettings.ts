@@ -7,6 +7,7 @@ import {
   requireSecret,
   resolveSecret,
 } from '@dco/shared/server';
+import { FIREWORK_PACKS, type FireworkPackId } from '@dco/shared';
 import { getRuntimeEnv } from './runtimeEnv';
 
 /**
@@ -23,9 +24,12 @@ export type PlatformSettingKey =
   | 'R2_ACCESS_KEY_ID'
   | 'R2_SECRET_ACCESS_KEY'
   | 'R2_BUCKET_NAME'
-  | 'R2_PUBLIC_CDN_URL';
+  | 'R2_PUBLIC_CDN_URL'
+  | 'FIREWORK_PRICE_NHO'
+  | 'FIREWORK_PRICE_LON'
+  | 'FIREWORK_PRICE_DAI_TIEC';
 
-export type SettingGroup = 'bank' | 'webhook' | 'storage';
+export type SettingGroup = 'bank' | 'webhook' | 'storage' | 'fireworks';
 
 export interface SettingDefinition {
   key: PlatformSettingKey;
@@ -39,6 +43,14 @@ export interface SettingDefinition {
 }
 
 const maxLen = (n: number) => (v: string) => (v.length <= n ? null : `Tối đa ${n} ký tự`);
+
+/** Whole đồng between 2.000 and 5.000.000 (dots and spaces allowed: "50.000") */
+function parseVnd(v: string): number | null {
+  const digits = v.replace(/[.\s,]/g, '');
+  if (!/^\d{4,7}$/.test(digits)) return null;
+  const n = Number(digits);
+  return n >= 2_000 && n <= 5_000_000 ? n : null;
+}
 
 export const PLATFORM_SETTING_DEFS: SettingDefinition[] = [
   {
@@ -119,6 +131,17 @@ export const PLATFORM_SETTING_DEFS: SettingDefinition[] = [
       }
     },
   },
+  ...FIREWORK_PACKS.map(
+    (pack): SettingDefinition => ({
+      key: `FIREWORK_PRICE_${pack.id}` as PlatformSettingKey,
+      group: 'fireworks',
+      label: `Giá ${pack.label.toLowerCase()} (đ)`,
+      secret: false,
+      placeholder: pack.defaultPriceVnd.toLocaleString('vi-VN'),
+      help: `${pack.tagline}. Để trống để dùng giá mặc định ${pack.defaultPriceVnd.toLocaleString('vi-VN')}đ.`,
+      validate: (v) => (parseVnd(v) === null ? 'Nhập số tiền từ 2.000 đến 5.000.000 đồng' : null),
+    }),
+  ),
 ];
 
 const DEFS_BY_KEY = new Map(PLATFORM_SETTING_DEFS.map((d) => [d.key, d]));
@@ -181,6 +204,17 @@ export async function getPlatformBankAccount(): Promise<PlatformBankAccount | nu
   }
   if (isHardenedProduction()) return null;
   return { bankBin: '970422', accountNumber: '0123456789', accountName: 'CONG TY DAMCUOIONLINE (DEV)' };
+}
+
+/** Price of each fireworks pack: the admin's price, else the default */
+export async function getFireworkPrices(): Promise<Record<FireworkPackId, number>> {
+  const entries = await Promise.all(
+    FIREWORK_PACKS.map(async (pack) => {
+      const raw = await getPlatformSetting(`FIREWORK_PRICE_${pack.id}` as PlatformSettingKey);
+      return [pack.id, (raw && parseVnd(raw)) || pack.defaultPriceVnd] as const;
+    }),
+  );
+  return Object.fromEntries(entries) as Record<FireworkPackId, number>;
 }
 
 export type SettingSource = 'admin' | 'env' | 'unset';

@@ -14,12 +14,12 @@ export default async function AdminPaymentSettingsPage() {
     <>
       <AdminPageHeader
         title="Thanh toán"
-        description="Tài khoản nhận tiền khi khách nâng cấp gói, và khoá SePay dùng để tự động xác nhận chuyển khoản."
+        description="Tài khoản nhận tiền khi khách nâng cấp gói hoặc mua pháo hoa, khoá SePay dùng để tự động xác nhận chuyển khoản, và giá pháo hoa."
       />
       <AdminSettingsClient
         initialSettings={await describePlatformSettings()}
         encryptionReady={isSettingsEncryptionReady()}
-        groups={['bank', 'webhook']}
+        groups={['bank', 'webhook', 'fireworks']}
       />
     </>
   );

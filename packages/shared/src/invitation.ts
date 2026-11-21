@@ -283,6 +283,26 @@ export interface InvitationFamily {
 
 export type InvitationSectionKey = 'countdown' | 'family' | 'events' | 'story' | 'album' | 'rsvp' | 'wishes' | 'gift' | 'hall';
 
+/**
+ * Built-in wedding music, played by a small synthesiser in the guest's browser (no audio file):
+ * public-domain classics in our own arrangement, and originals written for the site.
+ */
+export const INVITATION_MUSIC_TRACKS = [
+  { id: 'hop-nhac', nameVi: 'Hộp nhạc ngọt ngào', noteVi: 'Điệu valse hộp nhạc, sáng tác riêng' },
+  { id: 'canon', nameVi: 'Canon in D', noteVi: 'Pachelbel, bản phối piano và đàn dây' },
+  { id: 'bridal', nameVi: 'Here Comes the Bride', noteVi: 'Wagner, khúc rước dâu kinh điển' },
+  { id: 'ode', nameVi: 'Ode to Joy', noteVi: 'Beethoven, Khúc hoan ca' },
+  { id: 'piano', nameVi: 'Piano lãng mạn', noteVi: 'Piano nhẹ nhàng, sáng tác riêng' },
+  { id: 'sao-truc', nameVi: 'Sáo trúc đồng quê', noteVi: 'Giai điệu ngũ cung, sáng tác riêng' },
+  { id: 'dan-tranh', nameVi: 'Đàn tranh ngày vui', noteVi: 'Tiếng đàn tranh ngũ cung, sáng tác riêng' },
+] as const;
+
+export type InvitationMusicTrackId = (typeof INVITATION_MUSIC_TRACKS)[number]['id'];
+
+export function isInvitationMusicTrackId(v: unknown): v is InvitationMusicTrackId {
+  return typeof v === 'string' && INVITATION_MUSIC_TRACKS.some((t) => t.id === v);
+}
+
 export interface InvitationConfig {
   templateId: InvitationTemplateId;
   /** Names as printed on the card (default: the wedding's names) */
@@ -297,7 +317,8 @@ export interface InvitationConfig {
   story: InvitationStoryItem[];
   /** https or site-relative image; empty = first album photo */
   coverPhotoUrl: string;
-  music: { mode: 'SYNTH' | 'URL' | 'OFF'; url: string };
+  /** SYNTH = a built-in piece played in the browser (track), URL = the couple's own audio link */
+  music: { mode: 'SYNTH' | 'URL' | 'OFF'; url: string; track: InvitationMusicTrackId };
   sections: Record<InvitationSectionKey, boolean>;
   rsvpDeadline: string;
   dressCode: string;
@@ -354,7 +375,7 @@ export function defaultInvitationConfig(w: { groomName: string; brideName: strin
     ],
     story: [],
     coverPhotoUrl: '',
-    music: { mode: 'SYNTH', url: '' },
+    music: { mode: 'SYNTH', url: '', track: 'hop-nhac' },
     sections: { countdown: true, family: true, events: true, story: true, album: true, rsvp: true, wishes: true, gift: true, hall: true },
     rsvpDeadline: '',
     dressCode: '',
@@ -442,6 +463,7 @@ export function sanitizeInvitationConfig(input: unknown, base: InvitationConfig)
   const musicIn = (o.music && typeof o.music === 'object' ? o.music : {}) as Record<string, unknown>;
   const musicMode = musicIn.mode === 'URL' || musicIn.mode === 'OFF' || musicIn.mode === 'SYNTH' ? musicIn.mode : base.music.mode;
   const musicUrl = has('music') ? safeInvitationUrl(musicIn.url) : base.music.url;
+  const musicTrack = isInvitationMusicTrackId(musicIn.track) ? musicIn.track : (base.music.track ?? 'hop-nhac');
 
   const sectionsIn = (o.sections && typeof o.sections === 'object' ? o.sections : {}) as Record<string, unknown>;
   const sections = Object.fromEntries(
@@ -460,7 +482,7 @@ export function sanitizeInvitationConfig(input: unknown, base: InvitationConfig)
     events,
     story,
     coverPhotoUrl: has('coverPhotoUrl') ? safeInvitationUrl(o.coverPhotoUrl) : base.coverPhotoUrl,
-    music: { mode: musicMode as InvitationConfig['music']['mode'], url: musicUrl },
+    music: { mode: musicMode as InvitationConfig['music']['mode'], url: musicUrl, track: musicTrack },
     sections,
     rsvpDeadline: has('rsvpDeadline') ? (o.rsvpDeadline ? iso(o.rsvpDeadline, '') : '') : base.rsvpDeadline,
     dressCode: has('dressCode') ? str(o.dressCode, INVITATION_LIMITS.dressCode) : base.dressCode,
@@ -487,4 +509,68 @@ export interface InvitationRsvpInput {
   headcount: number;
   side: 'GROOM_SIDE' | 'BRIDE_SIDE' | 'FRIEND' | 'COLLEAGUE';
   note: string;
+}
+
+/* ───────────── Selling the invitation ───────────── */
+
+/**
+ * The invitation is sold on its own (separate from the 3D hall). Designing is free and saved as a
+ * draft; guests see it once it is published with one of these plans. Paid 3D halls include it.
+ */
+export const INVITATION_PLANS = [
+  { id: '1m', nameVi: '1 tháng', months: 1, priceVnd: 150_000 },
+  { id: '3m', nameVi: '3 tháng', months: 3, priceVnd: 400_000 },
+  { id: '6m', nameVi: '6 tháng', months: 6, priceVnd: 750_000 },
+  { id: '12m', nameVi: '1 năm', months: 12, priceVnd: 1_400_000 },
+  { id: 'life', nameVi: 'Trọn đời', months: null, priceVnd: 3_000_000 },
+] as const;
+
+export type InvitationPlanId = (typeof INVITATION_PLANS)[number]['id'];
+
+export function isInvitationPlanId(v: unknown): v is InvitationPlanId {
+  return typeof v === 'string' && INVITATION_PLANS.some((p) => p.id === v);
+}
+
+/** "Lifetime" is stored as this far-future date */
+export const INVITATION_LIFETIME_UNTIL = '2999-12-31T00:00:00.000Z';
+
+/** New end of the publishing period: a renewal adds onto time not yet used */
+export function invitationPlanEnd(plan: InvitationPlanId, currentUntil: string | null | undefined, now = new Date()): string {
+  const p = INVITATION_PLANS.find((x) => x.id === plan)!;
+  if (p.months === null) return INVITATION_LIFETIME_UNTIL;
+  const cur = currentUntil ? new Date(currentUntil) : null;
+  const from = cur && cur.getTime() > now.getTime() ? cur : now;
+  const end = new Date(from);
+  end.setUTCMonth(end.getUTCMonth() + p.months);
+  return end.toISOString();
+}
+
+export interface InvitationAccess {
+  /** Guests can open the invitation */
+  published: boolean;
+  /** Why: a paid 3D hall includes it, or an invitation plan */
+  source: 'hall' | 'plan' | null;
+  /** End of the plan (ISO), null for "while the hall is active" or never bought */
+  until: string | null;
+  lifetime: boolean;
+  /** A plan was bought and has run out */
+  expired: boolean;
+}
+
+export function invitationAccess(
+  w: { tier: string; status: string; invitationPaidUntil?: string | null },
+  now = Date.now(),
+): InvitationAccess {
+  const until = w.invitationPaidUntil ?? null;
+  const planActive = Boolean(until && Date.parse(until) > now);
+  // A paid hall includes the invitation while it runs. The tier alone is not proof of payment: a
+  // paid package chosen at creation sits in DRAFT until the transfer arrives.
+  const hallIncluded = (w.tier === 'HAPPINESS' || w.tier === 'VIP_FULFILLMENT') && (w.status === 'PUBLISHED_3D' || w.status === 'GRACE_PERIOD_7D');
+  return {
+    published: planActive || hallIncluded,
+    source: planActive ? 'plan' : hallIncluded ? 'hall' : null,
+    until: planActive ? until : null,
+    lifetime: planActive && until === INVITATION_LIFETIME_UNTIL,
+    expired: Boolean(until) && !planActive && !hallIncluded,
+  };
 }

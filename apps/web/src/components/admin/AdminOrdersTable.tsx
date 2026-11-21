@@ -127,7 +127,7 @@ export function AdminOrdersTable({
                       {r.weddingSlug && <p className="text-xs text-slate-500">/w/{r.weddingSlug}</p>}
                     </td>
                     <td className={tableStyles.td}>
-                      <TierBadge tier={r.tier} />
+                      {r.invitationPlanLabel ? <Pill tone="emerald">{r.invitationPlanLabel}</Pill> : <TierBadge tier={r.tier} />}
                     </td>
                     <td
                       className={cx(

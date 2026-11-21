@@ -192,6 +192,111 @@ class WeddingSoundEngine {
     });
   }
 
+  private noiseBuffer: AudioBuffer | null = null;
+
+  /** One second of white noise, made once, for whooshes and crackle */
+  private noise(ctx: AudioContext): AudioBuffer {
+    if (!this.noiseBuffer) {
+      const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      this.noiseBuffer = buf;
+    }
+    return this.noiseBuffer;
+  }
+
+  /** A shell leaving the mortar: a short rising hiss */
+  public playFireworkLaunch(volume = 1): void {
+    const ctx = this.ensureContext();
+    if (!ctx || !this.sfxGain) return;
+    const now = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise(ctx);
+    const band = ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.Q.value = 6;
+    band.frequency.setValueAtTime(700, now);
+    band.frequency.exponentialRampToValueAtTime(3200, now + 0.9);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.16 * volume, now + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.0);
+    src.connect(band);
+    band.connect(gain);
+    gain.connect(this.sfxGain);
+    src.start(now, Math.random() * 0.5, 1.05);
+  }
+
+  /** A shell bursting: a low thump, a bang, then crackle. Distance softens and dulls it. */
+  public playFireworkBurst(volume = 1, crackle = true): void {
+    const ctx = this.ensureContext();
+    if (!ctx || !this.sfxGain) return;
+    const now = ctx.currentTime;
+    const v = Math.max(0.15, Math.min(1, volume));
+
+    const thump = ctx.createOscillator();
+    const tg = ctx.createGain();
+    thump.type = 'sine';
+    thump.frequency.setValueAtTime(110, now);
+    thump.frequency.exponentialRampToValueAtTime(38, now + 0.5);
+    tg.gain.setValueAtTime(0.55 * v, now);
+    tg.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+    thump.connect(tg);
+    tg.connect(this.sfxGain);
+    thump.start(now);
+    thump.stop(now + 0.65);
+
+    const bang = ctx.createBufferSource();
+    bang.buffer = this.noise(ctx);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 900 + 2600 * v;
+    const bg = ctx.createGain();
+    bg.gain.setValueAtTime(0.42 * v, now);
+    bg.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+    bang.connect(lp);
+    lp.connect(bg);
+    bg.connect(this.sfxGain);
+    bang.start(now, Math.random() * 0.4, 0.5);
+
+    if (!crackle) return;
+    // Crackle: a scatter of tiny high clicks over the next second
+    for (let i = 0; i < 14; i++) {
+      const t = now + 0.35 + Math.random() * 1.1;
+      const c = ctx.createBufferSource();
+      c.buffer = this.noise(ctx);
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 3500;
+      const cg = ctx.createGain();
+      cg.gain.setValueAtTime(0.12 * v * Math.random(), t);
+      cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+      c.connect(hp);
+      hp.connect(cg);
+      cg.connect(this.sfxGain);
+      c.start(t, Math.random() * 0.9, 0.04);
+    }
+  }
+
+  /** Soft two-note ping for a new private message */
+  public playMessagePing(): void {
+    const ctx = this.ensureContext();
+    if (!ctx || !this.sfxGain) return;
+    [880, 1318.5].forEach((freq, idx) => {
+      const t = ctx.currentTime + idx * 0.09;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.18, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      osc.connect(gain);
+      gain.connect(this.sfxGain!);
+      osc.start(t);
+      osc.stop(t + 0.4);
+    });
+  }
+
   public playBouquetSfx(won = false): void {
     const ctx = this.ensureContext();
     if (!ctx || !this.sfxGain) return;

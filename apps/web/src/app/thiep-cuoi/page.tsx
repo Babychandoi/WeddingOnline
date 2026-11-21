@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { INVITATION_TEMPLATES } from '@dco/shared';
+import { INVITATION_PLANS, INVITATION_TEMPLATES, TIER_CATALOG } from '@dco/shared';
 import { CardFace } from '@/components/invitation/CardFace';
 import { TemplateGallery } from '@/components/invitation/TemplateGallery';
 import { SAMPLE_COUPLE } from '@/components/invitation/sampleInvitation';
@@ -36,11 +36,11 @@ export default function InvitationGalleryPage() {
               Thiệp cưới online, mở ra như thiệp thật
             </h1>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-700 sm:text-lg">
-              Chọn một trong {INVITATION_TEMPLATES.length} mẫu, điền tên hai bên gia đình, giờ làm lễ và địa điểm. Gửi qua Zalo hay Facebook, khách chạm để mở phong bì có ghi tên mình. Dùng cho đám cưới tổ chức ngoài đời: miễn phí, không cần sảnh 3D, thiệp không hết hạn.
+              Chọn một trong {INVITATION_TEMPLATES.length} mẫu, điền tên hai bên gia đình, giờ làm lễ và địa điểm. Gửi qua Zalo hay Facebook, khách chạm để mở phong bì có ghi tên mình. Dùng được cho cả đám cưới tổ chức ngoài đời, không cần sảnh 3D. Thiết kế và xem trước miễn phí, chỉ trả phí khi phát hành.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/thiep-cuoi/tao" className="inline-flex min-h-[52px] items-center rounded-full bg-rose-800 px-7 text-base font-bold text-amber-50 shadow-[0_10px_24px_-10px_rgba(136,19,55,0.7)] hover:bg-rose-700">
-                Tạo thiệp miễn phí
+                Thiết kế thiệp
               </Link>
               <a href="#mau-thiep" className="inline-flex min-h-[52px] items-center rounded-full px-6 text-base font-bold text-rose-900 ring-1 ring-rose-900/25 hover:ring-rose-900/60">
                 Xem {INVITATION_TEMPLATES.length} mẫu thiệp
@@ -70,6 +70,28 @@ export default function InvitationGalleryPage() {
             </div>
           ))}
         </dl>
+
+        {/* Pricing: designing is free, publishing takes a plan */}
+        <section id="bang-gia" className="mt-20 scroll-mt-6">
+          <h2 className="font-serif text-3xl font-bold text-rose-950 sm:text-4xl">Bảng giá thiệp cưới</h2>
+          <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-slate-700">
+            Chọn mẫu, điền nội dung, tải ảnh và xem trước hoàn toàn miễn phí, mọi thứ được lưu nháp. Chỉ khi muốn gửi thiệp cho khách mới cần chọn gói phát hành. Hết gói thì thiệp tạm ẩn, gia hạn là hiện lại ngay.
+          </p>
+          <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {INVITATION_PLANS.map((p) => (
+              <li key={p.id} className={`rounded-2xl border bg-white p-5 ${p.id === '3m' ? 'border-rose-700 ring-2 ring-rose-200' : 'border-rose-900/15'}`}>
+                <p className="text-sm font-bold uppercase tracking-wide text-rose-800">{p.nameVi}</p>
+                <p className="mt-2 text-2xl font-black tabular-nums text-slate-900">{p.priceVnd.toLocaleString('vi-VN')}đ</p>
+                <p className="mt-1 text-xs text-slate-600">
+                  {p.months === null ? 'Giữ thiệp và lời chúc mãi mãi' : p.months === 1 ? 'Cho đám cưới sắp diễn ra' : `≈ ${(Math.round(p.priceVnd / p.months / 1000) * 1000).toLocaleString('vi-VN')}đ/tháng`}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-sm text-slate-600">
+            Đã mua {TIER_CATALOG.HAPPINESS.nameVi} hoặc {TIER_CATALOG.VIP_FULFILLMENT.nameVi} cho sảnh cưới 3D? Thiệp cưới online đã có sẵn trong gói, không cần mua thêm.
+          </p>
+        </section>
 
         <section id="mau-thiep" className="mt-20 scroll-mt-6">
           <h2 className="font-serif text-3xl font-bold text-rose-950 sm:text-4xl">{INVITATION_TEMPLATES.length} mẫu thiệp</h2>

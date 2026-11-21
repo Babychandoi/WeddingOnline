@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbRepo, toPublicWedding } from '@dco/database';
-import { TIER_CATALOG, buildVietQrDataUrl, generatePlanOrderCode, type WeddingTier } from '@dco/shared';
+import { INVITATION_PLANS, TIER_CATALOG, buildVietQrDataUrl, generatePlanOrderCode, isInvitationPlanId, type WeddingTier } from '@dco/shared';
 import { getPlatformBankAccount } from '@/lib/platformSettings';
 import { publishRealtimeEvent } from '@/lib/realtimeClient';
 import { getSessionFromRequest } from '@/lib/session';
@@ -14,6 +14,9 @@ export async function POST(req: NextRequest) {
     slug?: string;
     targetTier?: WeddingTier;
     voucherCode?: string;
+    /** INVITATION = buy an online invitation plan instead of a 3D hall package */
+    kind?: 'HALL' | 'INVITATION';
+    invitationPlan?: string;
   };
 
   const wedding = body.weddingId
@@ -25,6 +28,33 @@ export async function POST(req: NextRequest) {
   if (!wedding) return NextResponse.json({ error: 'WEDDING_NOT_FOUND' }, { status: 404 });
   if (wedding.ownerId !== auth.user.id) {
     return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+  }
+
+  // ── Online invitation plan: its own price, no studio voucher, the hall is untouched ──
+  if (body.kind === 'INVITATION') {
+    if (!isInvitationPlanId(body.invitationPlan)) {
+      return NextResponse.json({ error: 'UNKNOWN_PLAN', message: 'Gói thiệp không hợp lệ.' }, { status: 400 });
+    }
+    const plan = INVITATION_PLANS.find((p) => p.id === body.invitationPlan)!;
+    const bank = await getPlatformBankAccount();
+    if (!bank) {
+      return NextResponse.json({ error: 'PLATFORM_BANK_NOT_CONFIGURED', message: 'Hệ thống chưa cấu hình tài khoản nhận thanh toán. Vui lòng liên hệ quản trị viên.' }, { status: 503 });
+    }
+    const orderCode = generatePlanOrderCode();
+    const order = await dbRepo.createSaasOrder({
+      weddingId: wedding.id,
+      buyerId: auth.user.id,
+      targetTier: wedding.tier,
+      kind: 'INVITATION',
+      invitationPlan: plan.id,
+      amountVnd: plan.priceVnd,
+      orderCode,
+    });
+    const qr = await buildVietQrDataUrl({ bankBin: bank.bankBin, accountNumber: bank.accountNumber, amountVnd: plan.priceVnd, transferCode: orderCode });
+    return NextResponse.json(
+      { instantActivated: false, appliedDiscountPercent: 0, order, bankBin: bank.bankBin, accountNumber: bank.accountNumber, accountName: bank.accountName, qrDataUrl: qr.dataUrl, qrPayload: qr.payload },
+      { status: 201 },
+    );
   }
 
   const targetTier: WeddingTier =

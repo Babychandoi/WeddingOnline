@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbRepo } from '@dco/database';
-import { TIER_CATALOG, buildVietQrDataUrl, filterVietnameseProfanity, generateGiftCode } from '@dco/shared';
+import { buildVietQrDataUrl, invitationAccess, filterVietnameseProfanity, generateGiftCode } from '@dco/shared';
 import { getSessionFromRequest } from '@/lib/session';
 import { allowRequest, clientIp } from '@/lib/rateLimit';
 
@@ -12,9 +12,7 @@ export async function POST(req: NextRequest, context: { params: { slug: string }
   const wedding = await dbRepo.getWeddingBySlug(context.params.slug);
   if (!wedding) return NextResponse.json({ error: 'WEDDING_NOT_FOUND' }, { status: 404 });
 
-  if (!TIER_CATALOG[wedding.tier].allowVietQr) {
-    return NextResponse.json({ error: 'VIETQR_DISABLED_FOR_FREE_TIER', message: 'Hộp mừng cưới chỉ mở ở Gói Hạnh Phúc và Gói Viên Mãn.' }, { status: 403 });
-  }
+  if (!invitationAccess(wedding).published) return NextResponse.json({ error: 'INVITATION_NOT_PUBLISHED', message: 'Thiệp chưa được phát hành hoặc đang tạm ngưng.' }, { status: 403 });
   if (!wedding.bankBin || !wedding.bankAccountNo) {
     return NextResponse.json({ error: 'BANK_NOT_CONFIGURED', message: 'Cô dâu chú rể chưa cấu hình tài khoản nhận mừng cưới.' }, { status: 400 });
   }

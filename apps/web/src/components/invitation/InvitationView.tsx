@@ -41,7 +41,7 @@ export interface InvitationViewProps {
   onEditPart?: (part: EditPart, el: HTMLElement) => void;
 }
 
-export type EditPart = 'cover' | 'family' | 'quote' | 'events' | 'countdown' | 'story' | 'album' | 'replies' | 'closing';
+export type EditPart = 'cover' | 'family' | 'quote' | 'events' | 'countdown' | 'story' | 'album' | 'replies' | 'gift' | 'closing';
 
 const EDIT_LABEL: Record<EditPart, string> = {
   cover: 'Sửa bìa: tên, ảnh',
@@ -52,6 +52,7 @@ const EDIT_LABEL: Record<EditPart, string> = {
   story: 'Sửa chuyện tình',
   album: 'Sửa ảnh cưới',
   replies: 'Bật/tắt các mục',
+  gift: 'Sửa hộp mừng cưới',
   closing: 'Sửa lời cảm ơn',
 };
 
@@ -465,7 +466,7 @@ export function InvitationView(props: InvitationViewProps) {
 
   const startMusic = useCallback(async () => {
     if (embedded || config.music.mode === 'OFF') return;
-    if (!music.current) music.current = new MusicBox(config.music.mode === 'URL' && config.music.url ? config.music.url : null);
+    if (!music.current) music.current = new MusicBox(config.music.mode === 'URL' && config.music.url ? config.music.url : null, config.music.track);
     setPlaying(await music.current.start());
   }, [config.music, embedded]);
 
@@ -729,12 +730,14 @@ export function InvitationView(props: InvitationViewProps) {
           )}
 
           {sections.gift && (props.gift.enabled || demo) && (
+            <EditSpot part="gift" onEdit={onEditPart}>
             <Section id="mung-cuoi" t={T('Hộp mừng cưới', 'Gift')} theme={theme}>
               <p className="mx-auto mb-6 max-w-[38ch] text-[16px] leading-relaxed [text-wrap:pretty]">
                 Sự hiện diện của bạn là món quà quý nhất. Nếu ở xa không đến được, bạn có thể gửi lời mừng qua mã QR dưới đây.
               </p>
               <GiftBox slug={slug} demo={demo} guestName={guest} bankName={props.gift.bankName} />
             </Section>
+            </EditSpot>
           )}
 
           {/* ── Thank you ── */}

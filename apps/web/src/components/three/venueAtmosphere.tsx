@@ -210,8 +210,19 @@ function GradientSky({ sky }: { sky: SkySetup }) {
 }
 
 /** Sky, fog, sun with soft shadows, fill lights and image-based light for one venue */
-export function VenueAtmosphere({ theme, quality }: { theme: VenueTheme; quality: 'high' | 'low' }) {
-  const setup = useMemo(() => moodSetup(theme), [theme]);
+export function VenueAtmosphere({ theme, quality, photoComposition = false }: { theme: VenueTheme; quality: 'high' | 'low'; photoComposition?: boolean }) {
+  const setup = useMemo(() => {
+    const base = moodSetup(theme);
+    if (!photoComposition) return base;
+    return {
+      ...base,
+      sky: { ...base.sky, top: '#b6c3cd', horizon: '#e4e3dd', cloudLit: '#f4f2e8', cloudShade: '#c8cdd0', clouds: 0.64 },
+      fogColor: '#c4cabd',
+      sunLight: { position: [14, 24, 10] as Vec3, color: '#fff4df', intensity: 2.45 },
+      hemi: ['#dfe9f3', '#656d52', 0.66] as MoodSetup['hemi'],
+      envIntensity: 0.61,
+    };
+  }, [theme, photoComposition]);
   const hdri = useVenueHdri(theme.mood, quality === 'high');
   const farScenery = theme.kits.b.length > 0;
   // Haze only in the distance: the ground melts into the horizon colour, the hall stays crisp
@@ -221,7 +232,7 @@ export function VenueAtmosphere({ theme, quality }: { theme: VenueTheme; quality
   // its horizon haze is, so shadows and fog agree with the picture
   // (Phones keep the painted sky: the photograph is a 4–5 MB download)
   // Night keeps the painted starry sky: the night photograph reads as a pale dusk on screen
-  const photoSky = quality === 'high' && (theme.mood === 'day' || theme.mood === 'sunset') && !IS_HANDHELD;
+  const photoSky = !photoComposition && quality === 'high' && (theme.mood === 'day' || theme.mood === 'sunset') && !IS_HANDHELD;
   const [sky, setSky] = useState<SkyInfo | null>(null);
   const onSky = useCallback((info: SkyInfo | null) => setSky(info), []);
   useEffect(() => setSky(null), [theme.mood]);

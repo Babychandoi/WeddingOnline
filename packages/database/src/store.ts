@@ -12,12 +12,15 @@ import {
   type SceneLayoutDocument,
   type TemplateId,
   type WeddingTier,
+  invitationPlanEnd,
+  isInvitationPlanId,
 } from '@dco/shared';
 import { prismaRepo } from './prismaRepo';
 import { createSeedSnapshot, type LocalDatabaseSnapshot } from './seedData';
 import type {
   AdminUserRecord,
   BouquetCatchRecord,
+  FireworkOrderRecord,
   GiftIntentRecord,
   GiftLedgerRecord,
   GuestbookEntryRecord,
@@ -604,7 +607,7 @@ const localJsonRepo = {
                                 if (!intent) return { duplicate: false };
 
                                 const wedding = db.weddings.find((w) => w.id === intent.weddingId);
-                                if (!wedding || (wedding.tier !== 'HAPPINESS' && wedding.tier !== 'VIP_FULFILLMENT')) {
+                                if (!wedding || (wedding.tier !== 'HAPPINESS' && wedding.tier !== 'VIP_FULFILLMENT' && !(wedding.invitationPaidUntil && Date.parse(wedding.invitationPaidUntil) > Date.now()))) {
                                   return { duplicate: false };
                                 }
 
@@ -657,6 +660,8 @@ const localJsonRepo = {
                                     targetTier: WeddingTier;
                                     amountVnd: number;
                                     orderCode: string;
+                                    kind?: 'HALL' | 'INVITATION';
+                                    invitationPlan?: string | null;
                                   }): Promise < SaasOrderRecord > {
                                     return getStore().mutate((db) => {
                                       const order: SaasOrderRecord = {
@@ -664,6 +669,8 @@ const localJsonRepo = {
                                         weddingId: input.weddingId,
                                         buyerId: input.buyerId,
                                         targetTier: input.targetTier,
+                                        kind: input.kind ?? 'HALL',
+                                        invitationPlan: input.invitationPlan ?? null,
                                         amountVnd: input.amountVnd,
                                         orderCode: input.orderCode,
                                         status: 'PENDING',
@@ -701,7 +708,11 @@ const localJsonRepo = {
                                         order.paidAt = nowIso;
 
                                         const wedding = db.weddings.find((w) => w.id === order.weddingId);
-                                        if (wedding) {
+                                        if (wedding && order.kind === 'INVITATION' && isInvitationPlanId(order.invitationPlan)) {
+                                          // An invitation plan publishes (or extends) the invitation; the hall is untouched
+                                          wedding.invitationPaidUntil = invitationPlanEnd(order.invitationPlan, wedding.invitationPaidUntil ?? null, new Date(nowIso));
+                                          wedding.updatedAt = nowIso;
+                                        } else if (wedding) {
                                           wedding.tier = order.targetTier;
                                           wedding.status = 'PUBLISHED_3D';
                                           wedding.trialExpiresAt = null;
@@ -724,6 +735,69 @@ const localJsonRepo = {
                                         return { duplicate: false, upgraded: true, wedding };
                                       });
                                     },
+
+  async createFireworkOrder(input: {
+    weddingId: string;
+    buyerId: string;
+    buyerName: string;
+    packId: string;
+    amountVnd: number;
+    message: string;
+    orderCode: string;
+  }): Promise<FireworkOrderRecord> {
+    return getStore().mutate((db) => {
+      const order: FireworkOrderRecord = {
+        id: newId('fw'),
+        ...input,
+        status: 'PENDING',
+        paidAt: null,
+        createdAt: new Date().toISOString(),
+      };
+      (db.fireworkOrders ??= []).push(order);
+      return order;
+    });
+  },
+
+  async getFireworkOrderByCode(orderCode: string): Promise<FireworkOrderRecord | null> {
+    return getStore().query((db) => (db.fireworkOrders ?? []).find((o) => o.orderCode === orderCode) ?? null);
+  },
+
+  /** Paid fireworks, newest first (admin) */
+  async listFireworkOrders(): Promise<FireworkOrderRecord[]> {
+    return getStore().query((db) => [...(db.fireworkOrders ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+  },
+
+  async settleFireworkOrderByWebhook(input: {
+    orderCode: string;
+    amountVnd: number;
+    provider: string;
+    providerTxId: string;
+    rawPayload: unknown;
+  }): Promise<{ duplicate: boolean; launched: boolean; order?: FireworkOrderRecord; reason?: string }> {
+    return getStore().mutate((db) => {
+      if (db.webhookLogs.some((w) => w.providerTxId === input.providerTxId)) {
+        return { duplicate: true, launched: false };
+      }
+      const order = (db.fireworkOrders ?? []).find((o) => o.orderCode === input.orderCode);
+      if (!order) return { duplicate: false, launched: false, reason: 'ORDER_NOT_FOUND' };
+      if (order.status === 'PAID') return { duplicate: false, launched: false, reason: 'ALREADY_PAID', order };
+      if (input.amountVnd < order.amountVnd) {
+        return { duplicate: false, launched: false, reason: 'INSUFFICIENT_AMOUNT', order };
+      }
+      const nowIso = new Date().toISOString();
+      order.status = 'PAID';
+      order.paidAt = nowIso;
+      db.webhookLogs.push({
+        id: newId('wh'),
+        provider: input.provider,
+        providerTxId: input.providerTxId,
+        saasOrderId: null,
+        rawPayload: input.rawPayload,
+        processedAt: nowIso,
+      });
+      return { duplicate: false, launched: true, order };
+    });
+  },
 
   async expireDueTrials(nowMs = Date.now()): Promise < string[] > {
                                     return getStore().mutate((db) => {
@@ -995,6 +1069,12 @@ const localJsonRepo = {
                                     getSaasOrderByCode: (code: string) => activeRepo().getSaasOrderByCode(code),
                                     settleSaasOrderByWebhook: (i: Parameters<typeof localJsonRepo.settleSaasOrderByWebhook>[0]) =>
                                       activeRepo().settleSaasOrderByWebhook(i),
+                                    createFireworkOrder: (i: Parameters<typeof localJsonRepo.createFireworkOrder>[0]) =>
+                                      activeRepo().createFireworkOrder(i),
+                                    getFireworkOrderByCode: (code: string) => activeRepo().getFireworkOrderByCode(code),
+                                    listFireworkOrders: () => activeRepo().listFireworkOrders(),
+                                    settleFireworkOrderByWebhook: (i: Parameters<typeof localJsonRepo.settleFireworkOrderByWebhook>[0]) =>
+                                      activeRepo().settleFireworkOrderByWebhook(i),
                                     expireDueTrials: (nowMs?: number) => activeRepo().expireDueTrials(nowMs),
                                     archiveDueWeddings: (nowMs?: number) => activeRepo().archiveDueWeddings(nowMs),
                                     listVouchers: () => activeRepo().listVouchers(),

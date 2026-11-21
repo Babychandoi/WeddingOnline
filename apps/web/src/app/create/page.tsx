@@ -186,7 +186,7 @@ export default function CreateWeddingPage() {
                 Khởi Tạo Sảnh Cưới 3D
               </h1>
               <p className="mt-1 text-xs text-slate-500">
-                Chọn dùng thử 24h miễn phí hoặc mở ngay gói Hạnh Phúc / Viên Mãn VIP qua VietQR.
+                Chọn dùng thử 24h miễn phí hoặc mở ngay gói Hạnh Phúc / Viên Mãn VIP qua VietQR. Hai gói trả phí đã kèm thiệp cưới online. Chỉ cần thiệp? <a href="/thiep-cuoi/tao" className="font-semibold text-rose-700 underline underline-offset-2">Thiết kế thiệp riêng</a>.
               </p>
             </div>
             <div className="flex items-center gap-2">

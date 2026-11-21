@@ -1,5 +1,5 @@
 import { dbRepo, type AdminUserRecord, type SaasOrderRecord, type WeddingRecord } from '@dco/database';
-import type { AuthProvider, WeddingTier } from '@dco/shared';
+import { INVITATION_PLANS, type AuthProvider, type WeddingTier } from '@dco/shared';
 import {
   calendarDaysFrom,
   describeDayOffset,
@@ -39,6 +39,8 @@ export interface OrderRow {
   weddingTitle: string;
   weddingSlug: string;
   tier: WeddingTier;
+  /** Set for an online-invitation order: the plan bought ('Thiệp · 3 tháng') */
+  invitationPlanLabel: string | null;
   amountVnd: number;
   amountLabel: string;
   viaVoucher: boolean;
@@ -126,6 +128,8 @@ export function toOrderRows({ orders, weddings, users }: AdminDataset): OrderRow
       weddingTitle: wedding?.title ?? 'Phòng đã xoá',
       weddingSlug: wedding?.slug ?? '',
       tier: o.targetTier,
+      invitationPlanLabel:
+        o.kind === 'INVITATION' ? `Thiệp · ${INVITATION_PLANS.find((p) => p.id === o.invitationPlan)?.nameVi ?? 'gói thiệp'}` : null,
       amountVnd: o.amountVnd,
       amountLabel: viaVoucher ? 'Voucher 100%' : formatVnd(o.amountVnd),
       viaVoucher,

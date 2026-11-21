@@ -246,10 +246,10 @@ export default function HomePage() {
         <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="max-w-xl">
             <h2 className="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">
-              {INVITATION_TEMPLATES.length} Mẫu Thiệp Cưới Online Miễn Phí
+              {INVITATION_TEMPLATES.length} Mẫu Thiệp Cưới Online
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
-              Đám cưới tổ chức ngoài đời cũng dùng được: không cần sảnh 3D, miễn phí, thiệp không hết hạn.
+              Mua riêng, không cần sảnh 3D: thiết kế và xem trước miễn phí, phát hành từ 150.000đ/tháng.
               Phong bì ghi tên từng khách, ngày âm lịch, chỉ đường, xác nhận tham dự và sổ lời chúc.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
@@ -257,7 +257,7 @@ export default function HomePage() {
                 href="/thiep-cuoi/tao"
                 className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-rose-700 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-rose-800"
               >
-                Tạo thiệp miễn phí <ArrowRight className="h-4 w-4" />
+                Thiết kế thiệp <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/thiep-cuoi"

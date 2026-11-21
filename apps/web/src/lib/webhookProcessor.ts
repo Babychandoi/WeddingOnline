@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { dbRepo } from '@dco/database';
-import { extractTransferCode } from '@dco/shared';
+import { extractTransferCode, invitationAccess } from '@dco/shared';
 import { isHardenedProduction, isInsecureSecret, resolveSecret } from '@dco/shared/server';
 import { getPlatformSetting } from './platformSettings';
 import { publishRealtimeEvent } from './realtimeClient';
@@ -89,6 +89,39 @@ export async function processBankWebhook(input: {
     };
   }
 
+  if (kind === 'FIREWORK') {
+    const expectedSecret = await platformWebhookSecret();
+    if (!expectedSecret) return WEBHOOK_NOT_CONFIGURED;
+    if (!safeSecretEqual(input.authSecret, expectedSecret)) {
+      return { status: 401, body: { error: 'INVALID_WEBHOOK_SIGNATURE' } };
+    }
+
+    const result = await dbRepo.settleFireworkOrderByWebhook({
+      orderCode: code,
+      amountVnd: input.amountVnd,
+      provider: input.provider,
+      providerTxId: input.providerTxId,
+      rawPayload: input.rawPayload,
+    });
+    if (result.duplicate) return { status: 200, body: { ok: true, duplicate: true } };
+
+    if (result.launched && result.order) {
+      await publishRealtimeEvent({
+        type: 'FIREWORKS_LAUNCH',
+        weddingId: result.order.weddingId,
+        orderId: result.order.id,
+        buyerName: result.order.buyerName,
+        packId: result.order.packId,
+        message: result.order.message,
+      });
+    }
+    // A second transfer for an order already paid is acknowledged (no retry storm), not launched again
+    return {
+      status: result.launched || result.reason === 'ALREADY_PAID' ? 200 : 422,
+      body: { ok: result.launched, kind: 'FIREWORK', orderCode: code, reason: result.reason },
+    };
+  }
+
   // kind === 'GIFT'
   const intent = await dbRepo.getGiftIntentByCode(code);
   if (!intent) {
@@ -96,7 +129,8 @@ export async function processBankWebhook(input: {
   }
 
   const wedding = await dbRepo.getWeddingById(intent.weddingId);
-  if (!wedding || (wedding.tier !== 'HAPPINESS' && wedding.tier !== 'VIP_FULFILLMENT')) {
+  // Gifts through a paid 3D hall, or through a published invitation
+  if (!wedding || (wedding.tier !== 'HAPPINESS' && wedding.tier !== 'VIP_FULFILLMENT' && !invitationAccess(wedding).published)) {
     return { status: 403, body: { error: 'GIFT_NOT_ALLOWED_FOR_TIER' } };
   }
 

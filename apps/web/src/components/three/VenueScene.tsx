@@ -15,6 +15,7 @@ import {
 } from '@dco/shared';
 import type { PhotoAssetRecord } from '@dco/database';
 import { HumanAvatar } from './HumanAvatar';
+import { Fireworks, type FireworksFocus, type ScheduledFireworks } from './Fireworks';
 import { npcTrackKey, type MotionStore } from '@dco/shared';
 import { GlbAssetMesh } from './GlbAssetMesh';
 import { SurfaceMaterial, VenueEnvironment, VenueGate } from './venueKits';
@@ -34,12 +35,15 @@ import {
 } from './realProps';
 import { fabric } from './realMaterials';
 import { FpsGuard, PostFX, RendererSetup, ShadowCasters, VenueAtmosphere, bloomStrength } from './venueAtmosphere';
+import { GardenAltar, GardenCeremony } from './GardenCeremony';
+import { GARDEN_VENUE } from './gardenReference';
 
 /** In-scene HTML labels and buttons are hidden in the non-interactive venue preview */
 const SceneLabelsContext = createContext(true);
 
 function SceneLabel(props: React.ComponentProps<typeof Html>) {
-  return useContext(SceneLabelsContext) ? <Html {...props} /> : null;
+  // Labels stay under the hall's own panels and dialogs (z-20 and up); drei's default stacks them on top
+  return useContext(SceneLabelsContext) ? <Html zIndexRange={[15, 0]} {...props} /> : null;
 }
 
 export interface RemotePlayerView {
@@ -63,6 +67,8 @@ export interface RemotePlayerView {
   isSpeaking: boolean;
   takingOverNpc?: string;
   bubbleText: string;
+  /** Silenced by a host: no chat, no voice */
+  isMuted?: boolean;
 }
 
 export interface RemoteNpcView {
@@ -109,6 +115,8 @@ interface VenueSceneProps {
   onOpenVideo: () => void;
   onOpenPhoto: (photo: PhotoAssetRecord | null, index: number) => void;
   onSelectPlayer?: (player: RemotePlayerView) => void;
+  /** Paid fireworks shows to play (and recently played) */
+  fireworks?: ScheduledFireworks[];
   registerCaptureFn?: (fn: () => string | null) => void;
   waypointTarget?: { x: number; z: number; key: number } | null;
   /**
@@ -117,6 +125,7 @@ interface VenueSceneProps {
    */
   mode?: 'play' | 'preview';
   previewAutoRotate?: boolean;
+  photoComposition?: boolean;
   /** Preview camera override (close-up stills) */
   previewCamera?: { position: [number, number, number]; target: [number, number, number] };
 }
@@ -133,6 +142,17 @@ const FrameProbe: React.FC = () => {
   });
   return null;
 };
+
+function GardenCameraFraming() {
+  const { camera, size } = useThree();
+  useEffect(() => {
+    if (!(camera instanceof THREE.PerspectiveCamera)) return;
+    const aspect = size.width / Math.max(size.height, 1);
+    camera.fov = THREE.MathUtils.lerp(52, 36, THREE.MathUtils.smoothstep(aspect, 0.45, 1.25));
+    camera.updateProjectionMatrix();
+  }, [camera, size.width, size.height]);
+  return null;
+}
 
 const setPointerCursor = (active: boolean) => {
   if (typeof document !== 'undefined') {
@@ -156,6 +176,8 @@ const CameraRigAndController: React.FC<{
   onMove: (x: number, z: number, rotY: number, isMoving: boolean) => void;
   onFpsDrop: (lowFps: boolean) => void;
   registerCaptureFn?: (fn: () => string | null) => void;
+  /** While fireworks play the camera turns to the sky over the stage */
+  focusRef?: React.MutableRefObject<FireworksFocus>;
 }> = ({
   grid,
   localPlayer,
@@ -166,6 +188,7 @@ const CameraRigAndController: React.FC<{
   onMove,
   onFpsDrop,
   registerCaptureFn,
+  focusRef,
 }) => {
     const { gl, scene, camera } = useThree();
     const keys = useRef<Set<string>>(new Set());
@@ -175,6 +198,10 @@ const CameraRigAndController: React.FC<{
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const controlsRef = useRef<any>(null);
     const camDirVec = useMemo(() => new THREE.Vector3(), []);
+    /** Camera offset from the avatar before the show, to return to afterwards */
+    const preShowOffset = useRef<THREE.Vector3 | null>(null);
+    const wantTarget = useMemo(() => new THREE.Vector3(), []);
+    const wantCam = useMemo(() => new THREE.Vector3(), []);
 
     useEffect(() => {
         if (!localPlayer) return;
@@ -327,9 +354,44 @@ useFrame((_, delta) => {
       const stepZ = movedZ + (offZ - movedZ) * catchUp;
       target.x += stepX;
       target.z += stepZ;
-      target.y = 1.2;
+      if (!preShowOffset.current) target.y = 1.2;
       camera.position.x += stepX;
       camera.position.z += stepZ;
+
+      // Fireworks: turn to face the sky over the stage, low and looking up, then come back
+      const focus = focusRef?.current;
+      const px = localPosRef.current.x;
+      const pz = localPosRef.current.z;
+      if (focus?.active) {
+        if (!preShowOffset.current) {
+          preShowOffset.current = camera.position.clone().sub(target);
+          controlsRef.current.maxPolarAngle = Math.PI * 0.72;
+          controlsRef.current.minDistance = 3;
+        }
+        let dx = focus.x - px;
+        let dz = focus.z - pz;
+        const d = Math.hypot(dx, dz) || 1;
+        dx /= d;
+        dz /= d;
+        wantTarget.set(px + dx * 4, 5.2, pz + dz * 4);
+        wantCam.set(px - dx * 5.2, 2.3, pz - dz * 5.2);
+        const k = 1 - Math.exp(-safeDelta * 2.2);
+        target.lerp(wantTarget, k);
+        camera.position.lerp(wantCam, k);
+      } else if (preShowOffset.current) {
+        wantTarget.set(px, 1.2, pz);
+        wantCam.copy(wantTarget).add(preShowOffset.current);
+        const k = 1 - Math.exp(-safeDelta * 2.6);
+        target.lerp(wantTarget, k);
+        camera.position.lerp(wantCam, k);
+        if (camera.position.distanceTo(wantCam) < 0.05 && target.distanceTo(wantTarget) < 0.05) {
+          target.copy(wantTarget);
+          camera.position.copy(wantCam);
+          preShowOffset.current = null;
+          controlsRef.current.maxPolarAngle = Math.PI * 0.44;
+          controlsRef.current.minDistance = 4.5;
+        }
+      }
       controlsRef.current.update();
     }
 
@@ -612,6 +674,22 @@ const PrefabMesh: React.FC<{
 
     if (prefab.prefabType === 'STAGE_MAIN') {
       const screen = spotPhoto(prefab, photos, 0).photo;
+      if (templateId === GARDEN_VENUE) return (
+        <group position={[center.x, 0, center.z]} rotation={[0, rotY, 0]}>
+          <GardenAltar>
+            {screen && (
+              <group position={[0, 1.72, -0.49]}>
+                <PhotoCanvasPlane url={screen.publicUrl} width={2.38} height={1.32} />
+              </group>
+            )}
+            <SceneLabel position={[0, screen ? 2.04 : 0.89, 0.92]} center distanceFactor={14}>
+              <button type="button" onClick={onOpenVideo} className="whitespace-nowrap rounded-xl bg-rose-700 px-3 py-2 text-xs font-bold text-white shadow hover:bg-rose-600">
+                Xem video lễ cưới
+              </button>
+            </SceneLabel>
+          </GardenAltar>
+        </group>
+      );
       return (
         <group position={[center.x, 0, center.z]} rotation={[0, rotY, 0]}>
           {/* Carpeted stage deck, steps, pleated velvet backdrop and swag valance */}
@@ -955,7 +1033,14 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
   });
   const grid = useMemo(() => buildOccupancyGrid(layout), [layout]);
   const theme = getVenueTheme(layout.templateId);
+  const fireworksFocusRef = useRef<FireworksFocus>({ active: false, x: 0, y: 15, z: -18 });
+  const fireworksStage = useMemo(() => {
+    const st = layout.prefabs.find((p) => p.prefabType === 'STAGE_MAIN');
+    const c = st ? getPrefabCenterWorld(st) : { x: 0, z: -12 };
+    return { x: c.x, z: c.z, rotY: st ? (st.rotationDeg * Math.PI) / 180 : 0 };
+  }, [layout.prefabs]);
   const isPreview = props.mode === 'preview';
+  const photoComposition = isPreview && theme.id === GARDEN_VENUE && props.photoComposition === true;
 
   const localPlayer = players.find((p) => p.sessionId === localSessionId);
 
@@ -1007,7 +1092,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
             dpr={lowQuality ? 1 : [1, 1.75]}
             camera={{
               position: isPreview ? (props.previewCamera?.position ?? [13, 9.5, 23]) : [0, 8.5, 17.5],
-              fov: 50,
+              fov: photoComposition ? 36 : 50,
               near: 0.1,
               far: 2000,
             }}
@@ -1015,15 +1100,15 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
           >
             {/* Sky, sun with soft shadows, fill and image-based light */}
             <RendererSetup exposure={theme.mood === 'night' ? 1.15 : 1.05} />
-            <VenueAtmosphere theme={theme} quality={lowQuality ? 'low' : 'high'} />
+            <VenueAtmosphere theme={theme} quality={lowQuality ? 'low' : 'high'} photoComposition={photoComposition} />
             <ShadowCasters enabled={!lowQuality} />
             {!lowQuality && <PostFX strength={bloomStrength(theme)} />}
             {/* A still capture (no auto-rotate) must keep full quality however slow the renderer */}
             {isPreview && props.previewAutoRotate !== false && <FpsGuard onLowFps={setLowQuality} />}
             {isPreview && props.previewAutoRotate === false && <FrameProbe />}
 
-            <VenueEnvironment theme={theme} />
-            <AmbientPetals lowQuality={lowQuality} templateId={layout.templateId} />
+            <VenueEnvironment theme={theme} photoComposition={photoComposition} />
+            {photoComposition ? <><GardenCameraFraming /><GardenCeremony /></> : <AmbientPetals lowQuality={lowQuality} templateId={layout.templateId} />}
 
             {/* 30m x 30m Hall Floor */}
             <mesh
@@ -1048,7 +1133,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
             )}
 
             {/* Placed Smart Prefabs */}
-            {layout.prefabs.map((prefab) => (
+            {!photoComposition && layout.prefabs.map((prefab) => (
               <PrefabMesh
                 key={prefab.instanceId}
                 prefab={prefab}
@@ -1133,6 +1218,9 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
               giftBurstKey={giftBurstKey}
               lowQuality={lowQuality}
             />
+            {!isPreview && props.fireworks && props.fireworks.length > 0 && (
+              <Fireworks shows={props.fireworks} stage={fireworksStage} focusRef={fireworksFocusRef} lowQuality={lowQuality} mood={theme.mood} />
+            )}
 
             {isPreview ? (
               <OrbitControls
@@ -1140,7 +1228,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
                 enablePan={false}
                 enableDamping
                 dampingFactor={0.08}
-                autoRotate={props.previewAutoRotate !== false}
+                autoRotate={!photoComposition && props.previewAutoRotate !== false}
                 autoRotateSpeed={0.45}
                 minDistance={props.previewCamera ? 0.5 : 12}
                 maxDistance={46}
@@ -1158,6 +1246,7 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
                 onMove={props.onMove}
                 onFpsDrop={setLowQuality}
                 registerCaptureFn={props.registerCaptureFn}
+                focusRef={fireworksFocusRef}
               />
             )}
           </Canvas>
