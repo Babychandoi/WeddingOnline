@@ -108,7 +108,7 @@ export function FannedInvitationDeck({
             >
               {/* Floating playful tag badge (Gesso style) */}
               <span
-                className={`pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-bold shadow-md transition-all duration-300 ${
+                className={`pointer-events-none absolute -top-8 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-bold shadow-md transition-all duration-300 ${
                   showBadge ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'
                 }`}
                 style={{ background: card.tagBg, color: card.tagText }}
@@ -219,20 +219,24 @@ export function StyleAccordionShowcase() {
                 isOpen ? 'md:flex-[2.4] shadow-lg' : 'md:flex-[0.9] opacity-90 hover:opacity-100'
               }`}
             >
-              <div className="flex w-full items-center gap-4">
+              <div
+                className={`flex w-full items-center gap-3.5 ${
+                  isOpen ? 'flex-row text-left' : 'flex-row text-left md:flex-col md:justify-center md:gap-3 md:text-center'
+                }`}
+              >
                 <div
                   className={`shrink-0 overflow-hidden rounded-xl border-2 border-white shadow-md transition-all duration-500 ${
-                    isOpen ? 'w-[104px] sm:w-[138px]' : 'w-[84px] md:w-[96px]'
+                    isOpen ? 'w-[104px] sm:w-[144px]' : 'w-[84px] md:w-[108px]'
                   }`}
                 >
                   <CardFace templateId={panel.templateId} groom={SAMPLE_COUPLE.groomName} bride={SAMPLE_COUPLE.brideName} />
                 </div>
 
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10.5px] font-bold uppercase tracking-[0.2em]" style={{ color: panel.accent }}>
+                <div className="min-w-0 flex-1 md:flex-initial">
+                  <p className="text-[10.5px] font-bold uppercase tracking-[0.18em]" style={{ color: panel.accent }}>
                     {panel.kicker}
                   </p>
-                  <h3 className="mt-1 font-serif text-lg font-bold leading-snug text-slate-900 sm:text-xl">
+                  <h3 className={`mt-1 font-serif font-bold leading-snug text-slate-900 ${isOpen ? 'text-lg sm:text-xl' : 'text-base'}`}>
                     {panel.title}
                   </h3>
                   <p
@@ -365,13 +369,14 @@ export function ScrySearchInput({
   ariaLabel: string;
 }) {
   const [focused, setFocused] = useState(false);
+  const inputId = React.useId();
   const expanded = focused || value.length > 0;
 
   return (
     <div
       data-scry-search="true"
       className={`relative transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-        expanded ? 'w-full lg:w-80' : 'w-full lg:w-56'
+        expanded ? 'w-full lg:w-80' : 'w-full lg:w-64'
       }`}
     >
       <Search
@@ -381,6 +386,8 @@ export function ScrySearchInput({
         }`}
       />
       <input
+        id={inputId}
+        name="search-query"
         type="search"
         aria-label={ariaLabel}
         value={value}

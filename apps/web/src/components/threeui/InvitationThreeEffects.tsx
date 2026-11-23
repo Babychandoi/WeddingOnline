@@ -615,10 +615,10 @@ export function InvitationQuickDock({ items, paper, ink, accent, onAccent, line 
     <nav
       aria-label="Điều hướng nhanh trong thiệp cưới"
       data-inv-dock="true"
-      className="fixed bottom-4 left-3 right-[72px] z-40 flex justify-center animate-[inv-pop_320ms_ease-out_both] motion-reduce:animate-none sm:left-1/2 sm:right-auto sm:-translate-x-1/2"
+      className="pointer-events-none fixed bottom-4 left-3 right-[72px] z-40 flex justify-center sm:inset-x-4"
     >
       <div
-        className="relative flex max-w-full items-center gap-1 overflow-x-auto rounded-full px-1.5 py-1.5 shadow-[0_14px_34px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="pointer-events-auto relative flex max-w-full items-center gap-1 overflow-x-auto rounded-full px-1.5 py-1.5 shadow-[0_14px_34px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md animate-[inv-pop_320ms_ease-out_both] motion-reduce:animate-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{
           background: `color-mix(in srgb, ${paper} 88%, transparent)`,
           border: `1px solid color-mix(in srgb, ${line} 75%, transparent)`,
