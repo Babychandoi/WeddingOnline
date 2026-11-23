@@ -4,8 +4,12 @@ import { useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { IS_HANDHELD } from './deviceTier';
+import { JejuCoast } from './JejuCoast';
+import { JejuOffshoreCliffs } from './JejuOffshoreCliffs';
 import { detailNormal, detailRoughness } from './pbr';
 import { PhScatter, usePhSurface, type PhSurfaceKind, type ScatterItem } from './phAssets';
+import { lavenderRowColor, tulipRowColor } from './photoCropPalette';
+import { hasPhotoRockOutcrops, PhotoRockOutcrops } from './PhotoRockOutcrops';
 import { InstancedSet } from './realProps';
 
 export type TerrainStyle = 'coast' | 'karst' | 'lake' | 'alpine' | 'fjord' | 'volcanic' | 'dune' | 'canyon' | 'terraces' | 'field' | 'meadow' | 'river';
@@ -37,18 +41,19 @@ const REFERENCE_RELIEF: Record<string, Relief[]> = {
   vn_mu_cang_chai: [[-31, -61, 46, 40, 21], [31, -56, 34, 36, 18], [76, -106, 57, 48, 35], [-108, -119, 58, 53, 38]],
   no_fjord: [[-61, -63, 52, 84, 47], [74, -74, 59, 131, 70], [-94, -143, 68, 105, 66], [112, -205, 69, 58, 88], [-36, -222, 68, 46, 51]],
   ch_lake: [[-83, -67, 58, 40, 41], [53, -114, 60, 40, 38], [-28, -169, 96, 52, 51]],
-  ca_rockies: [[-68, -104, 47, 40, 53], [-32, -142, 38, 50, 65], [22, -135, 36, 48, 56], [59, -118, 40, 48, 54], [97, -104, 46, 50, 63]],
-  ar_patagonia: [[-66, -145, 32, 36, 63], [-40, -157, 32, 37, 86], [-14, -156, 21, 30, 70], [20, -154, 26, 51, 61], [59, -134, 59, 53, 37]],
-  is_black_sand: [[-57, -68, 51, 38, 37], [-76, -112, 60, 49, 32], [18, -119, 5.2, 6, 19], [35, -128, 6.9, 7, 24], [50, -137, 4, 5, 12]],
-  kr_jeju: [[-60, -74, 64, 43, 17], [-93, -107, 69, 38, 25], [79, -141, 47, 43, 18]],
+  ca_rockies: [[-67, -129, 48, 49, 46], [-37, -151, 36, 48, 68], [-6, -146, 33, 42, 55], [21, -139, 35, 49, 60], [54, -118, 39, 51, 58], [79, -109, 36, 49, 53], [104, -123, 39, 53, 58]],
+  ar_patagonia: [[-85, -140, 45, 39, 45], [-39, -157, 22, 39, 88], [-13, -152, 15, 29, 64], [6, -157, 10, 26, 48], [26, -161, 19, 31, 58], [57, -140, 54, 44, 30]],
+  is_black_sand: [[-70, -80, 53, 58, 30], [-99, -106, 64, 62, 34], [-2, -104, 6, 6.9, 12], [8, -110, 4.1, 4.9, 17], [17, -113, 4.6, 5.2, 11]],
+  kr_jeju: [], // Offshore cliffs are a separate mesh so the walls don't soften into the ground grid.
   pf_bora_bora: [[-20, -110, 38, 26, 36], [13, -126, 29, 29, 61], [40, -138, 32, 23, 46], [59, -125, 40, 32, 27]],
   br_rio: [[-102, -107, 70, 62, 47], [-59, -94, 55, 50, 37], [67, -147, 24, 29, 27], [94, -152, 22, 23, 20]],
   gt_atitlan: [[-70, -135, 66, 61, 65], [32, -166, 58, 48, 58], [78, -195, 60, 49, 61]],
   et_highlands: [[-65, -67, 47, 35, 35], [45, -97, 55, 48, 44], [88, -143, 54, 48, 56], [-80, -175, 73, 53, 64]],
   ae_desert: [[-62, -48, 68, 29, 12], [19, -70, 50, 30, 9], [71, -107, 74, 42, 17], [-56, -132, 68, 37, 12]],
-  cl_atacama: [[-52, -70, 57, 47, 30], [10, -95, 47, 48, 23], [69, -133, 63, 36, 35]],
+  cl_atacama: [[-56, -67, 58, 32, 15], [-16, -106, 61, 33, 11], [62, -55, 46, 26, 16], [88, -105, 59, 32, 13]],
   tr_cappadocia: [[-49, -72, 36, 29, 16], [52, -87, 37, 34, 15], [2, -129, 71, 53, 28]],
-  jo_wadi_rum: [[-66, -86, 54, 41, 38], [47, -82, 39, 30, 32], [105, -149, 56, 48, 47]],
+  jo_wadi_rum: [[-84, -115, 51, 34, 14], [-41, -110, 35, 29, 12], [38, -91, 26, 26, 25], [66, -106, 42, 39, 33], [110, -148, 60, 41, 43]],
+  gr_santorini: [[-61, -60, 26, 32, 3], [37, -44, 31, 41, 7], [56, -65, 48, 39, 11], [78, -81, 38, 37, 11]],
   au_outback: [[-51, -95, 47, 24, 30], [-8, -103, 48, 25, 48], [53, -120, 50, 34, 37], [98, -167, 44, 57, 50]],
   fr_provence: [[-55, -104, 64, 44, 8], [82, -139, 89, 52, 13]],
   nl_tulips: [[-61, -162, 84, 40, 2], [66, -147, 53, 46, 2]],
@@ -140,6 +145,11 @@ function shapeTerrain(style: TerrainStyle, variant: string, seed: number): Terra
   const terraces = style === 'terraces';
   const mesas = style === 'canyon';
   const dunes = style === 'dune';
+  const reykjanes = variant === 'is_black_sand';
+  const jeju = variant === 'kr_jeju';
+  const glacial = variant === 'ca_rockies' || variant === 'ar_patagonia';
+  const sedimentary = variant === 'cl_atacama' || variant === 'jo_wadi_rum';
+  const dalat = variant === 'vn_da_lat';
   const buildingSite = BUILDING_SITES[variant];
   const baseRise = steep ? 35 : terraces ? 19 : mesas ? 17 : dunes ? 7 : water ? 8 : 11;
   const mainRidges = REFERENCE_RELIEF[variant] ?? [-95, -42, 22, 82, 131].map((x, i): Relief => [
@@ -149,7 +159,7 @@ function shapeTerrain(style: TerrainStyle, variant: string, seed: number): Terra
     28 + 36 * random(i, 27, seed),
     baseRise * (0.58 + 0.92 * random(i, 9, seed)),
   ]);
-  const sideRise = water ? baseRise * 0.19 : baseRise * 0.56;
+  const sideRise = jeju ? 1.3 : water ? baseRise * 0.19 : baseRise * 0.56;
   const slopes: Relief[] = [
     ...mainRidges,
     ...[-1, 1].flatMap((side): Relief[] => [
@@ -167,13 +177,20 @@ function shapeTerrain(style: TerrainStyle, variant: string, seed: number): Terra
     if (distance < FLOOR_MARGIN) return -0.025;
     const shoreRange = water ? waterDistance(style, variant, seed, x, z) : undefined;
     let floor = ambientRelief(style, seed, x, z);
+    if (dalat) floor += rockNoise(x * 0.19, z * 0.16, seed + 24) * 0.92;
+    if (jeju) floor = floor * 0.66 + rockNoise(x * 0.29, z * 0.30, seed + 125) * 0.86;
     if (shoreRange !== undefined && shoreRange < 6.8) {
       const slope = tropicalBeach && shoreRange < 0 ? 0.046 : 0.23;
       floor = mix(WATER_LEVEL + Math.tanh(shoreRange * slope) * (shoreRange > 0 ? 0.42 : 2.7), floor, smooth(shoreRange, 1.7, 6.8));
+      if (jeju && Math.abs(x) < 52) {
+        const channels = (0.5 + 0.5 * Math.sin(x * 0.96 + Math.sin(x * 0.27) * 1.2 - shoreRange * 0.38)) ** 3;
+        const intertidal = smooth(shoreRange, -0.67, 0.22) * (1 - smooth(shoreRange, 0.72, 2.53));
+        floor -= channels * intertidal * 0.25;
+      }
     }
     const fold = rockNoise(x * 0.054, z * 0.054, seed + 29);
     let height = 0;
-    for (const hill of hills) {
+    for (const [index, hill] of hills.entries()) {
       const u = (x - hill.x) / hill.width;
       const v = (z - hill.z) / hill.depth;
       if (Math.abs(u) > 1.25 || Math.abs(v) > 1.25) continue;
@@ -183,10 +200,24 @@ function shapeTerrain(style: TerrainStyle, variant: string, seed: number): Terra
       if (radius >= 1) continue;
       const profile = 1 - radius ** 1.6;
       const ridge = Math.abs(Math.sin(azimuth * 3.5 + hill.phase + radius * 2.0));
-      const farSurface = steep ? (snowSummits ? (1 - radius) ** 0.94 : profile ** 1.46) * (0.74 + ridge * 0.29 + fold * 0.36)
+      let farSurface = steep ? (snowSummits ? (1 - radius) ** 0.94 : profile ** 1.46) * (0.74 + ridge * 0.29 + fold * 0.36)
         : mesas ? profile ** 0.35 * (0.88 + ridge * 0.11 + fold * 0.20)
         : dunes ? profile ** (1.56 + Math.max(0, v) * 1.25)
         : profile ** 1.32 * (0.95 + 0.24 * fold);
+      if (index < mainRidges.length) {
+        if (reykjanes) farSurface = index < 2 ? (1 - smooth(radius, 0.69, 0.97)) * (0.94 + fold * 0.15)
+          : profile ** 0.48 * (0.68 + 0.38 * (1 - radius) + fold * 0.09);
+        if (glacial) {
+          const gully = Math.abs(Math.sin(azimuth * 4.5 + hill.phase + fold));
+          const ribs = rockNoise(u * 8.8 + 5, v * 4.8 + 7, seed + index * 29);
+          farSurface = (1 - radius) ** (variant === 'ar_patagonia' ? 0.59 : 0.84) * (0.73 + gully * 0.35 + ribs * 0.37);
+        }
+        if (sedimentary) {
+          const shelf = (1 - smooth(radius + fold * 0.12, 0.45, 1)) ** 0.56;
+          const gullies = Math.sin(azimuth * 12 + hill.phase + fold * 5) * 0.08;
+          farSurface = shelf * (0.89 + fold * 0.23 + gullies * smooth(radius, 0.18, 0.65));
+        }
+      }
       height = Math.max(height, farSurface * hill.height);
     }
     height += smooth(height, 2, 11) * (0.65 + height * 0.019) * rockNoise(x * 0.37, z * 0.37, seed + 36);
@@ -267,6 +298,7 @@ const SNOWY: string[] = ['at_alps', 'ch_lake', 'ca_rockies', 'ar_patagonia', 'np
 const WINTER: string[] = ['jp_hokkaido_snow', 'fi_lapland'];
 const TROPICAL: string[] = ['vn_phu_quoc_beach', 'ph_tropical', 'tz_zanzibar', 'mx_tulum', 'us_hawaii', 'fj_island', 'pf_bora_bora', 'ws_fale'];
 const BEACH_FLOOR = new Set([...TROPICAL.filter((id) => id !== 'pf_bora_bora'), 'br_rio', 'jm_caribbean', 'is_black_sand']);
+const BASALT_COAST = new Set(['is_black_sand', 'kr_jeju']);
 
 function colorTerrain(geometry: THREE.BufferGeometry, style: TerrainStyle, seed: number, variant: string, palette: TerrainPalette) {
   const blackSand = variant === 'is_black_sand';
@@ -297,6 +329,11 @@ function colorTerrain(geometry: THREE.BufferGeometry, style: TerrainStyle, seed:
     canopy.set('#304629').lerp(new THREE.Color(palette.shadow), 0.28);
   }
   const snow = new THREE.Color('#e7edf0');
+  const basalt = new THREE.Color('#343a3b');
+  const salt = new THREE.Color('#d5c8a9');
+  const shale = new THREE.Color('#575b66');
+  const forestSoil = new THREE.Color('#8d8061');
+  const headlandGrass = canopy.clone().lerp(grass, 0.59);
   const tint = new THREE.Color();
   const points = geometry.getAttribute('position');
   const normals = geometry.getAttribute('normal');
@@ -331,6 +368,34 @@ function colorTerrain(geometry: THREE.BufferGeometry, style: TerrainStyle, seed:
     }
     if (snowyPeaks) tint.lerp(snow, smooth(y + broad * 15 - slope * 14, 23, 44) * (1 - smooth(slope, 0.44, 0.81) * 0.75));
     if (winterGround) tint.lerp(snow, 0.86 - slope * 0.30 + broad * 0.07);
+    if (BASALT_COAST.has(variant) && wet !== undefined) {
+      const headland = smooth(y + patches * 5, 11, 22) * (1 - smooth(slope, 0.08, 0.58));
+      const coast = 1 - smooth(wet + broad * 8, -5, variant === 'kr_jeju' ? 29 : 36);
+      tint.lerp(basalt, Math.max(coast * (1 - headland), smooth(slope, 0.075, 0.47)) * 0.86);
+      if (blackSand) tint.lerp(headlandGrass, headland * 0.91);
+      if (variant === 'kr_jeju') {
+        const exposedBasalt = (1 - smooth(wet + patches * 5, 2.1, 16.8)) * smooth(Math.max(Math.abs(x), Math.abs(z)), 15.5, 19.0);
+        tint.lerp(basalt, exposedBasalt * 0.69);
+      }
+    }
+    if (variant === 'vn_da_lat') {
+      const woodland = smooth(Math.max(Math.abs(x), Math.abs(z)), 15.4, 22);
+      tint.lerp(forestSoil, woodland * smooth(patches + broad * 0.34, -0.07, 0.27) * 0.67);
+      tint.lerp(canopy, woodland * smooth(-broad - patches * 0.28, 0.02, 0.21) * 0.49);
+    }
+    if (variant === 'ca_rockies' || variant === 'ar_patagonia') {
+      const seam = Math.sin(y * 1.85 + x * 0.071 + broad * 3.2);
+      tint.lerp(shale, smooth(y, 5, 26) * smooth(slope + seam * 0.12, 0.06, 0.41) * 0.49);
+    }
+    if (variant === 'cl_atacama' || variant === 'jo_wadi_rum') {
+      const seam = Math.sin(y * 2.1 + x * 0.064 + broad * 2.2);
+      const rock = smooth(slope + patches * 0.11, 0.03, 0.31);
+      if (variant === 'cl_atacama') {
+        const deposits = smooth(Math.max(Math.abs(x), Math.abs(z)) + y * 2.30, 15.55, 25.2) * smooth(seam + patches * 1.1, -0.15, 0.62);
+        tint.lerp(salt, clamp((0.18 + broad + seam * 0.17) * (0.41 + rock * 0.68) + deposits * 0.48, 0, 0.83));
+      }
+      tint.lerp(earth, rock * smooth(-seam + broad * 0.6, 0.14, 0.88) * 0.59);
+    }
     tint.multiplyScalar(1.01 + broad * 0.34 + patches * 0.23 + (warmRock ? strata : strata * 0.33));
     tint.toArray(colors, i * 3);
   }
@@ -345,6 +410,8 @@ function buildTerrain(shape: TerrainShape, { style, seed, variant, palette }: Te
   const waterPoints: number[] = [];
   const waterFaces: number[] = [];
   const depths: number[] = [];
+  const jeju = variant === 'kr_jeju';
+  const waterReach: number[] = jeju ? [] : depths;
   for (const z of axis) {
     for (const x of axis) {
       const height = shape.readHeight(x, z);
@@ -352,7 +419,13 @@ function buildTerrain(shape: TerrainShape, { style, seed, variant, palette }: Te
       textures.push(x * 0.185, -z * 0.185);
       if (shape.water) {
         waterPoints.push(x, WATER_LEVEL, z);
-        depths.push(WATER_LEVEL - height);
+        const depth = WATER_LEVEL - height;
+        depths.push(depth);
+        if (jeju) {
+          const runup = z < -17.3 && z > -35 && Math.abs(x) < 55
+            && (waterDistance(style, variant, seed, x, z) ?? 5) < 3.2;
+          waterReach.push(depth + (runup ? 0.29 : 0));
+        }
       }
     }
   }
@@ -363,7 +436,7 @@ function buildTerrain(shape: TerrainShape, { style, seed, variant, palette }: Te
       const b = d - axis.length;
       const a = b - 1;
       groundFaces.push(a, c, b, b, c, d);
-      if (shape.water && Math.max(depths[a], depths[b], depths[c], depths[d]) > 0) waterFaces.push(a, c, b, b, c, d);
+      if (shape.water && Math.max(waterReach[a], waterReach[b], waterReach[c], waterReach[d]) > 0) waterFaces.push(a, c, b, b, c, d);
     }
   }
   const ground = new THREE.BufferGeometry();
@@ -462,8 +535,9 @@ function TerrainWater({ geometry, sea, variant, palette }: { geometry: THREE.Buf
     const tropical = TROPICAL.includes(variant);
     const ice = variant === 'is_black_sand' || variant === 'no_fjord';
     const dark = ['au_sydney', 'hu_budapest', 'hk_harbour'].includes(variant);
-    const water = new THREE.Color(tropical ? '#399aab' : ice ? '#254c60' : '#365e68');
-    const blue = new THREE.Color(tropical ? '#8bcdbb' : ice ? '#7c9da8' : '#648e87');
+    const glacial = variant === 'ca_rockies';
+    const water = new THREE.Color(glacial ? '#247c94' : tropical ? '#399aab' : ice ? '#254c60' : '#365e68');
+    const blue = new THREE.Color(glacial ? '#47a9af' : tropical ? '#8bcdbb' : ice ? '#7c9da8' : '#648e87');
     const reflection = new THREE.Color(dark ? '#435776' : '#b4c6d2').lerp(new THREE.Color(palette.primary), dark ? 0.40 : 0.24);
     if (dark) {
       water.multiplyScalar(0.30);
@@ -521,7 +595,7 @@ const FIELD_GREEN = new THREE.MeshStandardMaterial({ roughness: 0.87 });
 function fieldRows(shape: TerrainShape, seed: number, variant: string, palette: TerrainPalette) {
   const tulip = variant === 'nl_tulips';
   const lavender = variant === 'fr_provence';
-  const colors = tulip ? ['#b34435', '#e1b72e', '#d85246', '#a13245', '#d1b345'] : lavender ? ['#72568d', '#78569c', '#665489'] : [palette.secondary, palette.primary, palette.accent];
+  const vineyardColors = [palette.secondary, palette.primary, palette.accent];
   const positions: number[] = [];
   const vertexColors: number[] = [];
   const uv: number[] = [];
@@ -529,21 +603,21 @@ function fieldRows(shape: TerrainShape, seed: number, variant: string, palette: 
   const blooms: Instance[] = [];
   const stems: Instance[] = [];
   const count = tulip ? 25 : 47;
-  const tints = colors.map((color) => new THREE.Color(color));
   const underside = new THREE.Color(tulip ? '#526734' : lavender ? '#585841' : '#5d6440');
   const tint = new THREE.Color();
   const along = IS_HANDHELD ? 27 : 42;
   const cross = 5;
   // Tulips run across the view in broad bands. Lavender and vines plant down the hill.
   for (let row = 0; row < count; row++) {
-    const dye = tints[tulip ? Math.floor(row / 4.2) % tints.length : row % tints.length];
+    const dye = new THREE.Color(tulip ? tulipRowColor(row) : lavender ? lavenderRowColor(row) : vineyardColors[row % vineyardColors.length]);
     const rowCenter = tulip ? -21 - row * 2.20 : (row - count / 2 + 0.5) * 2.17;
-    const width = tulip ? 0.65 : 0.65 + 0.09 * random(row, 3, seed);
+    const width = tulip ? 0.81 : 0.65 + 0.09 * random(row, 3, seed);
     const height = tulip ? 0.29 : lavender ? 0.49 : 0.59;
+    const shoulder = lavender && Math.abs(rowCenter) > 16.2 && Math.abs(rowCenter) < 24;
     const base = positions.length / 3;
     for (let j = 0; j <= along; j++) {
       const t = j / along;
-      const stretch = tulip ? mix(-87, 87, t) : mix(-20.5, -108, t);
+      const stretch = tulip ? mix(-87, 87, t) : mix(shoulder ? 13.8 : -20.5, -108, t);
       const weave = Math.sin(stretch * 0.077 + row * 0.31) * 0.19;
       const crown = Math.min(1, t * 19, (1 - t) * 19);
       for (let k = 0; k <= cross; k++) {
@@ -553,9 +627,10 @@ function fieldRows(shape: TerrainShape, seed: number, variant: string, palette: 
         const z = tulip ? offset : stretch;
         const plant = Math.max(0, 1 - normalized ** 2) * crown;
         const patch = random(row * 23 + j, k, seed);
-        const y = terrainGridHeight(shape, x, z) + plant * height * (0.90 + 0.20 * patch);
+        const near = shoulder ? smooth(z, -23, -12) : 0;
+        const y = terrainGridHeight(shape, x, z) + plant * height * (0.90 + 0.20 * patch) * (1 - near * 0.29);
         positions.push(x, y, z);
-        tint.copy(underside).lerp(dye, smooth(plant + patch * 0.14, 0.20, 0.78)).multiplyScalar(0.77 + 0.40 * patch);
+        tint.copy(underside).lerp(dye, smooth(plant + patch * 0.14, 0.20, 0.78)).multiplyScalar(0.69 + 0.47 * patch);
         tint.toArray(vertexColors, vertexColors.length);
         uv.push(x * 0.30, -z * 0.30);
         if (j === 0 || k === 0) continue;
@@ -609,13 +684,13 @@ function CropRows({ shape, seed, variant, palette }: { shape: TerrainShape; seed
 const STONE_GEOMETRY = new THREE.DodecahedronGeometry(1, 1);
 const STONE_MATERIAL = new THREE.MeshStandardMaterial({ roughness: 0.94 });
 
-function LooseStone({ seed, variant, shape, palette }: { seed: number; variant: string; shape: TerrainShape; palette: TerrainPalette }) {
+function LooseStone({ seed, shape, palette }: { seed: number; shape: TerrainShape; palette: TerrainPalette }) {
   const { rocks, scannedBoulders, scannedMossRocks } = useMemo(() => {
     const count = IS_HANDHELD ? 65 : 152;
     const pieces: Instance[] = [];
     const boulders: ScatterItem[] = [];
     const mossRocks: ScatterItem[] = [];
-    const stone = new THREE.Color(variant === 'is_black_sand' ? '#393d3c' : '#807163').lerp(new THREE.Color(palette.secondary), 0.31);
+    const stone = new THREE.Color('#807163').lerp(new THREE.Color(palette.secondary), 0.31);
     for (let i = 0; i < count; i++) {
       const side = i % 2 ? -1 : 1;
       const x = i % 4 === 0 ? side * (17 + random(i, 7, seed) * 28) : (random(i, 7, seed) - 0.5) * 105;
@@ -633,7 +708,7 @@ function LooseStone({ seed, variant, shape, palette }: { seed: number; variant: 
       }
     }
     return { rocks: pieces, scannedBoulders: boulders, scannedMossRocks: mossRocks };
-  }, [seed, variant, shape, palette]);
+  }, [seed, shape, palette]);
   return (
     <group>
       <InstancedSet geometry={STONE_GEOMETRY} material={STONE_MATERIAL} items={rocks} castShadow={false} />
@@ -645,6 +720,8 @@ function LooseStone({ seed, variant, shape, palette }: { seed: number; variant: 
 
 export function PhotoTerrain({ style, seed, variant, palette }: TerrainProps) {
   const shape = useMemo(() => terrainShape(style, seed, variant), [style, seed, variant]);
+  const groundHeight = useMemo(() => (x: number, z: number) => terrainGridHeight(shape, x, z), [shape]);
+  const coast = useMemo(() => (x: number, z: number) => waterDistance(style, variant, seed, x, z) ?? 0, [style, variant, seed]);
   const { ground, water } = useMemo(() => buildTerrain(shape, { style, seed, variant, palette }), [shape, style, seed, variant, palette]);
   useEffect(() => () => {
     ground.dispose();
@@ -655,6 +732,7 @@ export function PhotoTerrain({ style, seed, variant, palette }: TerrainProps) {
   const surface: PhSurfaceKind = WINTER.includes(variant) ? 'snow'
     : BEACH_FLOOR.has(variant) || style === 'dune' || style === 'canyon' ? 'sand' : 'grass';
   const photo = usePhSurface(surface, 1 / 0.185);
+  const jeju = variant === 'kr_jeju';
   return <group name={`reference-terrain-${style}`}>
     <mesh geometry={ground} name="reference-shaped-ground" receiveShadow userData={{ noCastShadow: true }}>
       <meshStandardMaterial
@@ -663,9 +741,13 @@ export function PhotoTerrain({ style, seed, variant, palette }: TerrainProps) {
         normalScale={GROUND_NORMAL_SCALE}
       />
     </mesh>
-    {water && <TerrainWater geometry={water} sea={shape.sea} variant={variant} palette={palette} />}
+    {water && (jeju
+      ? <JejuCoast geometry={water} seed={seed} ground={groundHeight} coast={coast} />
+      : <TerrainWater geometry={water} sea={shape.sea} variant={variant} palette={palette} />)}
+    {jeju && <JejuOffshoreCliffs />}
     {style === 'field' && <CropRows shape={shape} seed={seed} variant={variant} palette={palette} />}
-    {mineral && <LooseStone seed={seed} variant={variant} shape={shape} palette={palette} />}
+    {!jeju && (hasPhotoRockOutcrops(variant) ? <PhotoRockOutcrops variant={variant} seed={seed} ground={groundHeight} />
+      : mineral && <LooseStone seed={seed} shape={shape} palette={palette} />)}
   </group>;
 }
 

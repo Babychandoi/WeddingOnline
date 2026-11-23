@@ -8,13 +8,16 @@ import { DEFAULT_BRIDE_PERSON, DEFAULT_GROOM_PERSON, getPrefabCenterWorld, getTa
 import type { BouquetView, RemoteNpcView, RemotePlayerView } from '../three/VenueScene';
 import { GARDEN_PHOTO_CAMERA } from '../three/gardenReference';
 import type { VenuePhotoReference } from '../three/venuePhotoReferences';
+import { StarPortalLoader } from '@/components/threeui/StarPortalLoader';
 
 const VenueScene = dynamic(() => import('../three/VenueScene').then((mod) => mod.VenueScene), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full w-full items-center justify-center text-sm font-medium text-slate-700">
-      Đang dựng sảnh cưới 3D…
-    </div>
+    <StarPortalLoader
+      fullscreen={false}
+      title="Đang Mở Không Gian Cưới 3D"
+      subtitle="Đang dựng kiến trúc, ánh sáng và thảm thực vật…"
+    />
   ),
 });
 

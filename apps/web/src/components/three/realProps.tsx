@@ -128,21 +128,28 @@ export function RoseDome({
   minY?: number;
   leafColor?: string;
 }) {
-  const { roses, greens, stems } = useMemo(() => {
+  const { roses, cupped, greens, stems } = useMemo(() => {
     const r = rng(seed);
     // Open garden roses ~9–10 cm across: big enough to read as flowers from across the hall
     // (tiny 7 cm heads packed by the hundred read as a speckled, spiky ball)
     const bloom = radius < 0.15 ? 1.05 : 1.4;
-    const roseSize = 0.065 * bloom;
+    const roseSize = 0.080 * bloom;
     // Pack roughly edge to edge on the dome
     const count = Math.max(6, Math.round(((4 * Math.PI * radius * radius) / (roseSize * roseSize * 0.85)) * ((1 - minY) / 2) * density * (IS_HANDHELD ? 0.6 : 1)));
     const up = new THREE.Vector3(0, 1, 0);
     const stemsOut: Xform[] = [];
+    const rosesOut: Xform[] = [];
+    const cuppedOut: Xform[] = [];
     const outerBlooms = domePoints(count, radius, minY);
     const innerBlooms = domePoints(Math.max(5, Math.round(count * 0.42)), radius * 0.74, minY);
-    const rosesOut: Xform[] = [...outerBlooms, ...innerBlooms].map(({ p, n }, i) => {
+    const phase = r() * Math.PI * 2;
+    [...outerBlooms, ...innerBlooms].forEach(({ p, n }, i) => {
       const tuck = i >= outerBlooms.length;
-      p.multiplyScalar(0.88 + r() * 0.19);
+      const variation = Math.sin(p.x / radius * 4.1 + p.z / radius * 2.5 + phase);
+      p.multiplyScalar(0.84 + r() * 0.22 + variation * 0.09);
+      p.x *= 1.11 + Math.cos(phase) * 0.09;
+      p.z *= 0.89 + Math.sin(phase) * 0.12;
+      p.y += radius * 0.11 * variation;
       const facing = n.clone().add(new THREE.Vector3((r() - 0.5) * 0.44, 0.18, (r() - 0.5) * 0.44)).normalize();
       const tilt = new THREE.Quaternion().setFromUnitVectors(up, facing);
       const spin = new THREE.Quaternion().setFromAxisAngle(up, r() * Math.PI * 2);
@@ -150,8 +157,8 @@ export function RoseDome({
       const hsl = { h: 0, s: 0, l: 0 };
       base.getHSL(hsl);
       base.setHSL(hsl.h + (r() - 0.5) * 0.02, Math.min(1, hsl.s * (0.85 + r() * 0.3)), Math.min(0.97, hsl.l + (r() - 0.5) * 0.08));
-      const open = (!tuck ? 0.82 : 0.58) + r() * 0.47;
-      const scale = open * bloom;
+      const tight = radius < 0.22 ? seed % 3 === 0 : tuck || r() < 0.23;
+      const scale = ((!tuck ? 0.79 : 0.52) + r() * 0.43) * bloom;
       const foot = new THREE.Vector3(p.x * 0.15, radius * Math.min(-0.1, minY), p.z * 0.15);
       const branch = p.clone().sub(foot);
       const length = branch.length();
@@ -160,12 +167,12 @@ export function RoseDome({
         quaternion: new THREE.Quaternion().setFromUnitVectors(up, branch.normalize()),
         scale: [1, length, 1],
       });
-      return {
+      (tight ? cuppedOut : rosesOut).push({
         position: [p.x, p.y, p.z],
         quaternion: tilt.multiply(spin),
         scale: [scale, (0.76 + r() * 0.52) * scale, scale],
         color: `#${base.getHexString()}`,
-      };
+      });
     });
     const greensOut: Xform[] = [];
     const leafCount = Math.round(11 + radius * 55);
@@ -186,12 +193,12 @@ export function RoseDome({
       g.quaternion = q;
       g.rotation = undefined;
     });
-    return { roses: rosesOut, greens: greensOut, stems: stemsOut };
+    return { roses: rosesOut, cupped: cuppedOut, greens: greensOut, stems: stemsOut };
   }, [radius, palette, seed, density, minY]);
 
   return (
-    <group>
-      <InstancedSet geometry={roseHead()} material={petals()} items={roses} />
+    <group name="wedding-flower-arrangement">
+      <FloristRoses roses={roses} cupped={cupped} />
       <InstancedSet geometry={leafBlade()} material={leaves(leafColor)} items={greens} castShadow={false} />
       <InstancedSet geometry={FLOWER_STEM} material={leaves(leafColor)} items={stems} castShadow={false} />
     </group>
@@ -199,6 +206,13 @@ export function RoseDome({
 }
 
 const FLOWER_STEM = new THREE.CylinderGeometry(0.0017, 0.0024, 1, 4, 1, true);
+
+function FloristRoses({ roses, cupped }: { roses: Xform[]; cupped: Xform[] }) {
+  return <>
+    {roses.length > 0 && <InstancedSet geometry={roseHead()} material={petals(true)} items={roses} />}
+    {cupped.length > 0 && <InstancedSet geometry={roseHead(true)} material={petals(true)} items={cupped} />}
+  </>;
+}
 
 /* ───────────────────────── Candles ───────────────────────── */
 
@@ -503,45 +517,52 @@ export { hashString };
 
 /** Roses and greenery packed along a curve, thickest at the shoulders like a florist garland */
 export function RoseGarland({ curve, flowers, seed, thickness = 0.22, density = 1 }: { curve: THREE.Curve<THREE.Vector3>; flowers: string[]; seed: number; thickness?: number; density?: number }) {
-  const { roses, greens } = useMemo(() => {
+  const { roses, cupped, greens, stems } = useMemo(() => {
     const r = rng(seed);
     const len = curve.getLength();
-    const count = Math.round(len * (IS_HANDHELD ? 61 : 93) * density);
+    const count = Math.round(len * (IS_HANDHELD ? 53 : 73) * density);
     const up = new THREE.Vector3(0, 1, 0);
     const rosesOut: Xform[] = [];
+    const cuppedOut: Xform[] = [];
     const greensOut: Xform[] = [];
+    const stemsOut: Xform[] = [];
+    const offset = r() * Math.PI * 2;
     for (let i = 0; i < count; i++) {
       const t = (i + r()) / count;
       const p = curve.getPointAt(t);
       const tan = curve.getTangentAt(t);
-      // Random direction around the tangent, biased to the front (+z) where guests look
+      // The garland wraps around the frame so the reverse has leaves and stems too.
       const side = new THREE.Vector3().crossVectors(tan, new THREE.Vector3(0, 0, 1)).normalize();
       const ang = (r() - 0.5) * Math.PI * 2;
       const n = new THREE.Vector3(0, 0, 1).multiplyScalar(Math.cos(ang)).addScaledVector(side, Math.sin(ang)).normalize();
-      const swell = 0.6 + Math.sin(t * Math.PI) * 0.15 + (t < 0.25 || t > 0.75 ? 0.3 : 0);
-      const pos = p.clone().addScaledVector(n, thickness * swell * (0.7 + r() * 0.3));
+      const swell = 0.57 + 0.28 * Math.sin(t * 13 + offset) ** 2 + 0.23 * Math.sin(t * Math.PI);
+      const pos = p.clone().addScaledVector(n, thickness * swell * (0.45 + r() * 0.58));
       const q = new THREE.Quaternion().setFromUnitVectors(up, n).multiply(new THREE.Quaternion().setFromAxisAngle(up, r() * 6.28));
-      const col = new THREE.Color(flowers[Math.floor(r() * flowers.length)]);
+      const col = new THREE.Color(flowers[Math.floor(r() * flowers.length)] ?? '#f3e7d9');
       const hsl = { h: 0, s: 0, l: 0 };
       col.getHSL(hsl);
       col.setHSL(hsl.h, hsl.s, Math.min(0.97, hsl.l + (r() - 0.5) * 0.08));
+      const branch = pos.clone().sub(p);
+      const length = branch.length();
+      stemsOut.push({ position: p.lerp(pos, 0.5).toArray(), quaternion: new THREE.Quaternion().setFromUnitVectors(up, branch.normalize()), scale: [1.7, length, 1.7] });
       if (r() < 0.72) {
-        const size = 0.79 + r() * 0.67;
-        rosesOut.push({ position: [pos.x, pos.y, pos.z], quaternion: q, scale: [size, size * (0.64 + r() * 0.57), size], color: `#${col.getHexString()}` });
+        const size = 0.59 + r() * 0.76;
+        (r() < 0.34 ? cuppedOut : rosesOut).push({ position: [pos.x, pos.y, pos.z], quaternion: q, scale: [size, size * (0.78 + r() * 0.36), size], color: `#${col.getHexString()}` });
       }
       else greensOut.push({ position: [pos.x, pos.y, pos.z], quaternion: q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), 1.3)), scale: 1.2 + r() * 1.2 });
     }
-    return { roses: rosesOut, greens: greensOut };
+    return { roses: rosesOut, cupped: cuppedOut, greens: greensOut, stems: stemsOut };
   }, [curve, flowers, seed, thickness, density]);
-  const tube = useMemo(() => new THREE.TubeGeometry(curve, 64, thickness * 0.55, 10, false), [curve, thickness]);
+  const tube = useMemo(() => new THREE.TubeGeometry(curve, 64, thickness * 0.092, 8, false), [curve, thickness]);
   React.useEffect(() => () => tube.dispose(), [tube]);
   return (
-    <group>
+    <group name="wedding-flower-garland">
       <mesh geometry={tube}>
-        <meshStandardMaterial color="#2f4224" roughness={0.9} />
+        <meshStandardMaterial color="#4c5533" roughness={0.91} />
       </mesh>
-      <InstancedSet geometry={roseHead()} material={petals()} items={roses} />
-      <InstancedSet geometry={leafBlade()} material={leaves('#3d5a2a')} items={greens} />
+      <FloristRoses roses={roses} cupped={cupped} />
+      <InstancedSet geometry={leafBlade()} material={leaves('#3d5a2a')} items={greens} castShadow={false} />
+      <InstancedSet geometry={FLOWER_STEM} material={leaves('#555d39')} items={stems} castShadow={false} />
     </group>
   );
 }

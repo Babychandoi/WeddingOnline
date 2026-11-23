@@ -2,13 +2,17 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { BookHeart, Calendar, Crown, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { BookHeart, BookOpen, Calendar, Crown, Image as ImageIcon, LayoutGrid } from 'lucide-react';
 import type {
   BouquetCatchRecord,
   GuestbookEntryRecord,
   PhotoAssetRecord,
   PublicWeddingDTO,
 } from '@dco/database';
+import { EngravedWeddingCertificate } from '@/components/threeui/EngravedWeddingCertificate';
+import { SilkCoupleHeading } from '@/components/threeui/SilkTypographyHeader';
+import { WeddingSketchbookAlbum } from '@/components/threeui/WeddingSketchbookAlbum';
+import { LiquidMetalButton } from '@/components/threeui/LiquidMetalButton';
 
 interface MemorialArchiveViewProps {
   wedding: PublicWeddingDTO;
@@ -24,25 +28,43 @@ export const MemorialArchiveView: React.FC<MemorialArchiveViewProps> = ({
   bouquetCatches,
 }) => {
   const [lightbox, setLightbox] = useState<PhotoAssetRecord | null>(null);
+  const [albumView, setAlbumView] = useState<'book' | 'grid'>('book');
   const galleryPhotos = photos.filter((p) => p.type === 'PRE_WEDDING_GALLERY');
   const photoboothPhotos = photos.filter((p) => p.type === 'PHOTOBOOTH_SNAPSHOT');
+  const allBookPhotos = [...galleryPhotos, ...photoboothPhotos].map((p) => ({
+    id: p.id,
+    url: p.publicUrl,
+    caption: p.caption,
+  }));
+  const dateVi = new Date(wedding.weddingDate).toLocaleDateString('vi-VN');
 
   return (
     <div className="min-h-screen bg-[#FFFDF8] pb-16">
-      {/* Hero Memorial Banner */}
-      <header className="border-b border-amber-200 bg-gradient-to-br from-rose-700 via-rose-600 to-amber-600 px-6 py-16 text-center text-white">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3.5 py-1 text-xs font-bold backdrop-blur-sm">
-          <Sparkles className="h-3.5 w-3.5" /> TRANG KỶ NIỆM 2D VĨNH VIỄN (SAU LỄ CƯỚI 7 NGÀY)
-        </span>
-        <h1 className="mt-4 font-serif text-4xl font-bold sm:text-5xl">{wedding.title}</h1>
+      {/* Hero Memorial Banner with ThreeUI Silk Atmosphere */}
+      <SilkCoupleHeading
+        badge="✦ Trang Kỷ Niệm 2D Vĩnh Viễn (Sau Lễ Cưới 7 Ngày)"
+        title={wedding.title}
+        mood="silk"
+        tone="crimson"
+      >
         <p className="mt-3 flex items-center justify-center gap-2 text-sm text-rose-100">
           <Calendar className="h-4 w-4" />
-          Ngày Chung Đôi: {new Date(wedding.weddingDate).toLocaleDateString('vi-VN')} • {wedding.groomName} &amp;{' '}
-          {wedding.brideName}
+          Ngày Chung Đôi: {dateVi} • {wedding.groomName} &amp; {wedding.brideName}
         </p>
-      </header>
+      </SilkCoupleHeading>
 
       <main className="mx-auto mt-10 max-w-5xl space-y-12 px-4">
+        {/* ThreeUI Engraved Metallic Keepsake Certificate */}
+        <section>
+          <EngravedWeddingCertificate
+            groomName={wedding.groomName}
+            brideName={wedding.brideName}
+            weddingDate={wedding.weddingDate}
+            subtitle="Chứng Nhận Kỷ Niệm Vĩnh Viễn"
+            venueLabel={wedding.title}
+          />
+        </section>
+
         {/* Embedded Wedding Highlight Video */}
         {wedding.videoEmbedUrl && (
           <section className="rounded-3xl border border-amber-200 bg-white p-5 shadow-sm">
@@ -58,29 +80,66 @@ export const MemorialArchiveView: React.FC<MemorialArchiveViewProps> = ({
           </section>
         )}
 
-        {/* Pre-Wedding Photo Album */}
+        {/* Pre-Wedding Photo Album — Interactive 3D Page-Flip Book or Grid */}
         <section>
-          <div className="mb-4 flex items-center gap-2">
-            <ImageIcon className="h-5 w-5 text-rose-600" />
-            <h2 className="text-xl font-bold text-slate-900">Album Ảnh Cưới</h2>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {galleryPhotos.map((p) => (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 text-rose-600" />
+              <h2 className="text-xl font-bold text-slate-900">Album Ảnh Cưới &amp; Sổ Kỷ Niệm</h2>
+            </div>
+            <div className="inline-flex rounded-full border border-amber-200 bg-white p-1 text-xs font-bold shadow-sm">
               <button
-                key={p.id}
                 type="button"
-                onClick={() => setLightbox(p)}
-                className="group overflow-hidden rounded-2xl border border-amber-200 bg-white text-left shadow-sm transition hover:-translate-y-1"
+                onClick={() => setAlbumView('book')}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 transition ${
+                  albumView === 'book' ? 'bg-rose-700 text-white' : 'text-slate-600 hover:text-rose-700'
+                }`}
               >
-                <img
-                  src={p.publicUrl}
-                  alt={p.caption || 'Ảnh cưới'}
-                  className="h-56 w-full object-cover transition group-hover:scale-105"
-                />
-                {p.caption && <p className="p-3 text-xs font-medium text-slate-700">{p.caption}</p>}
+                <BookOpen className="h-3.5 w-3.5" /> Lật Sách 3D
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setAlbumView('grid')}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 transition ${
+                  albumView === 'grid' ? 'bg-rose-700 text-white' : 'text-slate-600 hover:text-rose-700'
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" /> Lưới Ảnh
+              </button>
+            </div>
           </div>
+
+          {albumView === 'book' ? (
+            <WeddingSketchbookAlbum
+              title={wedding.title}
+              coupleLabel={`${wedding.groomName} & ${wedding.brideName}`}
+              dateLabel={dateVi}
+              photos={allBookPhotos}
+              wishes={guestbook.map((g) => ({ id: g.id, authorName: g.authorName, message: g.message }))}
+              onInspectPhoto={(bp) => {
+                const found = photos.find((x) => x.id === bp.id);
+                if (found) setLightbox(found);
+              }}
+            />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {galleryPhotos.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setLightbox(p)}
+                  className="group overflow-hidden rounded-2xl border border-amber-200 bg-white text-left shadow-sm transition hover:-translate-y-1"
+                >
+                  <img
+                    src={p.publicUrl}
+                    alt={p.caption || 'Ảnh cưới'}
+                    className="h-56 w-full object-cover transition group-hover:scale-105"
+                  />
+                  {p.caption && <p className="p-3 text-xs font-medium text-slate-700">{p.caption}</p>}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Photobooth Wall */}
@@ -156,12 +215,9 @@ export const MemorialArchiveView: React.FC<MemorialArchiveViewProps> = ({
               >
                 🖨️ In / Xuất Sổ Kỷ Niệm PDF
               </Link>
-              <Link
-                href="/create"
-                className="mt-2 inline-block rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-500"
-              >
+              <LiquidMetalButton href="/create" variant="crimson" className="mt-2.5 w-full py-2.5 text-xs">
                 Tạo Phòng Cưới Ngay →
-              </Link>
+              </LiquidMetalButton>
             </div>
           </aside>
         </div>

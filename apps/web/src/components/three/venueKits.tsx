@@ -7,7 +7,7 @@
  * blocks the walkable grid.
  */
 
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { BackdropKit, CanopyKit, CenterpieceKit, PerimeterKit, VenueColors, VenueMood, VenueTheme } from '@dco/shared';
@@ -30,12 +30,19 @@ import type { PhotoHallProfile } from './photoHallProfiles';
 
 type Vec3 = [number, number, number];
 
+const MATTE_REFERENCE_PAVING: Record<string, string> = {
+  es_andalusia: '#cbb28b',
+  gr_santorini: '#c5c2b6',
+  tn_sidi_bou_said: '#aaa398',
+  au_sydney: '#8b898d',
+};
 /**
  * Floor or ground material. Uses textures photographed from the real material (Poly Haven)
  * once they load, with the procedural version (lawn, sand, planks, flagstone, marble…) as
  * the stand-in. Large grounds blend two texture scales so the tiling never shows.
  */
 export function SurfaceMaterial({ color: base, theme, role, size, reference }: { color: string; theme: VenueTheme; role: 'floor' | 'ground'; size: number; reference?: PhotoHallProfile }) {
+  const paving = reference && role === 'floor' ? MATTE_REFERENCE_PAVING[theme.id] : undefined;
   const swatch = reference && role === 'floor' && reference.floor !== 'snow'
     ? `#${new THREE.Color(base).lerp(new THREE.Color(reference.palette.primary), reference.floor === 'sand' ? 0.65 : 0.25).getHexString()}`
     : base;
@@ -47,7 +54,7 @@ export function SurfaceMaterial({ color: base, theme, role, size, reference }: {
         ? reference.floor
         : surfaceFor(swatch, theme, role);
   const { map, normalMap, roughnessMap } = useSurfaceMaps(kind, size);
-  const photo = usePhSurface(kind, size);
+  const photo = usePhSurface(kind, size, !paving);
   // Real lawn is a duller, olive green than any theme swatch
   const color = kind === 'grass' ? naturalGrass(role === 'ground' ? '#587842' : swatch) : swatch;
   // A photographed surface already has its true colour: only hint at the theme
@@ -64,7 +71,7 @@ export function SurfaceMaterial({ color: base, theme, role, size, reference }: {
   const polished = kind === 'marble' || (kind === 'wood' && role === 'floor');
   const usePhoto = photo !== null;
   const maps = usePhoto && photo ? photo : { map, normalMap, roughnessMap };
-  const tint = usePhoto ? photoTint : color;
+  const tint = paving ?? (usePhoto ? photoTint : color);
   const roughness = usePhoto ? (kind === 'sand' ? 0.92 : kind === 'tile' || kind === 'stone' ? 0.86 : 1) : SURFACE_ROUGHNESS[kind];
   const naturalWood = reference !== undefined && kind === 'wood';
   return polished ? (
@@ -87,8 +94,8 @@ export function SurfaceMaterial({ color: base, theme, role, size, reference }: {
       map={maps.map}
       normalMap={maps.normalMap}
       normalScale={normalScale}
-      roughnessMap={maps.roughnessMap}
-      roughness={roughness}
+      roughnessMap={paving ? undefined : maps.roughnessMap}
+      roughness={paving ? 0.92 : roughness}
       onBeforeCompile={antiTile}
     />
   );
@@ -691,69 +698,81 @@ function Balloons() {
   );
 }
 
-/** Soft vertical glow: transparent at the bottom, bright low, fading out at the top */
-function useAuroraTexture(): THREE.Texture | null {
-  return useMemo(() => {
-    if (typeof document === 'undefined') return null;
-    const canvas = document.createElement('canvas');
-    canvas.width = 4;
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    const g = ctx.createLinearGradient(0, 128, 0, 0);
-    g.addColorStop(0, 'rgba(255,255,255,0)');
-    g.addColorStop(0.18, 'rgba(255,255,255,0.95)');
-    g.addColorStop(0.55, 'rgba(255,255,255,0.35)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 4, 128);
-    return new THREE.CanvasTexture(canvas);
-  }, []);
-}
+const AURORA_CURTAINS = [
+  { x: -18, y: 14, z: -112, width: 162, height: 39, phase: 1.40, opacity: 0.77 },
+  { x: 32, y: 17, z: -138, width: 176, height: 41, phase: 3.60, opacity: 0.32 },
+  { x: -55, y: 13, z: -91, width: 104, height: 26, phase: 5.30, opacity: 0.37 },
+];
 
-function AuroraBand({ color, y, z, phase, texture }: { color: string; y: number; z: number; phase: number; texture: THREE.Texture | null }) {
-  const geometry = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(150, 16, 80, 1);
-    const pos = geo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      pos.setZ(i, Math.sin(x * 0.06 + phase) * 9 + Math.sin(x * 0.17 + phase * 2) * 2.5);
-    }
-    geo.computeVertexNormals();
-    return geo;
-  }, [phase]);
-  return (
-    <mesh geometry={geometry} position={[0, y, z]}>
-      <meshBasicMaterial
-        color={color}
-        alphaMap={texture ?? undefined}
-        transparent
-        opacity={0.55}
-        side={THREE.DoubleSide}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        fog={false}
-      />
-    </mesh>
-  );
+function AuroraCurtain({ shape }: { shape: (typeof AURORA_CURTAINS)[number] }) {
+  const { x, y, z, width, height, phase, opacity } = shape;
+  const uniforms = useMemo(() => ({
+    time: { value: 0 },
+    phase: { value: phase },
+    opacity: { value: opacity },
+  }), [phase, opacity]);
+  useFrame(({ clock }) => { uniforms.time.value = clock.elapsedTime; });
+  return <mesh position={[x, y, z]} name="lapland-aurora-curtain" userData={{ noCastShadow: true }}>
+    <planeGeometry args={[width, height, IS_HANDHELD ? 48 : 90, 5]} />
+    <shaderMaterial
+      uniforms={uniforms}
+      transparent
+      depthWrite={false}
+      blending={THREE.AdditiveBlending}
+      side={THREE.DoubleSide}
+      toneMapped={false}
+      vertexShader={`
+        uniform float time;
+        uniform float phase;
+        varying vec2 vCurtain;
+        void main() {
+          vCurtain = uv;
+          float x = uv.x;
+          float stream = time * 0.18;
+          vec3 p = position;
+          p.y += 18.0 + 4.9 * sin(x * 8.4 + phase + stream * 0.28)
+            + 3.8 * sin(x * 17.0 - phase + stream * 0.64);
+          p.x += uv.y * (3.4 * sin(x * 9.0 + phase) + 3.2);
+          p.z += 17.0 * sin(x * 8.0 + phase + stream * 0.39)
+            + 9.5 * cos(x * 17.0 - phase) - uv.y * 5.0;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        }
+      `}
+      fragmentShader={`
+        uniform float time;
+        uniform float phase;
+        uniform float opacity;
+        varying vec2 vCurtain;
+        float wave(float x) { return sin(x) * 0.5 + 0.5; }
+        void main() {
+          float x = vCurtain.x;
+          float y = vCurtain.y;
+          float drift = time * 0.16;
+          float folds = wave(x * 31.0 - phase + wave(x * 9.0 + drift) * 2.6);
+          float intensity = 0.26 + 0.74 * folds * wave(x * 12.0 + phase + drift * 0.5);
+          float fiber = wave(x * 383.0 + 3.5 * wave(x * 96.0 - drift) + y * 1.6);
+          fiber = mix(pow(fiber, 5.0), 0.24, smoothstep(0.002, 0.010, fwidth(x)));
+          float rays = 0.61 + fiber * 0.39 + wave(x * 131.0 + drift) * 0.15;
+          float base = 0.12 + 0.08 * wave(x * 14.0 - phase + drift) + 0.07 * folds;
+          float lower = smoothstep(base - 0.13, base + 0.08, y);
+          float upper = 1.0 - smoothstep(base + 0.06, 0.65 + folds * 0.32, y);
+          float tips = smoothstep(0.0, 0.21, x) * (1.0 - smoothstep(0.72, 1.0, x));
+          float alpha = lower * pow(upper, 1.7) * intensity * rays * tips * opacity;
+          float core = exp(-pow((y - base - 0.105) * 6.8, 2.0));
+          vec3 color = mix(vec3(0.012, 0.29, 0.17), vec3(0.15, 0.95, 0.44), core);
+          color = mix(color, vec3(0.14, 0.21, 0.36), smoothstep(0.57, 0.95, y) * 0.59);
+          gl_FragColor = vec4(color, alpha);
+          #include <colorspace_fragment>
+        }
+      `}
+    />
+  </mesh>;
 }
 
 function Aurora() {
-  const ref = useRef<THREE.Group>(null);
-  const texture = useAuroraTexture();
-  useFrame((state) => {
-    ref.current?.children.forEach((child, i) => {
-      const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
-      mat.opacity = 0.42 + Math.sin(state.clock.elapsedTime * 0.4 + i * 1.7) * 0.14;
-    });
-  });
-  return (
-    <group ref={ref} position={[0, 0, -70]}>
-      <AuroraBand color="#34d399" y={24} z={0} phase={0} texture={texture} />
-      <AuroraBand color="#2dd4bf" y={29} z={-10} phase={2.1} texture={texture} />
-      <AuroraBand color="#a78bfa" y={34} z={-18} phase={4.2} texture={texture} />
-    </group>
-  );
+  return <group name="lapland-aurora">
+    {AURORA_CURTAINS.map(shape => <AuroraCurtain key={shape.phase} shape={shape} />)}
+  </group>;
 }
 
 /* ───────────────────────────── Backdrop ───────────────────────────── */

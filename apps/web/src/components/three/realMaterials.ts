@@ -179,16 +179,17 @@ export function wood(color = '#6b4423', gloss = 0.4): THREE.MeshPhysicalMaterial
   }));
 }
 
-/** Rose petals: velvety, light passes through the thin edges */
-export function petals(): THREE.MeshPhysicalMaterial {
-  return cached('petals', () => new THREE.MeshPhysicalMaterial({
+/** Matte petal surface with a soft rim and optional pigment from the geometry. */
+export function petals(vertexColors = false): THREE.MeshPhysicalMaterial {
+  return cached(`petals_${vertexColors}`, () => new THREE.MeshPhysicalMaterial({
     color: '#ffffff',
-    roughness: 0.62,
-    sheen: 1,
-    sheenRoughness: 0.4,
+    vertexColors,
+    roughness: 0.81,
+    sheen: 0.37,
+    sheenRoughness: 0.69,
     sheenColor: new THREE.Color('#fff0f3'),
     normalMap: detailNormal('petal'),
-    normalScale: v2(0.4),
+    normalScale: v2(0.26),
     side: THREE.DoubleSide,
   }));
 }

@@ -174,12 +174,12 @@ function loadSurface(kind: PhSurfaceKind): Promise<SurfaceSet> {
  * Photographed material maps for a surface `sizeMetres` across, or null while loading /
  * when unavailable. Reuses cached repeat instances so the GPU never uploads duplicate 2K textures.
  */
-export function usePhSurface(kind: PhSurfaceKind, sizeMetres: number): SurfaceSet | null {
+export function usePhSurface(kind: PhSurfaceKind, sizeMetres: number, enabled = true): SurfaceSet | null {
   const rep = Math.round((sizeMetres / SURFACE_METRES[kind]) * 10) / 10;
   const cacheKey = `${kind}_${rep}`;
   const [set, setSet] = useState<SurfaceSet | null>(() => surfaceRepeatCache.get(cacheKey) ?? null);
   useEffect(() => {
-    if (IS_HANDHELD) return;
+    if (IS_HANDHELD || !enabled) return;
     const cachedSet = surfaceRepeatCache.get(cacheKey);
     if (cachedSet) {
       setSet(cachedSet);
@@ -206,17 +206,17 @@ export function usePhSurface(kind: PhSurfaceKind, sizeMetres: number): SurfaceSe
     return () => {
       alive = false;
     };
-  }, [kind, rep, cacheKey]);
-  return set;
+  }, [kind, rep, cacheKey, enabled]);
+  return enabled ? set : null;
 }
 
 /* ───────────────────────── Models ───────────────────────── */
 
 /** Loads a scanned model once; staggers background foliage/scenery slightly after first frame so initial open is instant */
-export function usePhModel(id: string, handheld = false): THREE.Group | null {
+export function usePhModel(id: string | null, handheld = false): THREE.Group | null {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   useEffect(() => {
-    if (IS_HANDHELD && !handheld) return;
+    if (!id || (IS_HANDHELD && !handheld)) return;
     let alive = true;
     const isHeavyFoliage =
       id.startsWith('island_tree') ||
@@ -356,8 +356,8 @@ function ScatterPart({ part, items, base, castShadow }: { part: Part; items: Sca
 }
 
 /** True once a scanned model has loaded (to swap a procedural stand-in out) */
-export function usePhReady(id: string): boolean {
-  return usePhModel(id) !== null;
+export function usePhReady(id: string | null): boolean {
+  return usePhModel(id) !== null && id !== null;
 }
 
 /** Deterministic random scatter in a ring around the hall, avoiding a keep-out square */

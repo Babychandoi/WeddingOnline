@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import * as THREE from 'three';
+import { AndalusiaFountain } from './AndalusiaFountain';
 import { IS_HANDHELD } from './deviceTier';
 import { detailNormal, detailRoughness } from './pbr';
 import { PhScatter, usePhSurface, type ScatterItem } from './phAssets';
@@ -13,12 +14,12 @@ export type ArchitectureStyle = 'ballroom' | 'shrine' | 'courtyard' | 'old-town'
 type Palette = { primary: string; secondary: string; accent: string; shadow: string };
 type Vec3 = [number, number, number];
 type Piece = { position: Vec3; rotation?: Vec3; scale: Vec3; color: string };
-type Geometry = 'block' | 'timber' | 'arch' | 'hip' | 'gable' | 'asian' | 'tile' | 'column' | 'spire' | 'dome' | 'glass' | 'light' | 'cloth' | 'sail';
-type Point = { x: number; z: number; yaw?: number };
+type Geometry = 'block' | 'timber' | 'arch' | 'hip' | 'gable' | 'asian' | 'tile' | 'column' | 'spire' | 'dome' | 'glass' | 'light' | 'cloth' | 'sail' | 'plaster' | 'plasterArch' | 'glazedDome' | 'basin' | 'ivy';
+type Point = { x: number; z: number; yaw?: number; elevation?: number };
 type Batch = Partial<Record<Geometry, Piece[]>>;
 type Builder = { parts: Batch; pick: () => number; palette: Palette };
 
-type Finish = { wall: string; trim: string; roof: string; frame: string; window?: string; lit?: boolean };
+type Finish = { wall: string; trim: string; roof: string; frame: string; window?: string; lit?: boolean; paintedFrames?: boolean };
 
 const BOX = new THREE.BoxGeometry(1, 1, 1);
 const COLUMN = flutedColumn(1, 0.5);
@@ -78,13 +79,16 @@ const GABLE = roofGeometry('gable');
 const ASIAN = roofGeometry('asian');
 
 function sailGeometry() {
-  const mesh = new THREE.PlaneGeometry(1, 1, 18, 16);
+  const mesh = new THREE.PlaneGeometry(1, 1, 22, 18);
   const pos = mesh.getAttribute('position');
   for (let i = 0; i < pos.count; i++) {
-    const span = pos.getX(i) + 0.5;
-    const rise = pos.getY(i) + 0.5;
-    const hull = Math.sin(rise * Math.PI * 0.86);
-    pos.setXYZ(i, span * (1 - rise * 0.86) - 0.5 + 0.26 * rise, rise * (0.58 + 0.54 * span), Math.sin(span * Math.PI) * hull * 0.39);
+    const across = pos.getX(i) * 2;
+    const length = pos.getY(i) + 0.5;
+    const span = (0.41 + 0.59 * Math.sin(length * Math.PI * 0.86)) * (1 - length ** 5);
+    const ridge = Math.sin(length * Math.PI * 0.52) ** 0.85;
+    const crown = Math.max(0, 1 - across * across) ** 0.58;
+    const seam = 0.006 * Math.sin(66 * across) * span * crown;
+    pos.setXYZ(i, length - 0.5 - Math.abs(across) * 0.17 * length, ridge * (0.18 * across ** 2 + crown * 0.88) + seam, across * span * 0.51);
   }
   mesh.computeVertexNormals();
   return mesh;
@@ -114,7 +118,7 @@ function at(builder: Builder, point: Point = { x: 0, z: 0 }) {
   const sin = Math.sin(yaw);
   return (kind: Geometry, x: number, y: number, z: number, scale: Vec3, color: string, tilt = 0, roll = 0) => {
     (builder.parts[kind] ??= []).push({
-      position: [point.x + x * cos + z * sin, y, point.z - x * sin + z * cos],
+      position: [point.x + x * cos + z * sin, (point.elevation ?? 0) + y, point.z - x * sin + z * cos],
       scale, color, rotation: [tilt, yaw, roll],
     });
   };
@@ -133,16 +137,17 @@ function lintel(add: Add, x: number, y: number, z: number, width: number, materi
 }
 
 function casement(add: Add, x: number, y: number, z: number, width: number, height: number, finish: Finish, shutter = false) {
-  add('timber', x, y, z, [width + 0.17, height + 0.17, 0.14], finish.frame);
+  const frame = finish.paintedFrames ? 'plaster' : 'timber';
+  add(frame, x, y, z, [width + 0.17, height + 0.17, 0.14], finish.frame);
   add(finish.lit ? 'light' : 'glass', x, y, z + 0.075, [width, height, 0.045], finish.window ?? '#677372');
-  add('timber', x, y, z + 0.116, [0.05, height + 0.02, 0.06], finish.frame);
-  add('timber', x, y + height * 0.17, z + 0.116, [width + 0.025, 0.055, 0.06], finish.frame);
+  add(frame, x, y, z + 0.116, [0.05, height + 0.02, 0.06], finish.frame);
+  add(frame, x, y + height * 0.17, z + 0.116, [width + 0.025, 0.055, 0.06], finish.frame);
   lintel(add, x, y - height * 0.5 - 0.14, z + 0.03, width, 'block', finish.trim);
   if (!shutter) return;
   for (const side of [-1, 1]) {
     const wing = x + side * width * 0.71;
-    add('timber', wing, y, z + 0.09, [width * 0.35, height * 1.10, 0.11], shade(finish.frame, 1.12));
-    for (let i = 1; i < 7; i++) add('timber', wing, y + (i / 7 - 0.5) * height, z + 0.157, [width * 0.29, 0.04, 0.025], shade(finish.frame, 0.62));
+    add(frame, wing, y, z + 0.09, [width * 0.35, height * 1.10, 0.11], shade(finish.frame, 1.12));
+    for (let i = 1; i < 7; i++) add(frame, wing, y + (i / 7 - 0.5) * height, z + 0.157, [width * 0.29, 0.04, 0.025], shade(finish.frame, 0.62));
   }
 }
 
@@ -305,6 +310,10 @@ function ballroom(builder: Builder, variant: string) {
 
 function courtyard(builder: Builder, variant: string) {
   const { palette } = builder;
+  if (variant === 'es_andalusia') {
+    andalusia(builder);
+    return;
+  }
   if (variant === 'jp_sakura' || variant === 'il_chuppah') {
     const temple = variant === 'jp_sakura';
     const plaster = tint(temple ? '#cabb9b' : '#bba789', palette.primary, 0.23);
@@ -349,9 +358,8 @@ function courtyard(builder: Builder, variant: string) {
   }
   const morocco = variant === 'ma_riad';
   const iran = variant === 'ir_persian_garden';
-  const spain = variant === 'es_andalusia';
-  const wall = morocco ? '#d7c8aa' : iran ? '#c5a778' : spain ? '#eee4cc' : '#c58d66';
-  const accent = morocco ? '#326e72' : iran ? '#29628a' : spain ? '#427c62' : '#78533a';
+  const wall = morocco ? '#d7c8aa' : iran ? '#c5a778' : '#c58d66';
+  const accent = morocco ? '#326e72' : iran ? '#29628a' : '#78533a';
   const finish: Finish = {
     wall: tint(wall, palette.primary), trim: tint('#e3d2ad', palette.secondary, 0.19),
     roof: tint(iran ? '#8e7857' : '#804f37', palette.shadow, 0.19),
@@ -360,7 +368,7 @@ function courtyard(builder: Builder, variant: string) {
   arcade(at(builder, { x: 0, z: -22.6 }), 32.5, iran ? 7.4 : 6.1, 5.2, iran ? 7 : 8, finish, morocco || iran ? 'tile' : 'plain');
   for (const side of [-1, 1]) {
     arcade(at(builder, { x: side * 19.6, z: -9.7, yaw: -side * Math.PI / 2 }), 13.4, 4.9, 4.5, 4, finish, morocco ? 'tile' : 'plain');
-    if (spain || morocco) {
+    if (morocco) {
       const pots = at(builder, { x: side * 18.34, z: -19.77 });
       for (let i = 0; i < 5; i++) {
         pots('tile', 0, 0.37, -3.8 + i * 1.65, [0.53, 0.63, 0.53], shade('#a65f40', 0.78 + builder.pick() * 0.24));
@@ -376,14 +384,119 @@ function courtyard(builder: Builder, variant: string) {
   }
 }
 
+function terraceHouse(add: Add, width: number, depth: number, height: number, plaster: string, blue: string, lit: boolean, shutters: boolean) {
+  const front = depth * 0.5;
+  add('plaster', 0, (height - 2.8) * 0.5, 0, [width, height + 2.8, depth], plaster);
+  add('plaster', 0, height - 0.12, 0, [width + 0.20, 0.24, depth + 0.21], shade(plaster, 0.93));
+  add('plaster', 0, height + 0.13, front + 0.03, [width + 0.12, 0.33, 0.20], plaster);
+  const finish: Finish = { wall: plaster, trim: shade(plaster, 0.85), roof: plaster, frame: blue, window: lit ? '#ffc27d' : '#487993', lit, paintedFrames: true };
+  add('plasterArch', -width * 0.23, 0.08, front - 0.02, [1.54, 2.61, 0.16], shade(plaster, 0.79));
+  add('plaster', -width * 0.23, 1.15, front + 0.12, [0.91, 2.14, 0.09], shade(blue, 1.12));
+  for (const side of [-1, 1]) {
+    casement(add, side * width * 0.24, height * 0.74, front + 0.02, 0.79, 1.16, finish, shutters);
+    add('plaster', side * width * 0.5, height + 0.13, 0, [0.18, 0.33, depth], plaster);
+  }
+  if (shutters) {
+    const y = height * 0.74 - 0.63;
+    add('plaster', width * 0.24, y, front + 0.26, [1.72, 0.15, 0.68], shade(plaster, 0.93));
+    add('plaster', width * 0.24, y + 0.53, front + 0.59, [1.70, 0.045, 0.048], blue);
+    for (let rail = -4; rail <= 4; rail++) {
+      add('plaster', width * 0.24 + rail * 0.18, y + 0.27, front + 0.58, [0.034, 0.53, 0.035], blue);
+    }
+  }
+  if (lit) add('light', width * 0.18, 2.11, front + 0.06, [0.32, 0.42, 0.05], '#ffd294');
+}
+
+function andalusia(builder: Builder) {
+  const wall = '#f1e8d1';
+  const foliage = ['#556d35', '#6e7a42', '#4b6832', '#5e7639'];
+  const backdrop = at(builder, { x: 0, z: -23.5 });
+  backdrop('plaster', 0, 4.04, -1.2, [32, 8.08, 4.5], wall);
+  backdrop('plaster', 0, 8.12, -0.78, [32.55, 0.22, 5.7], '#e0d0ad');
+  for (let bay = -3; bay <= 3; bay++) {
+    const x = bay * 4.29;
+    backdrop('plasterArch', x, 5.1, 1.02, [1.66, 2.72, 0.18], '#627f71');
+    casement(backdrop, x, 6.39, 1.15, 1.15, 1.99, { wall, frame: '#61817b', roof: wall, trim: wall, window: '#a1b9b7' });
+    backdrop('plaster', x, 5.08, 1.38, [1.79, 0.16, 0.86], '#dfcba5');
+    for (let n = -3; n <= 3; n++) backdrop('timber', x + n * 0.22, 5.49, 1.79, [0.035, 0.65, 0.048], '#465f58');
+    backdrop('timber', x, 5.81, 1.80, [1.56, 0.056, 0.07], '#4b6055');
+    backdrop('plasterArch', x, 0.16, 1.03, [2.63, 3.62, 0.34], '#d2be95');
+    backdrop('glass', x, 1.48, 1.12, [1.82, 2.70, 0.08], '#4b6255');
+  }
+  for (let i = 0; i < (IS_HANDHELD ? 150 : 324); i++) {
+    const x = (builder.pick() - 0.5) * 31.7;
+    const edge = 4.55 + 0.37 * Math.cos(x * 0.69) + 0.32 * Math.sin(x * 1.27);
+    const y = 1.7 + builder.pick() * (edge - 1.4);
+    const archCenter = Math.abs(x - Math.round(x / 4.29) * 4.29);
+    if (archCenter < 0.92 && y < 2.94) continue;
+    const spread = 0.28 + builder.pick() * 0.40;
+    backdrop('ivy', x, y, 1.24 + builder.pick() * 0.15, [spread, spread * 0.86, spread * 0.37], foliage[i % foliage.length], 0, builder.pick());
+  }
+  for (const side of [-1, 1]) {
+    const wing = at(builder, { x: side * 22.6, z: -11.75, yaw: -side * Math.PI / 2 });
+    wing('plaster', 0, 2.52, -0.16, [18.7, 5.04, 0.55], '#eadcc1');
+    wing('plaster', 0, 5.08, -0.10, [19.1, 0.20, 0.80], '#ccb78f');
+    const pots = at(builder, { x: side * 18.34, z: -19.77 });
+    for (let i = 0; i < 5; i++) {
+      const z = -3.8 + i * 1.65;
+      pots('basin', 0, 0.34, z, [0.72, 0.69, 0.72], '#a36344');
+      pots('basin', 0, 0.64, z, [0.78, 0.11, 0.78], '#b77b58');
+      for (let cluster = 0; cluster < 8; cluster++) {
+        wing('ivy', -8.2 + i * 3.95 + (builder.pick() - 0.5) * 3.5, 1.65 + builder.pick() * 2.37, 0.16 + builder.pick() * 0.17,
+          [0.56, 0.66, 0.4], foliage[cluster % foliage.length]);
+      }
+    }
+  }
+}
+
+function mediterraneanTown(builder: Builder, santorini: boolean) {
+  const white = ['#eee9e0', '#f6f0df', '#e3e3dc', '#efdfca', '#f3eee5'];
+  const blue = ['#125d9c', '#206caa', '#16578f'];
+  for (let i = 0; i < (santorini ? 17 : 10); i++) {
+    const tier = santorini ? Math.floor(i / 7) : 0;
+    const side = i >= 7 && !santorini;
+    const x = side ? 19.9 + builder.pick() : (i % 7 - 3) * (santorini ? 5.3 : 6.1) + tier * 9;
+    const z = side ? -12.4 + (i - 7) * 6.5 : -23 - tier * 7.3 - builder.pick() * 2.0;
+    const elevation = santorini ? tier * 2.26 + Math.max(0, x) * 0.08 : 0;
+    const add = at(builder, { x, z, elevation, yaw: side ? -Math.PI / 2 : (builder.pick() - 0.5) * 0.18 });
+    terraceHouse(add, 4.6 + builder.pick() * 0.96, 4.38 + builder.pick() * 1.04, 4.45 + builder.pick() * (santorini ? 1.7 : 1.4),
+      white[i % white.length], blue[i % blue.length], santorini && i % 3 !== 1, !santorini);
+  }
+  if (!santorini) {
+    const gate = at(builder, { x: -13.2, z: -18.2 });
+    gate('plasterArch', 0, 0.01, 0, [4.33, 5.11, 0.66], '#d6ba8c');
+    gate('plasterArch', 0, 0.10, 0.67, [4.17, 4.96, 0.24], '#d1b483');
+    return;
+  }
+  for (const [x, z, height] of [[0.8, -25.2, 4.8], [16.2, -36.2, 7.2]]) {
+    const church = at(builder, { x, z });
+    church('plaster', 0, (height - 2) * 0.5, 0, [5.1, height + 2, 5.3], '#f7ede0');
+    church('basin', 0, height + 0.09, 0, [4.33, 0.60, 4.33], '#e9e2d8');
+    church('glazedDome', 0, height + 0.34, 0, [4.6, 3.93, 4.6], '#245e9a');
+    church('plasterArch', 0, 0.14, 2.61, [1.65, 3.47, 0.24], '#e6d4b6');
+    church('light', 0, 2.0, 2.87, [0.72, 1.34, 0.04], '#ffcb83');
+    church('plaster', 0, height + 2.54, 0, [0.11, 0.68, 0.11], '#e5dfc9');
+    church('plaster', 0, height + 2.63, 0, [0.54, 0.11, 0.11], '#e5dfc9');
+  }
+  const mill = at(builder, { x: -8.6, z: -30.3, elevation: 1.2 });
+  mill('basin', 0, 3.1, 0, [3.36, 6.20, 3.36], '#e4d8c5');
+  mill('spire', 0, 6.02, 0, [4.0, 1.43, 4.0], '#65554b');
+  for (let i = 0; i < 8; i++) {
+    const angle = i * Math.PI / 4;
+    mill('timber', -Math.sin(angle) * 1.47, 5.14 + Math.cos(angle) * 1.47, 1.83, [0.063, 2.94, 0.063], '#68584a', 0, angle);
+  }
+}
+
 function housing(builder: Builder, variant: string, canal: boolean) {
+  if (variant === 'tn_sidi_bou_said' || variant === 'gr_santorini') {
+    mediterraneanTown(builder, variant === 'gr_santorini');
+    return;
+  }
   if (variant === 'vn_gia_tien' || variant === 'kr_hanok' || variant === 'cn_courtyard') {
     courtyard(builder, variant);
     return;
   }
   const { palette, pick } = builder;
-  const blueTown = variant === 'tn_sidi_bou_said' || variant === 'gr_santorini';
-  const santorini = variant === 'gr_santorini';
   const china = variant === 'cn_jiangnan';
   const venice = variant === 'it_venice';
   const pastel = variant === 'cu_havana' || variant === 'it_amalfi';
@@ -391,25 +504,25 @@ function housing(builder: Builder, variant: string, canal: boolean) {
   const dubrovnik = variant === 'hr_dubrovnik';
   const night = variant === 'fr_paris' || variant === 'cz_prague';
   const varied = pastel ? ['#bd886b', '#d5b97a', '#88a283', '#c7909c', '#b7bba6'] : ['#bda484', '#cfbfa6', '#c19a89', '#b9aa91'];
-  const facade = blueTown ? '#e9e5d2' : china ? '#e2ddc8' : '#c8b594';
+  const facade = china ? '#e2ddc8' : '#c8b594';
   const row: Point[] = [];
-  for (let i = 0; i < 8; i++) row.push({ x: (i - 3.5) * 6.3, z: (canal ? -30.4 : -23.0) - pick() * (santorini ? 4.6 : 2.4) });
+  for (let i = 0; i < 8; i++) row.push({ x: (i - 3.5) * 6.3, z: (canal ? -30.4 : -23.0) - pick() * 2.4 });
   if (!canal) for (const side of [-1, 1]) {
     for (let i = 0; i < 2; i++) row.push({ x: side * (21.2 + pick() * 1.1), z: -8.8 + i * 7.2, yaw: -side * Math.PI / 2 });
   }
   for (const [i, point] of row.entries()) {
     const width = 4.6 + pick() * 1.55;
-    const height = (china || blueTown ? 4.3 : 5.35) + pick() * (santorini || pastel ? 3.2 : 2.45);
+    const height = (china ? 4.3 : 5.35) + pick() * (pastel ? 3.2 : 2.45);
     const depth = 4.5 + pick() * 0.98;
     const add = at(builder, point);
     const finish: Finish = {
-      wall: tint(blueTown || china ? facade : varied[i % varied.length], palette.primary, 0.23),
-      trim: tint(blueTown ? '#efead9' : '#d1c4aa', palette.secondary, 0.20),
+      wall: tint(china ? facade : varied[i % varied.length], palette.primary, 0.23),
+      trim: tint('#d1c4aa', palette.secondary, 0.20),
       roof: tint(china ? '#55534d' : '#975645', palette.shadow, 0.28),
-      frame: tint(blueTown ? '#0d5e99' : lisbon ? '#25657d' : china ? '#4e3e30' : '#584232', palette.accent, 0.16),
+      frame: tint(lisbon ? '#25657d' : china ? '#4e3e30' : '#584232', palette.accent, 0.16),
       window: night ? '#f5c597' : '#6f8182', lit: night,
     };
-    const roofKind = blueTown || variant === 'cu_havana' ? 'flat' : china ? 'asian' : 'hip';
+    const roofKind = variant === 'cu_havana' ? 'flat' : china ? 'asian' : 'hip';
     blockHouse(add, width, height, depth, finish, roofKind, i, true, !china);
     if (venice || pastel || lisbon) {
       const y = height * 0.48;
@@ -430,16 +543,6 @@ function housing(builder: Builder, variant: string, canal: boolean) {
       const x = (j / 13 - 0.5) * width * 0.87;
       add('block', x, height * 0.51 + 0.39, depth * 0.5 + 0.11, [0.08, 0.08, 0.03], finish.frame, 0, Math.PI / 4);
     }
-  }
-  if (santorini) {
-    const add = at(builder, { x: 4.0, z: -29.4 });
-    add('block', 0, 3.55, 0, [6.4, 7.1, 6.1], '#f1ead7');
-    add('tile', 0, 7.37, 0, [4.56, 0.66, 4.56], '#e9e4cc');
-    add('dome', 0, 7.68, 0, [4.85, 4.45, 4.85], '#1766a4');
-    add('timber', 0, 10.2, 0, [0.10, 0.56, 0.10], '#e5dcca');
-    add('timber', 0, 10.28, 0, [0.49, 0.081, 0.10], '#e5dcca');
-    add('arch', 0, 0.18, 3.09, [1.74, 3.67, 0.24], '#d5d6c5');
-    casement(add, 0, 1.52, 3.10, 1.12, 2.66, { wall: '#fff5df', roof: '#1c5d90', trim: '#e4dac4', frame: '#205681' });
   }
   if (dubrovnik) {
     const add = at(builder, { x: 0, z: -18.8 });
@@ -786,23 +889,45 @@ function eiffel(builder: Builder) {
 }
 
 function sydney(builder: Builder) {
-  const add = at(builder, { x: 10.8, z: -36.6, yaw: -0.26 });
-  add('block', 0, 0.25, 0, [15.3, 0.78, 9.0], '#8d8376');
-  add('block', 0, 1.01, -0.51, [14.9, 1.53, 7.3], '#d3bf9f');
-  for (let i = 0; i < 4; i++) {
-    add('sail', -5.60 + i * 2.82, 1.63, 0.04 - i * 0.29, [5.3, 4.1 + i * 1.00, 4.9], shade('#ece3d1', 0.93 + i * 0.035));
-    add('sail', -3.51 + i * 2.7, 1.64, -3.01 - i * 0.29, [4.6, 4.28 + i * 0.83, 3.36], '#ccc6b9');
+  const add = at(builder, { x: -10.0, z: -36.6, yaw: -0.30 });
+  add('plaster', 0, -0.35, 0, [20.6, 2.0, 10.7], '#9a8268');
+  add('plaster', 0, 1.10, -0.9, [18.2, 1.27, 7.6], '#c1a27b');
+  for (let step = 0; step < 5; step++) {
+    add('plaster', 0, 0.48 + step * 0.23, 4.12 - step * 0.48, [16.9, 0.25, 1.53], '#d9c29f');
   }
-  const bridge = at(builder, { x: -16.5, z: -57.8 });
-  bridge('arch', 0, 1.40, 0, [38, 16.3, 0.37], '#5f6b70');
-  bridge('arch', 0, 1.4, -3.3, [38, 16.3, 0.37], '#68777e');
-  bridge('timber', 0, 6.3, -1.65, [42, 0.38, 4.1], '#686f6d');
-  for (let i = -9; i <= 9; i++) {
-    const f = i / 9;
-    const y = 0.38 + 10.3 * Math.sqrt(Math.max(0, 1 - f * f));
-    for (const side of [0, -3.2]) bridge('timber', f * 17.4, 6.23 + y * 0.5, side, [0.12, y, 0.115], '#626d73');
+  for (const [x, z, run, rise, span] of [[-6.8, 0.4, 6.6, 4.9, 3.6], [-3.4, -0.13, 7.4, 7.3, 4.3], [0.19, -0.36, 7.8, 8.9, 4.7], [3.38, -0.67, 7.17, 7.3, 4.0], [6.75, -1.04, 5.81, 5.66, 3.27], [-4.1, -3.15, 6.4, 6.1, 3.6], [0.12, -3.5, 7.2, 8.2, 4.21], [4.5, -3.8, 7.3, 7.5, 3.8]]) {
+    add('sail', x, 1.70, z, [run, rise, span], '#f4e8d1');
+    add('plaster', x, 2.12, z, [2.31, 0.89, span * 0.66], '#bbb1a3');
+    for (let bay = -3; bay <= 3; bay++) {
+      add('glass', x + bay * 0.295, 2.16, z + span * 0.339, [0.27, 0.70, 0.036], '#645546');
+      add('light', x + bay * 0.295, 1.84, z + span * 0.352, [0.22, 0.042, 0.032], '#eec98f');
+    }
   }
-  for (const side of [-1, 1]) bridge('block', side * 19.8, 4.68, -1.66, [2.9, 9.42, 4.73], '#aba48c');
+  for (let i = 0; i < 15; i++) {
+    add('light', (i - 7) * 1.10, 0.93, 4.71, [0.42, 0.092, 0.075], '#ffd59a');
+  }
+  const bridge = at(builder, { x: 9.8, z: -61.2, yaw: -0.05 });
+  const arch = (x: number) => 6.35 + 11.0 * Math.sqrt(Math.max(0, 1 - (x / 22.0) ** 2));
+  const beam = (x1: number, y1: number, x2: number, y2: number, z: number, width: number, color: string) =>
+    bridge('plaster', (x1 + x2) / 2, (y1 + y2) / 2, z, [width, Math.hypot(x2 - x1, y2 - y1) + 0.025, width], color, 0, -Math.atan2(x2 - x1, y2 - y1));
+  bridge('plaster', 0, 6.06, -1.83, [47.6, 0.53, 4.65], '#697681');
+  for (const z of [0, -3.6]) {
+    for (let i = 0; i < 28; i++) {
+      const x1 = (i - 14) * 1.53;
+      const x2 = x1 + 1.53;
+      const y1 = arch(x1);
+      const y2 = arch(x2);
+      beam(x1, y1, x2, y2, z, 0.23, '#89949f');
+      beam(x1, y1 - 0.72, x2, y2 - 0.72, z, 0.15, '#6c7a86');
+      beam(x1, y1 - 0.72, x2, y2, z, 0.105, '#778691');
+      beam(x1, 6.32, x1, y1 - 0.67, z, 0.093, '#7f8990');
+      if (z === 0) bridge('light', x1, 6.28, z + 0.24, [0.14, 0.077, 0.065], '#ffcc90');
+    }
+  }
+  for (const side of [-1, 1]) {
+    bridge('plaster', side * 22.4, 3.42, -1.76, [2.96, 9.57, 5.1], '#b9a68b');
+    bridge('plaster', side * 22.4, 8.31, -1.76, [3.28, 0.33, 5.35], '#ac9980');
+  }
 }
 
 function skyline(builder: Builder, variant: string) {
@@ -881,12 +1006,59 @@ const TILE_MATERIAL = new THREE.MeshStandardMaterial({ color: '#ffffff', roughne
 const CLOTH = fabric('#ffffff', 'velvet');
 const PORCELAIN_TILE = painted('#ffffff', 0.78).clone();
 PORCELAIN_TILE.side = THREE.DoubleSide;
+PORCELAIN_TILE.onBeforeCompile = (shader) => {
+  shader.vertexShader = 'varying vec2 vShellUv;\n' + shader.vertexShader
+    .replace('#include <uv_vertex>', '#include <uv_vertex>\nvShellUv = uv;');
+  shader.fragmentShader = 'varying vec2 vShellUv;\n' + shader.fragmentShader
+    .replace('#include <color_fragment>', `#include <color_fragment>
+      vec2 repeat = vShellUv * vec2(44.0, 32.0);
+      vec2 seam = abs(fract(repeat) - 0.5);
+      float visible = 1.0 - clamp(max(fwidth(repeat.x), fwidth(repeat.y)), 0.0, 1.0);
+      diffuseColor.rgb *= 1.0 - 0.19 * smoothstep(0.455, 0.5, max(seam.x, seam.y)) * visible;
+    `);
+};
+const PLASTER = new THREE.MeshStandardMaterial({
+  roughness: 0.92, normalMap: detailNormal('micro'), normalScale: new THREE.Vector2(0.17, 0.17),
+  emissive: '#f4eadd', emissiveIntensity: 0.035,
+});
+const GLAZE = new THREE.MeshStandardMaterial({ roughness: 0.57, normalMap: detailNormal('micro'), normalScale: new THREE.Vector2(0.21, 0.21) });
+const BASIN = new THREE.CylinderGeometry(0.5, 0.43, 1, 32);
+function ivySpray() {
+  const pick = seeded(12419);
+  const positions: number[] = [];
+  const indices: number[] = [];
+  for (let n = 0; n < 25; n++) {
+    const angle = pick() * Math.PI * 2;
+    const distance = Math.sqrt(pick()) * 0.76;
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance;
+    const z = (1 - distance) * 0.31 + pick() * 0.38;
+    const leaf = 0.13 + pick() * 0.15;
+    const dx = Math.cos(angle) * leaf;
+    const dy = Math.sin(angle) * leaf;
+    const start = positions.length / 3;
+    positions.push(x - dx * 0.6, y - dy * 0.6, z, x - dy * 0.66, y + dx * 0.66, z - 0.055,
+      x + dx * 0.28, y + dy * 0.28, z + 0.055, x + dx, y + dy, z - 0.018, x + dy * 0.66, y - dx * 0.66, z - 0.025);
+    indices.push(start, start + 1, start + 2, start + 1, start + 3, start + 2,
+      start + 3, start + 4, start + 2, start + 4, start, start + 2);
+  }
+  const mesh = new THREE.BufferGeometry();
+  mesh.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  mesh.setIndex(indices);
+  mesh.computeVertexNormals();
+  return mesh;
+}
+
+const IVY = ivySpray();
+const IVY_MATERIAL = new THREE.MeshStandardMaterial({ roughness: 0.88, side: THREE.DoubleSide });
 
 const SURFACES: Record<Geometry, [THREE.BufferGeometry, THREE.Material]> = {
   block: [BOX, STONE], timber: [BOX, wood('#ffffff', 0.12)], arch: [ARCH, STONE], hip: [HIP, TILE_MATERIAL],
   gable: [GABLE, TILE_MATERIAL], asian: [ASIAN, TILE_MATERIAL], tile: [TILE, TILE_MATERIAL], column: [COLUMN, STONE],
   spire: [SPIRE, TILE_MATERIAL], dome: [DOME, TILE_MATERIAL], glass: [BOX, WINDOW], light: [BOX, LIT_WINDOW],
   cloth: [CURTAIN, CLOTH], sail: [SAIL, PORCELAIN_TILE],
+  plaster: [BOX, PLASTER], plasterArch: [ARCH, PLASTER], glazedDome: [DOME, GLAZE], basin: [BASIN, PLASTER],
+  ivy: [IVY, IVY_MATERIAL],
 };
 
 /** Walkable display remains clear inside the hall's 30 m footprint. The surroundings are solid and orbitable. */
@@ -916,6 +1088,7 @@ export function PhotoArchitecture({ style, seed, variant, palette }: { style: Ar
       timberMat.roughnessMap = woodPhoto.roughnessMap;
     }
     return {
+      ...SURFACES,
       block: [BOX, stoneMat],
       timber: [BOX, timberMat],
       arch: [ARCH, stoneMat],
@@ -926,10 +1099,6 @@ export function PhotoArchitecture({ style, seed, variant, palette }: { style: Ar
       column: [COLUMN, stoneMat],
       spire: [SPIRE, tileMat],
       dome: [DOME, tileMat],
-      glass: [BOX, WINDOW],
-      light: [BOX, LIT_WINDOW],
-      cloth: [CURTAIN, CLOTH],
-      sail: [SAIL, PORCELAIN_TILE],
     };
   }, [stonePhoto, tilePhoto, woodPhoto]);
 
@@ -1045,6 +1214,7 @@ export function PhotoArchitecture({ style, seed, variant, palette }: { style: Ar
 
   return (
     <group name={`photo-architecture-${style}`} dispose={null}>
+      {variant === 'es_andalusia' && <AndalusiaFountain />}
       {Object.entries(parts).map(([kind, pieces]) => {
         const [geometry, material] = surfaces[kind as Geometry];
         return <InstancedSet key={kind} geometry={geometry} material={material} items={pieces} castShadow={false} />;

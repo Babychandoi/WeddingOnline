@@ -320,6 +320,16 @@
   - Sửa lỗi tự động chạy ngược về điểm đi nhanh (`Cổng Hoa / Sân Khấu / Bàn Tiệc`) trên điện thoại sau khi kéo cần đi chỗ khác (`VenueScene.tsx`): bỏ `localPlayer` khỏi dependency của `navigateToWorld` (dùng `localPlayerRef`) và khóa mỗi lần bấm bằng `lastWaypointKeyRef` để không kích hoạt lại `waypointTarget` mỗi nhịp đồng bộ Colyseus
 - [x] **Ẩn mục "Đối Tác Studio" (`/partner`) với người dùng thường** (`apps/web/src/app/page.tsx`, `apps/web/src/app/partner/page.tsx`): chỉ hiển thị liên kết/khối **Đối Tác Studio** trên trang chủ và cho phép truy cập `/partner` khi tài khoản **Admin** đã đăng nhập (`getAdminSession()`)
 
+### [x] Nhóm 38: Tạo Global Skill `threeui` (`MengTo/threeui`, MIT) & Nâng Cấp Giao Diện DamCuoiOnline Bằng Các Hiệu Ứng ThreeUI
+- [x] **Tạo Global Skill `threeui`** (`C:\Users\phong\.gemini\config\skills\threeui\`): `SKILL.md`, `references/catalog.json` (đồng bộ 43 component cha / 104 route / 102 export / 163 biến thể miễn phí từ `@designcodeio/threeui@1.2.0`), `references/integration-guide.md`, và CLI `scripts/threeui.mjs` (`sync`, `categories`, `search`, `info`, `source`)
+- [x] **Bộ component ThreeUI thuần Việt tối ưu không tốn thêm WebGL context** (`apps/web/src/components/threeui/`):
+  - `EngravedWeddingCertificate.tsx` (*từ `engraved-certificate`*): Tấm chứng nhận khắc guilloché ánh kim Canvas 2D nghiêng 3D theo tay/chuột + con dấu Song Hỷ, gắn trên `/thiep-cuoi`, `/w/[slug]/invite`, và `/w/duy-va-thao-kyniem`
+  - `WeddingSketchbookAlbum.tsx` (*từ `sketchbook` & `bookshelf`*): Sổ ảnh cưới & Sổ Kỷ Niệm lật trang CSS 3D uốn mép giấy kèm lời chúc thực tế, bật chuyển đổi `Lật Sách 3D / Lưới Ảnh` tại `/w/duy-va-thao-kyniem` và `/w/[slug]/invite`
+  - `SilkTypographyHeader.tsx` & `WeddingHeroAtmosphere.tsx` (*từ `woven-cloth`, `article-headings`, `koi-studies`, `constellation-field`*): Nền dải lụa bay, chòm sao vàng champagne & đàn cá Koi gợn nước Canvas 2D tự tạm dừng khi khuất màn hình
+  - `LiquidMetalButton.tsx` (*từ `liquid-metal-button`, `spark-badge`, `animated-top-dock`*): Nút CTA kim loại lỏng phản sáng theo chuột, thẻ `SparkBadgePill`, và thanh menu nam châm `WeddingTopDock` trên trang chủ (giữ nguyên ẩn `Đối Tác Studio` với khách thường)
+  - `OrbitalVenueGallery.tsx` (*từ `gallery`, `gallery-heading`, `character-carousel`*): Băng chuyền không gian cưới 3D uốn cong trên `/` và `/khong-gian`, kèm thanh lướt sóng nhân vật `CharacterWaveCarousel` ngoài sảnh chờ `HallExperience.tsx`
+  - `StarPortalLoader.tsx` (*từ `star-portal`, `portal-field`, `uplink-loader`*): Màn hình chuyển cảnh cổng sao ánh vàng–đỏ rượu khi bước vào sảnh cưới 3D (`HallExperience.tsx`, `VenuePreviewClient.tsx`), tự gỡ hẳn sau khi dựng cảnh xong nên 0 tốn GPU trong sảnh
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

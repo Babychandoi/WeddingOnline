@@ -60,10 +60,22 @@ import { HallChatPanel, type DmThread } from './HallChatPanel';
 import { FireworksModal } from './FireworksModal';
 import { PlayerCard } from './PlayerCard';
 import type { ScheduledFireworks } from '../three/Fireworks';
+import { StarPortalLoader } from '../threeui/StarPortalLoader';
+import { CharacterWaveCarousel } from '../threeui/OrbitalVenueGallery';
+import { LiquidMetalButton } from '../threeui/LiquidMetalButton';
 
 const VenueScene = dynamic(
   () => import('../three/VenueScene').then((mod) => mod.VenueScene),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => (
+      <StarPortalLoader
+        fullscreen={false}
+        title="Đang Mở Cổng Sảnh Cưới 3D"
+        subtitle="Đang dựng không gian tiệc cưới & đồng bộ khách mời…"
+      />
+    ),
+  }
 );
 
 // Lobby character preview (3D, browser only)
@@ -918,7 +930,10 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                 ))}
               </div>
             </div>
-            <div role="radiogroup" aria-label="Nhân vật" className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <div className="mt-3">
+              <CharacterWaveCarousel people={shownPeople} selectedId={personId} onSelect={setPersonId} />
+            </div>
+            <div role="radiogroup" aria-label="Nhân vật" className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
               {shownPeople.map((p) => (
                 <button
                   key={p.id}
@@ -1045,18 +1060,23 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
           {/* Enter: pinned to the bottom of the panel (the screen on phones) */}
           <div className="fixed inset-x-0 bottom-0 z-10 border-t border-amber-100 bg-[#FFFDF8]/95 p-3 backdrop-blur lg:static lg:bg-[#FFFDF8] lg:p-4">
             {joinError && <p className="mb-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">{joinError}</p>}
-            <button
-              type="button"
+            <LiquidMetalButton
               onClick={() => connectToHall()}
               disabled={joining}
-              className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-rose-600 text-sm font-bold text-white shadow-lg transition hover:bg-rose-500 disabled:opacity-60"
+              variant="crimson"
+              className="min-h-[52px] w-full"
             >
               {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {joining ? 'Đang bước vào sảnh…' : 'Mang nhân vật vào sảnh cưới'}
-            </button>
+            </LiquidMetalButton>
             <p className="mt-1.5 truncate text-center text-[11px] text-slate-500 lg:hidden">{lookLabel}</p>
           </div>
         </section>
+        <StarPortalLoader
+          active={joining}
+          title={wedding.title}
+          subtitle="Đang mở cổng sao bước vào sảnh cưới 3D…"
+        />
       </div>
     );
   }

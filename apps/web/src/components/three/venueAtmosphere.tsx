@@ -20,8 +20,9 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import type { VenueTheme } from '@dco/shared';
 import { IS_HANDHELD } from './deviceTier';
 import { GARDEN_VENUE } from './gardenReference';
-import { PhSky, type SkyInfo } from './phAssets';
+import { PhSky, type PhMood, type SkyInfo } from './phAssets';
 import { photoHallSeed, type PhotoHallProfile, type ReferenceLight } from './photoHallProfiles';
+import { getPhotoHallLighting, type PhotoHallLighting } from './photoHallLighting';
 
 type Vec3 = [number, number, number];
 
@@ -31,6 +32,8 @@ interface SkySetup {
   /** Direction towards the sun (need not be normalised) */
   sun: Vec3;
   sunColor: string;
+  sunDisc?: number;
+  diffuseCover?: number;
   /** 0 = clear sky, 1 = many clouds */
   clouds: number;
   cloudLit: string;
@@ -129,37 +132,49 @@ function moodSetup(theme: VenueTheme): MoodSetup {
 
 const REFERENCE_LIGHT = {
   clear: { mood: 'day', top: '#4b82bd', horizon: '#cad8e0', clouds: 0.29, key: '#fff4df', intensity: 2.35, fill: '#dae8f4', bounce: 0.82, haze: [60, 280], height: 34, bloom: 0.17 },
-  soft: { mood: 'day', top: '#a2b2c1', horizon: '#d5dcd9', clouds: 0.67, key: '#fff4e7', intensity: 1.42, fill: '#edf0ee', bounce: 1.03, haze: [52, 220], height: 29, bloom: 0.1 },
-  mist: { mood: 'day', top: '#9faeb8', horizon: '#d8dcd9', clouds: 0.73, key: '#eae8e1', intensity: 1.12, fill: '#e5ecea', bounce: 0.95, haze: [23, 142], height: 26, bloom: 0.12 },
-  golden: { mood: 'sunset', top: '#8b8092', horizon: '#efba91', clouds: 0.42, key: '#ffcd9b', intensity: 1.95, fill: '#bfc5db', bounce: 0.78, haze: [54, 240], height: 13, bloom: 0.24 },
-  twilight: { mood: 'sunset', top: '#3c4971', horizon: '#bc9d9d', clouds: 0.38, key: '#ffcea9', intensity: 0.74, fill: '#a3b4de', bounce: 0.83, haze: [58, 245], height: 18, bloom: 0.34 },
-  night: { mood: 'night', top: '#111725', horizon: '#2c3345', clouds: 0, key: '#bdc9ee', intensity: 0.62, fill: '#a4aaca', bounce: 0.59, haze: [60, 240], height: 31, bloom: 0.4 },
-  interior: { mood: 'indoor', top: '#483c37', horizon: '#8b7664', clouds: 0, key: '#ffedcf', intensity: 1.52, fill: '#f1dfc7', bounce: 1.02, haze: [60, 175], height: 21, bloom: 0.28 },
-  snow: { mood: 'day', top: '#879ebd', horizon: '#d0dce4', clouds: 0.55, key: '#fff5df', intensity: 1.71, fill: '#e0ecf5', bounce: 0.94, haze: [48, 267], height: 25, bloom: 0.17 },
+  soft: { mood: 'day', top: '#a4b4c3', horizon: '#d9dedf', clouds: 0.72, key: '#f8f1e6', intensity: 1.40, fill: '#e6edf0', bounce: 0.94, haze: [56, 236], height: 29, bloom: 0.1 },
+  mist: { mood: 'day', top: '#9faeb8', horizon: '#d8dcd9', clouds: 0.73, key: '#eae8e1', intensity: 1.12, fill: '#e5ecea', bounce: 0.95, haze: [28, 142], height: 26, bloom: 0.12 },
+  golden: { mood: 'sunset', top: '#778290', horizon: '#efbe96', clouds: 0.40, key: '#ffce9d', intensity: 1.66, fill: '#bfc7d6', bounce: 0.76, haze: [54, 240], height: 8, bloom: 0.24 },
+  twilight: { mood: 'sunset', top: '#4a5b87', horizon: '#bea5a7', clouds: 0.38, key: '#ffd3b2', intensity: 0.78, fill: '#a9bae0', bounce: 0.84, haze: [58, 245], height: 10, bloom: 0.34 },
+  night: { mood: 'night', top: '#101624', horizon: '#293349', clouds: 0, key: '#adbee6', intensity: 0.52, fill: '#a1acce', bounce: 0.61, haze: [60, 240], height: 31, bloom: 0.4 },
+  interior: { mood: 'indoor', top: '#483c37', horizon: '#8b7664', clouds: 0, key: '#fff0da', intensity: 1.10, fill: '#e8ded0', bounce: 0.79, haze: [60, 175], height: 22, bloom: 0.28 },
+  snow: { mood: 'day', top: '#6393bf', horizon: '#d6e5ed', clouds: 0.47, key: '#fff6e4', intensity: 2.05, fill: '#dce9fa', bounce: 0.91, haze: [75, 305], height: 29, bloom: 0.17 },
 } satisfies Record<ReferenceLight, {
   mood: VenueTheme['mood']; top: string; horizon: string; clouds: number; key: string; intensity: number;
   fill: string; bounce: number; haze: [number, number]; height: number; bloom: number;
 }>;
 
-function referenceSetup(theme: VenueTheme, reference: PhotoHallProfile): MoodSetup {
-  const light = REFERENCE_LIGHT[reference.light];
+function referenceSetup(theme: VenueTheme, reference: PhotoHallProfile, tuning?: PhotoHallLighting): MoodSetup {
+  const weather = tuning?.weather ?? reference.light;
+  const light = REFERENCE_LIGHT[weather];
   const base = moodSetup({ ...theme, mood: light.mood });
   const seed = photoHallSeed(theme.id);
   const azimuth = (seed % 29 - 14) * 0.033 + (seed % 2 ? -0.83 : 0.83);
-  const position: Vec3 = [Math.sin(azimuth) * 36, light.height, Math.cos(azimuth) * (reference.light === 'golden' ? -30 : 29)];
-  const horizon = mixHex(light.horizon, reference.palette.secondary, reference.light === 'night' ? 0.12 : 0.10);
+  const fallingSun = weather === 'golden' || weather === 'twilight';
+  const direction: Vec3 = [Math.sin(azimuth) * 36, light.height, Math.cos(azimuth) * (fallingSun ? -30 : 29)];
+  const [position, color, intensity] = tuning?.key ?? [direction, light.key, light.intensity];
+  const [top, horizon, clouds] = tuning?.sky ?? [light.top, light.horizon, light.clouds];
+  const [fill, bounce] = tuning?.fill ?? [light.fill, light.bounce];
+  const sunDisc = weather === 'clear' || weather === 'snow' ? 0.63 : weather === 'golden' ? 0.52 : 0;
+  const envIntensity = weather === 'interior' ? 0.54 : base.envIntensity * 0.69;
   return {
     ...base,
     sky: {
-      ...base.sky, top: light.top, horizon, clouds: light.clouds, sun: position,
-      sunColor: reference.light === 'golden' || reference.light === 'twilight' ? '#ffd8a5' : reference.light === 'night' || reference.light === 'interior' ? '#000000' : '#fff4d4',
-      cloudLit: mixHex('#f4efea', horizon, 0.28), cloudShade: mixHex('#94a3b7', horizon, 0.35),
+      ...base.sky, top, horizon, clouds, sun: position, sunDisc,
+      diffuseCover: Math.max(0, (clouds - 0.35) / 0.65),
+      sunColor: sunDisc ? color : weather === 'twilight' ? '#a87560' : '#000000',
+      cloudLit: mixHex('#f4efea', horizon, 0.25), cloudShade: mixHex('#94a3b7', top, 0.50),
     },
     fogColor: horizon,
-    sunLight: { position, color: light.key, intensity: light.intensity },
-    hemi: [light.fill, mixHex('#716a5f', reference.palette.shadow, 0.45), light.bounce],
-    envIntensity: reference.light === 'interior' ? 0.65 : base.envIntensity * 0.69,
-    warmFill: reference.light === 'night' ? 1.16 : base.warmFill,
+    sunLight: { position, color, intensity },
+    hemi: [fill, mixHex('#716a5f', reference.palette.shadow, 0.42), bounce],
+    envIntensity,
+    warmFill: weather === 'night' ? 0.82 : weather === 'interior' ? 0.54 : base.warmFill,
+    formers: base.formers.map((former) =>
+      weather === 'soft' || weather === 'mist' || weather === 'twilight'
+        ? { ...former, color: mixHex(former.color, fill, 0.65) }
+        : former,
+    ),
     bloom: light.bloom,
   };
 }
@@ -176,7 +191,9 @@ uniform vec3 uTop;
 uniform vec3 uHorizon;
 uniform vec3 uSun;
 uniform vec3 uSunColor;
+uniform float uSunDisc;
 uniform float uClouds;
+uniform float uDiffuseCover;
 uniform vec3 uCloudLit;
 uniform vec3 uCloudShade;
 varying vec3 vDir;
@@ -203,13 +220,14 @@ void main() {
   // Sun: wide warm halo, tighter glow, small disc bright enough to bloom
   float sd = max(dot(d, normalize(uSun)), 0.0);
   col += uSunColor * (pow(sd, 6.0) * 0.28 + pow(sd, 90.0) * 0.6);
-  col += uSunColor * smoothstep(0.9993, 0.9997, sd) * 2.5;
+  col += uSunColor * smoothstep(0.9993, 0.9997, sd) * (2.5 * uSunDisc);
 
   // Clouds on a flat layer overhead, thinning towards the horizon
   if (uClouds > 0.0 && h > 0.0) {
     vec2 uv = d.xz / (h + 0.15) * 1.4;
     float n = fbm(uv + vec2(3.1, 1.7));
-    float c = smoothstep(0.52, 0.8, n) * uClouds * smoothstep(0.0, 0.2, h);
+    float cloudEdge = mix(0.52, 0.29, uDiffuseCover);
+    float c = smoothstep(cloudEdge, cloudEdge + 0.28, n) * uClouds * smoothstep(0.0, 0.2, h);
     vec3 cloud = mix(uCloudShade, uCloudLit, smoothstep(0.55, 0.95, n)) + uSunColor * pow(sd, 5.0) * 0.35;
     col = mix(col, cloud, c);
   }
@@ -233,7 +251,9 @@ function GradientSky({ sky }: { sky: SkySetup }) {
           uHorizon: { value: new THREE.Color(sky.horizon) },
           uSun: { value: new THREE.Vector3(...sky.sun) },
           uSunColor: { value: new THREE.Color(sky.sunColor) },
+          uSunDisc: { value: sky.sunDisc ?? 1 },
           uClouds: { value: sky.clouds },
+          uDiffuseCover: { value: sky.diffuseCover ?? 0 },
           uCloudLit: { value: new THREE.Color(sky.cloudLit) },
           uCloudShade: { value: new THREE.Color(sky.cloudShade) },
         },
@@ -251,8 +271,10 @@ function GradientSky({ sky }: { sky: SkySetup }) {
 /** Sky, fog, sun with soft shadows, fill lights and image-based light for one venue */
 export function VenueAtmosphere({ theme, quality, reference }: { theme: VenueTheme; quality: 'high' | 'low'; reference?: PhotoHallProfile }) {
   const gardenLight = theme.id === GARDEN_VENUE;
+  const tuning = reference ? getPhotoHallLighting(theme.id) : undefined;
+  const weather = tuning?.weather ?? reference?.light;
   const setup = useMemo(() => {
-    if (reference) return referenceSetup(theme, reference);
+    if (reference) return referenceSetup(theme, reference, tuning);
     const base = moodSetup(theme);
     if (!gardenLight) return base;
     const daylight: Vec3 = [-8, 23, 10];
@@ -264,29 +286,38 @@ export function VenueAtmosphere({ theme, quality, reference }: { theme: VenueThe
       hemi: ['#e4ebf2', '#93a088', 0.95] as MoodSetup['hemi'],
       envIntensity: 0.70,
     };
-  }, [theme, gardenLight, reference]);
-  const mood = reference ? REFERENCE_LIGHT[reference.light].mood : theme.mood;
-  const hdri = useVenueHdri(mood, quality === 'high');
+  }, [theme, gardenLight, reference, tuning]);
+  const mood = weather ? REFERENCE_LIGHT[weather].mood : theme.mood;
   const farScenery = theme.kits.b.length > 0;
-  // Haze only in the distance: the ground melts into the horizon colour, the hall stays crisp
-  const fogRange: [number, number] = reference ? REFERENCE_LIGHT[reference.light].haze : gardenLight ? [38, 132] : farScenery ? [58, 237] : [52, 186];
+  const fogRange: [number, number] = tuning?.haze ??
+    (weather ? REFERENCE_LIGHT[weather].haze : gardenLight ? [38, 132] : farScenery ? [58, 237] : [52, 186]);
 
-  // Outdoors, the sky is a real photograph; it tells us where its sun is and what colour
-  // its horizon haze is, so shadows and fog agree with the picture
-  // (Phones keep the painted sky: the photograph is a 4–5 MB download)
-  // Night keeps the painted starry sky: the night photograph reads as a pale dusk on screen
-  // Outdoors, the sky is a real 2K photograph (Poly Haven HDRI); it tells us where its sun is
-  // and what colour its horizon haze is, so shadows and fog agree with the picture.
-  const photoSky = !gardenLight && quality === 'high' && (mood === 'day' || mood === 'sunset') && !IS_HANDHELD;
-  const [sky, setSky] = useState<SkyInfo | null>(null);
-  const onSky = useCallback((info: SkyInfo | null) => setSky(info), []);
-  useEffect(() => setSky(null), [mood, photoSky]);
-  const fogColor = sky ? mixHex(`#${sky.horizon.getHexString()}`, setup.fogColor, 0.16) : setup.fogColor;
-  // Tells the thumbnail renderer the lighting is final (sky photo / environment loaded, or not used)
+  // The two existing panoramas are sunny afternoon and warm sunset. Cloudy locations and
+  // blue-hour photos use their own sky and soft reflection cards in both quality tiers.
+  const matchesPanorama = !reference || (weather === 'clear' && !tuning?.sky);
+  const photoSkyMood: PhMood | null =
+    matchesPanorama && !gardenLight && !IS_HANDHELD && quality === 'high' && (mood === 'day' || mood === 'sunset')
+      ? mood
+      : null;
+  const useHdrEnvironment = quality === 'high' && !photoSkyMood &&
+    (!reference || weather === 'clear' || weather === 'interior' || weather === 'night');
+  const hdri = useVenueHdri(mood, useHdrEnvironment);
+  const [panorama, setPanorama] = useState<{ mood: PhMood; info: SkyInfo } | null>(null);
+  const onSky = useCallback((info: SkyInfo | null) => {
+    setPanorama(info && photoSkyMood ? { mood: photoSkyMood, info } : null);
+  }, [photoSkyMood]);
+  const sky = panorama?.mood === photoSkyMood ? panorama.info : null;
+  const fogColor = sky ? mixHex(`#${sky.horizon.getHexString()}`, setup.fogColor, 0.26) : setup.fogColor;
   useEffect(() => {
-    (window as unknown as { __venueEnvReady?: boolean }).__venueEnvReady = quality !== 'high' || (photoSky ? Boolean(sky) : Boolean(hdri));
-  }, [hdri, sky, photoSky, quality]);
+    (window as unknown as { __venueEnvReady?: boolean }).__venueEnvReady =
+      photoSkyMood ? Boolean(sky) : !useHdrEnvironment || Boolean(hdri);
+  }, [hdri, sky, photoSkyMood, useHdrEnvironment]);
   const sunPosition: Vec3 = sky?.sun ? [sky.sun.x * 60, sky.sun.y * 60, sky.sun.z * 60] : setup.sunLight.position;
+  const showStars = mood === 'night' && (!reference || theme.id === 'fi_lapland');
+  const practical = tuning?.practical ??
+    (weather === 'interior' ? [[-4, 5.1, -8], '#ffe4be', 32] as const : undefined);
+  const usePractical = Boolean(practical && quality === 'high' && !IS_HANDHELD);
+  const warmBounce = setup.warmFill * 0.45 + (practical && !usePractical ? 0.08 : 0);
 
   const proceduralSky = (
     <>
@@ -321,19 +352,19 @@ export function VenueAtmosphere({ theme, quality, reference }: { theme: VenueThe
     <>
       <color attach="background" args={[fogColor]} />
       <fog attach="fog" args={[fogColor, fogRange[0], fogRange[1]]} />
-      {photoSky ? (
-        <PhSky mood={mood as 'day' | 'sunset' | 'night'} intensity={setup.envIntensity * 1.1} fallback={proceduralSky} onSky={onSky} />
+      {photoSkyMood ? (
+        <PhSky mood={photoSkyMood} intensity={setup.envIntensity * 1.1} fallback={proceduralSky} onSky={onSky} />
       ) : (
         proceduralSky
       )}
-      {mood === 'night' && !sky && <Stars radius={160} depth={60} count={quality === 'high' ? 3000 : 900} factor={reference ? 2.4 : 5} saturation={0.2} fade speed={0.4} />}
+      {showStars && <Stars radius={160} depth={60} count={quality === 'high' ? 3000 : 900} factor={reference ? 2.4 : 5} saturation={0.2} fade speed={0.4} />}
 
       <hemisphereLight args={setup.hemi} />
       <directionalLight
         position={sunPosition}
         color={setup.sunLight.color}
         intensity={setup.sunLight.intensity}
-        castShadow={quality === 'high' && reference?.light !== 'interior'}
+        castShadow={quality === 'high' && weather !== 'interior'}
         shadow-mapSize-width={IS_HANDHELD ? 1024 : 2048}
         shadow-mapSize-height={IS_HANDHELD ? 1024 : 2048}
         shadow-camera-left={-25}
@@ -347,7 +378,10 @@ export function VenueAtmosphere({ theme, quality, reference }: { theme: VenueThe
       />
       {/* Warm bounce from lanterns and candles: a soft hemisphere, not a point light — an
           invisible point light leaves a bright reflection on lacquered floors with no lamp */}
-      {setup.warmFill > 0 && <hemisphereLight args={['#ffd59a', '#2a1c12', setup.warmFill * 0.45]} />}
+      {warmBounce > 0 && <hemisphereLight args={['#ffd59a', '#2a1c12', warmBounce]} />}
+      {practical && usePractical && (
+        <pointLight position={[...practical[0]]} color={practical[1]} intensity={practical[2]} distance={18} decay={2} />
+      )}
     </>
   );
 }
@@ -517,18 +551,18 @@ const HDRI_LOADERS: Record<VenueTheme['mood'], () => Promise<{ default: string }
 };
 
 function useVenueHdri(mood: VenueTheme['mood'], enabled: boolean): string | undefined {
-  const [url, setUrl] = useState<string>();
+  const [asset, setAsset] = useState<{ mood: VenueTheme['mood']; url: string }>();
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
     HDRI_LOADERS[mood]()
-      .then((m) => alive && setUrl(m.default))
+      .then((m) => alive && setAsset({ mood, url: m.default }))
       .catch(() => undefined);
     return () => {
       alive = false;
     };
   }, [mood, enabled]);
-  return url;
+  return enabled && asset?.mood === mood ? asset.url : undefined;
 }
 
 /** Drops to low quality when the device cannot hold ~28 fps (used where no player rig runs) */
@@ -551,5 +585,6 @@ export function FpsGuard({ onLowFps }: { onLowFps: (low: boolean) => void }) {
 }
 
 export function bloomStrength(theme: VenueTheme, reference?: PhotoHallProfile): number {
-  return reference ? REFERENCE_LIGHT[reference.light].bloom : moodSetup(theme).bloom;
+  const weather = reference && (getPhotoHallLighting(theme.id)?.weather ?? reference.light);
+  return weather ? REFERENCE_LIGHT[weather].bloom : moodSetup(theme).bloom;
 }

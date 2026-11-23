@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { PhotoArchitecture } from './photoArchitecture';
 import { PhotoTerrain, samplePhotoTerrainHeight } from './photoTerrain';
 import { PhotoVegetation } from './photoVegetation';
+import { DrombegStoneCircle } from './PhotoRockOutcrops';
 import { photoHallSeed, type PhotoHallProfile } from './photoHallProfiles';
 import { painted, wood } from './realMaterials';
 import { InstancedSet } from './realProps';
@@ -197,6 +198,7 @@ export function PhotoHallSurroundings({ variant, profile }: { variant: string; p
       {terrain && <PhotoTerrain style={terrain} seed={seed} variant={variant} palette={palette} />}
       {architecture && <PhotoArchitecture style={architecture} seed={seed} variant={variant} palette={palette} />}
       {plants && <PhotoVegetation style={plants} seed={seed} variant={variant} palette={palette} groundHeight={groundHeight} />}
+      {variant === 'ie_celtic' && <DrombegStoneCircle seed={seed} ground={groundHeight} />}
       {landmark && <PhotoLandmarks style={landmark} ground={groundHeight} />}
     </group>
   );

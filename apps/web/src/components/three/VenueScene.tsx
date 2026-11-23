@@ -248,227 +248,227 @@ const CameraRigAndController: React.FC<{
     const wantCam = useMemo(() => new THREE.Vector3(), []);
 
     useEffect(() => {
-        if (!localPlayer) return;
-        if (!localPosRef.current.initialized) {
-          localPosRef.current.x = localPlayer.x;
-          localPosRef.current.z = localPlayer.z;
-          localPosRef.current.rotY = localPlayer.rotY;
-          localPosRef.current.initialized = true;
-          if (controlsRef.current) {
-            controlsRef.current.target.set(localPlayer.x, 1.2, localPlayer.z);
-            camera.position.set(localPlayer.x, enclosed ? 4.8 : 8.5, localPlayer.z + 7.5);
-            controlsRef.current.update();
-          }
-          return;
+      if (!localPlayer) return;
+      if (!localPosRef.current.initialized) {
+        localPosRef.current.x = localPlayer.x;
+        localPosRef.current.z = localPlayer.z;
+        localPosRef.current.rotY = localPlayer.rotY;
+        localPosRef.current.initialized = true;
+        if (controlsRef.current) {
+          controlsRef.current.target.set(localPlayer.x, 1.2, localPlayer.z);
+          camera.position.set(localPlayer.x, enclosed ? 4.8 : 8.5, localPlayer.z + 7.5);
+          controlsRef.current.update();
         }
-    const drift = Math.hypot(
-      localPlayer.x - localPosRef.current.x,
-      localPlayer.z - localPosRef.current.z
-    );
-    if (localPlayer.seatedTableNo >= 0 || drift > 4.5) {
-      localPosRef.current.x = localPlayer.x;
-      localPosRef.current.z = localPlayer.z;
-      localPosRef.current.rotY = localPlayer.rotY;
-      localPosRef.current.isMoving = false;
-    }
-  }, [
-    localPlayer,
-    localPlayer?.seatedTableNo,
-    localPlayer?.x,
-    localPlayer?.z,
-    localPlayer?.rotY,
-    localPosRef,
-    camera,
-    enclosed,
-  ]);
+        return;
+      }
+      const drift = Math.hypot(
+        localPlayer.x - localPosRef.current.x,
+        localPlayer.z - localPosRef.current.z
+      );
+      if (localPlayer.seatedTableNo >= 0 || drift > 4.5) {
+        localPosRef.current.x = localPlayer.x;
+        localPosRef.current.z = localPlayer.z;
+        localPosRef.current.rotY = localPlayer.rotY;
+        localPosRef.current.isMoving = false;
+      }
+    }, [
+      localPlayer,
+      localPlayer?.seatedTableNo,
+      localPlayer?.x,
+      localPlayer?.z,
+      localPlayer?.rotY,
+      localPosRef,
+      camera,
+      enclosed,
+    ]);
 
-useEffect(() => {
-  if (!registerCaptureFn) return;
-  registerCaptureFn(() => {
-    gl.render(scene, camera);
-    return gl.domElement.toDataURL('image/png');
-  });
-}, [gl, scene, camera, registerCaptureFn]);
+    useEffect(() => {
+      if (!registerCaptureFn) return;
+      registerCaptureFn(() => {
+        gl.render(scene, camera);
+        return gl.domElement.toDataURL('image/png');
+      });
+    }, [gl, scene, camera, registerCaptureFn]);
 
-useEffect(() => {
-  const clearKeys = () => keys.current.clear();
-  const onDown = (e: KeyboardEvent) => {
-    if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
-    keys.current.add(e.key.toLowerCase());
-  };
-  const onUp = (e: KeyboardEvent) => keys.current.delete(e.key.toLowerCase());
-  window.addEventListener('keydown', onDown);
-  window.addEventListener('keyup', onUp);
-  window.addEventListener('blur', clearKeys);
-  document.addEventListener('visibilitychange', clearKeys);
-  return () => {
-    window.removeEventListener('keydown', onDown);
-    window.removeEventListener('keyup', onUp);
-    window.removeEventListener('blur', clearKeys);
-    document.removeEventListener('visibilitychange', clearKeys);
-    setPointerCursor(false);
-  };
-}, []);
+    useEffect(() => {
+      const clearKeys = () => keys.current.clear();
+      const onDown = (e: KeyboardEvent) => {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
+        keys.current.add(e.key.toLowerCase());
+      };
+      const onUp = (e: KeyboardEvent) => keys.current.delete(e.key.toLowerCase());
+      window.addEventListener('keydown', onDown);
+      window.addEventListener('keyup', onUp);
+      window.addEventListener('blur', clearKeys);
+      document.addEventListener('visibilitychange', clearKeys);
+      return () => {
+        window.removeEventListener('keydown', onDown);
+        window.removeEventListener('keyup', onUp);
+        window.removeEventListener('blur', clearKeys);
+        document.removeEventListener('visibilitychange', clearKeys);
+        setPointerCursor(false);
+      };
+    }, []);
 
-useFrame((_, delta) => {
-  frameStats.current.count += 1;
-  frameStats.current.elapsed += delta;
-  if (frameStats.current.elapsed >= 3.0) {
-    const fps = frameStats.current.count / frameStats.current.elapsed;
-    const shouldDegrade = fps < 28;
-    if (shouldDegrade !== frameStats.current.low) {
-      frameStats.current.low = shouldDegrade;
-      onFpsDrop(shouldDegrade);
-    }
-    frameStats.current.count = 0;
-    frameStats.current.elapsed = 0;
-  }
+    useFrame((_, delta) => {
+      frameStats.current.count += 1;
+      frameStats.current.elapsed += delta;
+      if (frameStats.current.elapsed >= 3.0) {
+        const fps = frameStats.current.count / frameStats.current.elapsed;
+        const shouldDegrade = fps < 28;
+        if (shouldDegrade !== frameStats.current.low) {
+          frameStats.current.low = shouldDegrade;
+          onFpsDrop(shouldDegrade);
+        }
+        frameStats.current.count = 0;
+        frameStats.current.elapsed = 0;
+      }
 
-  const safeDelta = Math.min(delta, 0.05);
-  let vx = joystickInput.dx;
-  let vz = joystickInput.dz;
-  if (keys.current.has('w') || keys.current.has('arrowup')) vz -= 1;
-  if (keys.current.has('s') || keys.current.has('arrowdown')) vz += 1;
-  if (keys.current.has('a') || keys.current.has('arrowleft')) vx -= 1;
-  if (keys.current.has('d') || keys.current.has('arrowright')) vx += 1;
+      const safeDelta = Math.min(delta, 0.05);
+      let vx = joystickInput.dx;
+      let vz = joystickInput.dz;
+      if (keys.current.has('w') || keys.current.has('arrowup')) vz -= 1;
+      if (keys.current.has('s') || keys.current.has('arrowdown')) vz += 1;
+      if (keys.current.has('a') || keys.current.has('arrowleft')) vx -= 1;
+      if (keys.current.has('d') || keys.current.has('arrowright')) vx += 1;
 
-  const speed = 4.8;
-  let isMoving = false;
-  const prevX = localPosRef.current.x;
-  const prevZ = localPosRef.current.z;
+      const speed = 4.8;
+      let isMoving = false;
+      const prevX = localPosRef.current.x;
+      const prevZ = localPosRef.current.z;
 
-  if (Math.abs(vx) > 0.05 || Math.abs(vz) > 0.05) {
-    targetPath.current = [];
-    onArriveClickMarker();
+      if (Math.abs(vx) > 0.05 || Math.abs(vz) > 0.05) {
+        targetPath.current = [];
+        onArriveClickMarker();
 
-    // Camera-relative horizontal forward/right on XZ plane
-    camera.getWorldDirection(camDirVec);
-    camDirVec.y = 0;
-    if (camDirVec.lengthSq() < 1e-6) camDirVec.set(0, 0, -1);
-    camDirVec.normalize();
-    const rightX = -camDirVec.z;
-    const rightZ = camDirVec.x;
+        // Camera-relative horizontal forward/right on XZ plane
+        camera.getWorldDirection(camDirVec);
+        camDirVec.y = 0;
+        if (camDirVec.lengthSq() < 1e-6) camDirVec.set(0, 0, -1);
+        camDirVec.normalize();
+        const rightX = -camDirVec.z;
+        const rightZ = camDirVec.x;
 
-    const rawMoveX = rightX * vx + camDirVec.x * -vz;
-    const rawMoveZ = rightZ * vx + camDirVec.z * -vz;
-    const len = Math.hypot(rawMoveX, rawMoveZ) || 1;
-    const stepX = (rawMoveX / len) * speed * safeDelta;
-    const stepZ = (rawMoveZ / len) * speed * safeDelta;
+        const rawMoveX = rightX * vx + camDirVec.x * -vz;
+        const rawMoveZ = rightZ * vx + camDirVec.z * -vz;
+        const len = Math.hypot(rawMoveX, rawMoveZ) || 1;
+        const stepX = (rawMoveX / len) * speed * safeDelta;
+        const stepZ = (rawMoveZ / len) * speed * safeDelta;
 
-    const nx = localPosRef.current.x + stepX;
-    const nz = localPosRef.current.z + stepZ;
-    const canX = grid[Math.max(0, Math.min(59, Math.floor((localPosRef.current.z + 15) / 0.5)))]?.[
-      Math.max(0, Math.min(59, Math.floor((nx + 15) / 0.5)))
-    ];
-    const canZ = grid[Math.max(0, Math.min(59, Math.floor((nz + 15) / 0.5)))]?.[
-      Math.max(0, Math.min(59, Math.floor((localPosRef.current.x + 15) / 0.5)))
-    ];
-    if (canX) localPosRef.current.x = Math.max(-14.2, Math.min(14.2, nx));
-    if (canZ) localPosRef.current.z = Math.max(-14.2, Math.min(14.2, nz));
-    localPosRef.current.rotY = Math.atan2(rawMoveX, rawMoveZ);
-    isMoving = true;
-  } else if (targetPath.current.length > 0) {
-    const wp = targetPath.current[0];
-    const dx = wp.x - localPosRef.current.x;
-    const dz = wp.z - localPosRef.current.z;
-    const dist = Math.hypot(dx, dz);
-      if (dist < 0.2) {
-        targetPath.current.shift();
-        if (targetPath.current.length === 0) onArriveClickMarker();
-      } else {
-        localPosRef.current.x += (dx / dist) * speed * safeDelta;
-        localPosRef.current.z += (dz / dist) * speed * safeDelta;
-        localPosRef.current.rotY = Math.atan2(dx, dz);
+        const nx = localPosRef.current.x + stepX;
+        const nz = localPosRef.current.z + stepZ;
+        const canX = grid[Math.max(0, Math.min(59, Math.floor((localPosRef.current.z + 15) / 0.5)))]?.[
+          Math.max(0, Math.min(59, Math.floor((nx + 15) / 0.5)))
+        ];
+        const canZ = grid[Math.max(0, Math.min(59, Math.floor((nz + 15) / 0.5)))]?.[
+          Math.max(0, Math.min(59, Math.floor((localPosRef.current.x + 15) / 0.5)))
+        ];
+        if (canX) localPosRef.current.x = Math.max(-14.2, Math.min(14.2, nx));
+        if (canZ) localPosRef.current.z = Math.max(-14.2, Math.min(14.2, nz));
+        localPosRef.current.rotY = Math.atan2(rawMoveX, rawMoveZ);
         isMoving = true;
-      }
-    }
-
-    localPosRef.current.isMoving = isMoving;
-
-    // Camera moves rigidly with the avatar: both use the same per-frame position, so the
-    // avatar stays perfectly still on screen instead of swimming against a lagging target
-    const movedX = localPosRef.current.x - prevX;
-    const movedZ = localPosRef.current.z - prevZ;
-    if (controlsRef.current) {
-      const target = controlsRef.current.target as THREE.Vector3;
-      const offX = localPosRef.current.x - target.x;
-      const offZ = localPosRef.current.z - target.z;
-      // Close the gap left by a server snap smoothly; otherwise follow exactly
-      const catchUp = Math.abs(offX - movedX) + Math.abs(offZ - movedZ) > 0.01 ? 1 - Math.exp(-safeDelta * 8) : 1;
-      const stepX = movedX + (offX - movedX) * catchUp;
-      const stepZ = movedZ + (offZ - movedZ) * catchUp;
-      target.x += stepX;
-      target.z += stepZ;
-      if (!preShowOffset.current) target.y = 1.2;
-      camera.position.x += stepX;
-      camera.position.z += stepZ;
-
-      // Fireworks: turn to face the sky over the stage, low and looking up, then come back
-      const focus = focusRef?.current;
-      const px = localPosRef.current.x;
-      const pz = localPosRef.current.z;
-      if (focus?.active) {
-        if (!preShowOffset.current) {
-          preShowOffset.current = camera.position.clone().sub(target);
-          controlsRef.current.maxPolarAngle = Math.PI * 0.72;
-          controlsRef.current.minDistance = 3;
-        }
-        let dx = focus.x - px;
-        let dz = focus.z - pz;
-        const d = Math.hypot(dx, dz) || 1;
-        dx /= d;
-        dz /= d;
-        const lookAhead = enclosed ? Math.min(4, d) : 4;
-        wantTarget.set(px + dx * lookAhead, Math.min(5.2, focus.y), pz + dz * lookAhead);
-        wantCam.set(px - dx * 5.2, 2.3, pz - dz * 5.2);
-        const k = 1 - Math.exp(-safeDelta * 2.2);
-        target.lerp(wantTarget, k);
-        camera.position.lerp(wantCam, k);
-      } else if (preShowOffset.current) {
-        wantTarget.set(px, 1.2, pz);
-        wantCam.copy(wantTarget).add(preShowOffset.current);
-        if (enclosed) constrainHallCamera(wantCam, wantTarget);
-        const k = 1 - Math.exp(-safeDelta * 2.6);
-        target.lerp(wantTarget, k);
-        camera.position.lerp(wantCam, k);
-        if (camera.position.distanceTo(wantCam) < 0.05 && target.distanceTo(wantTarget) < 0.05) {
-          target.copy(wantTarget);
-          camera.position.copy(wantCam);
-          preShowOffset.current = null;
-          controlsRef.current.maxPolarAngle = Math.PI * 0.44;
-          controlsRef.current.minDistance = enclosed ? 2.4 : 4.5;
+      } else if (targetPath.current.length > 0) {
+        const wp = targetPath.current[0];
+        const dx = wp.x - localPosRef.current.x;
+        const dz = wp.z - localPosRef.current.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist < 0.2) {
+          targetPath.current.shift();
+          if (targetPath.current.length === 0) onArriveClickMarker();
+        } else {
+          localPosRef.current.x += (dx / dist) * speed * safeDelta;
+          localPosRef.current.z += (dz / dist) * speed * safeDelta;
+          localPosRef.current.rotY = Math.atan2(dx, dz);
+          isMoving = true;
         }
       }
-      if (focus?.active || preShowOffset.current) {
-        controlsRef.current.update();
+
+      localPosRef.current.isMoving = isMoving;
+
+      // Camera moves rigidly with the avatar: both use the same per-frame position, so the
+      // avatar stays perfectly still on screen instead of swimming against a lagging target
+      const movedX = localPosRef.current.x - prevX;
+      const movedZ = localPosRef.current.z - prevZ;
+      if (controlsRef.current) {
+        const target = controlsRef.current.target as THREE.Vector3;
+        const offX = localPosRef.current.x - target.x;
+        const offZ = localPosRef.current.z - target.z;
+        // Close the gap left by a server snap smoothly; otherwise follow exactly
+        const catchUp = Math.abs(offX - movedX) + Math.abs(offZ - movedZ) > 0.01 ? 1 - Math.exp(-safeDelta * 8) : 1;
+        const stepX = movedX + (offX - movedX) * catchUp;
+        const stepZ = movedZ + (offZ - movedZ) * catchUp;
+        target.x += stepX;
+        target.z += stepZ;
+        if (!preShowOffset.current) target.y = 1.2;
+        camera.position.x += stepX;
+        camera.position.z += stepZ;
+
+        // Fireworks: turn to face the sky over the stage, low and looking up, then come back
+        const focus = focusRef?.current;
+        const px = localPosRef.current.x;
+        const pz = localPosRef.current.z;
+        if (focus?.active) {
+          if (!preShowOffset.current) {
+            preShowOffset.current = camera.position.clone().sub(target);
+            controlsRef.current.maxPolarAngle = Math.PI * 0.72;
+            controlsRef.current.minDistance = 3;
+          }
+          let dx = focus.x - px;
+          let dz = focus.z - pz;
+          const d = Math.hypot(dx, dz) || 1;
+          dx /= d;
+          dz /= d;
+          const lookAhead = enclosed ? Math.min(4, d) : 4;
+          wantTarget.set(px + dx * lookAhead, Math.min(5.2, focus.y), pz + dz * lookAhead);
+          wantCam.set(px - dx * 5.2, 2.3, pz - dz * 5.2);
+          const k = 1 - Math.exp(-safeDelta * 2.2);
+          target.lerp(wantTarget, k);
+          camera.position.lerp(wantCam, k);
+        } else if (preShowOffset.current) {
+          wantTarget.set(px, 1.2, pz);
+          wantCam.copy(wantTarget).add(preShowOffset.current);
+          if (enclosed) constrainHallCamera(wantCam, wantTarget);
+          const k = 1 - Math.exp(-safeDelta * 2.6);
+          target.lerp(wantTarget, k);
+          camera.position.lerp(wantCam, k);
+          if (camera.position.distanceTo(wantCam) < 0.05 && target.distanceTo(wantTarget) < 0.05) {
+            target.copy(wantTarget);
+            camera.position.copy(wantCam);
+            preShowOffset.current = null;
+            controlsRef.current.maxPolarAngle = Math.PI * 0.44;
+            controlsRef.current.minDistance = enclosed ? 2.4 : 4.5;
+          }
+        }
+        if (focus?.active || preShowOffset.current) {
+          controlsRef.current.update();
+        }
+        if (enclosed) constrainHallCamera(camera.position, target);
+        camera.updateMatrixWorld();
       }
-      if (enclosed) constrainHallCamera(camera.position, target);
-      camera.updateMatrixWorld();
-    }
 
-    const now = performance.now();
-    if (isMoving && now - lastEmitTs.current >= 100) {
-      lastEmitTs.current = now;
-      wasMovingRef.current = true;
-      onMove(localPosRef.current.x, localPosRef.current.z, localPosRef.current.rotY, true);
-    } else if (!isMoving && wasMovingRef.current) {
-      wasMovingRef.current = false;
-      onMove(localPosRef.current.x, localPosRef.current.z, localPosRef.current.rotY, false);
-    }
-  });
+      const now = performance.now();
+      if (isMoving && now - lastEmitTs.current >= 100) {
+        lastEmitTs.current = now;
+        wasMovingRef.current = true;
+        onMove(localPosRef.current.x, localPosRef.current.z, localPosRef.current.rotY, true);
+      } else if (!isMoving && wasMovingRef.current) {
+        wasMovingRef.current = false;
+        onMove(localPosRef.current.x, localPosRef.current.z, localPosRef.current.rotY, false);
+      }
+    });
 
-return (
-  <OrbitControls
-    ref={controlsRef}
-    enablePan={false}
-    enableDamping
-    dampingFactor={0.09}
-    minDistance={enclosed ? 2.4 : 4.5}
-    maxDistance={enclosed ? 13 : 21}
-    minPolarAngle={Math.PI * (enclosed ? 0.37 : 0.16)}
-    maxPolarAngle={Math.PI * 0.44}
-  />
-);
+    return (
+      <OrbitControls
+        ref={controlsRef}
+        enablePan={false}
+        enableDamping
+        dampingFactor={0.09}
+        minDistance={enclosed ? 2.4 : 4.5}
+        maxDistance={enclosed ? 13 : 21}
+        minPolarAngle={Math.PI * (enclosed ? 0.37 : 0.16)}
+        maxPolarAngle={Math.PI * 0.44}
+      />
+    );
   };
 
 const AmbientPetals: React.FC<{ lowQuality: boolean; templateId: string }> = ({
@@ -1195,250 +1195,249 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
     return map;
   }, [layout]);
 
-      const navigateToWorld = useCallback(
-        (destX: number, destZ: number) => {
-          const lp = localPlayerRef.current;
-          const start = localPosRef.current.initialized
-            ? { x: localPosRef.current.x, z: localPosRef.current.z }
-            : lp
-              ? { x: lp.x, z: lp.z }
-              : { x: 0, z: 10 };
-          const path = findGridPathAStar(grid, start, { x: destX, z: destZ });
-          if (path.length > 0) {
-            targetPath.current = path;
-            const last = path[path.length - 1];
-            setClickMarker(last);
-          }
-        },
-        [grid]
-      );
+  const navigateToWorld = useCallback(
+    (destX: number, destZ: number) => {
+      const lp = localPlayerRef.current;
+      const start = localPosRef.current.initialized
+        ? { x: localPosRef.current.x, z: localPosRef.current.z }
+          : lp
+            ? { x: lp.x, z: lp.z }
+            : { x: 0, z: 10 };
+      const path = findGridPathAStar(grid, start, { x: destX, z: destZ });
+      if (path.length > 0) {
+        targetPath.current = path;
+        const last = path[path.length - 1];
+        setClickMarker(last);
+      }
+    },
+    [grid]
+  );
 
-      useEffect(() => {
-        if (!waypointTarget || lastWaypointKeyRef.current === waypointTarget.key) return;
-        lastWaypointKeyRef.current = waypointTarget.key;
-        navigateToWorld(waypointTarget.x, waypointTarget.z);
-      }, [waypointTarget, navigateToWorld]);
+  useEffect(() => {
+    if (!waypointTarget || lastWaypointKeyRef.current === waypointTarget.key) return;
+    lastWaypointKeyRef.current = waypointTarget.key;
+    navigateToWorld(waypointTarget.x, waypointTarget.z);
+  }, [waypointTarget, navigateToWorld]);
 
-      const handleFloorClick = useCallback(
-        (point: THREE.Vector3) => {
-          navigateToWorld(point.x, point.z);
-        },
-        [navigateToWorld]
-      );
+  const handleFloorClick = useCallback(
+    (point: THREE.Vector3) => {
+      navigateToWorld(point.x, point.z);
+    },
+    [navigateToWorld]
+  );
 
-      return (
-        <div className="relative h-full w-full">
-          <SceneLabelsContext.Provider value={!isPreview}>
-          <Canvas
-            shadows={lowQuality ? false : qualityPreset === 'high' ? 'soft' : true}
-            dpr={lowQuality ? 1 : qualityPreset === 'high' ? [1, 1.75] : [1, 1.25]}
-            camera={{
-              position: isPreview ? previewPosition : [0, 8.5, 17.5],
-              fov: photoComposition ? 36 : 50,
-              near: 0.1,
-              far: 2000,
+  return (
+    <div className="relative h-full w-full">
+      <SceneLabelsContext.Provider value={!isPreview}>
+        <Canvas
+          shadows={lowQuality ? false : qualityPreset === 'high' ? 'soft' : true}
+          dpr={lowQuality ? 1 : qualityPreset === 'high' ? [1, 1.75] : [1, 1.25]}
+          camera={{
+            position: isPreview ? previewPosition : [0, 8.5, 17.5],
+            fov: photoComposition ? 36 : 50,
+            near: 0.1,
+            far: 2000,
+          }}
+          gl={{ preserveDrawingBuffer: true, antialias: !lowQuality, powerPreference: 'high-performance' }}
+        >
+          {/* Sky, sun with soft shadows, fill and image-based light */}
+          <RendererSetup exposure={(photoHall ? photoHall.light === 'night' || photoHall.light === 'twilight' : theme.mood === 'night') ? 1.15 : 1.05} />
+          {/* Run CameraRigAndController FIRST before all PrefabMesh & HumanAvatar so every 3D mesh and <Html> label projects with the exact same frame's camera matrix */}
+          {!isPreview && (
+            <CameraRigAndController
+              grid={grid}
+              localPlayer={localPlayer}
+              localPosRef={localPosRef}
+              joystickInput={props.joystickInput}
+              targetPath={targetPath}
+              onArriveClickMarker={() => setClickMarker(null)}
+              onMove={props.onMove}
+              onFpsDrop={setAutoLowQuality}
+              enclosed={enclosed}
+              registerCaptureFn={props.registerCaptureFn}
+              focusRef={fireworksFocusRef}
+            />
+          )}
+          <VenueAtmosphere theme={theme} quality={lowQuality ? 'low' : 'high'} reference={photoHall} />
+          <ShadowCasters enabled={!lowQuality} />
+          {!lowQuality && (qualityPreset === 'high' || (isPreview && props.previewAutoRotate === false)) && (
+            <PostFX strength={photoComposition ? 0.12 : bloomStrength(theme, photoHall)} ambientOcclusion={!photoComposition && qualityPreset === 'high'} />
+          )}
+          {/* Monitor FPS in live hall and auto-preview so slower GPUs drop to light mode automatically */}
+          {qualityPreset === 'auto' && !(isPreview && props.previewAutoRotate === false) && <FpsGuard onLowFps={setAutoLowQuality} />}
+          {isPreview && props.previewAutoRotate === false && <FrameProbe orbit={previewOrbit} />}
+
+          <VenueEnvironment theme={theme} photoComposition={photoComposition} reference={photoHall} />
+          {props.splatUrl && <Splat src={props.splatUrl} position={[0, 0, 0]} scale={1} />}
+          {photoComposition ? <><GardenCameraFraming /><GardenCeremony /></> : <AmbientPetals lowQuality={lowQuality} templateId={layout.templateId} />}
+
+          {/* Keep furniture grounded if Auto drops the live shadow map. This map bakes once. */}
+          {!photoComposition && (!lowQuality || (photoHall && qualityPreset === 'auto')) && (
+            <ContactShadows
+              position={[0, 0.004, 0]}
+              opacity={theme.mood === 'night' || theme.mood === 'indoor' ? 0.48 : 0.36}
+              scale={32}
+              blur={1.9}
+              far={4.2}
+              resolution={photoHall && qualityPreset === 'auto' ? 128 : 256}
+              color={theme.mood === 'night' ? '#09080c' : '#261e18'}
+              frames={1}
+            />
+          )}
+
+          {/* 30m x 30m Hall Floor */}
+          <mesh
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={[0, 0, 0]}
+            userData={{ noCastShadow: terrainFloor }}
+            onClick={(e) => {
+              if (isPreview) return;
+              e.stopPropagation();
+              handleFloorClick(e.point);
             }}
-            gl={{ preserveDrawingBuffer: true, antialias: !lowQuality, powerPreference: 'high-performance' }}
           >
-            {/* Sky, sun with soft shadows, fill and image-based light */}
-            <RendererSetup exposure={(photoHall ? photoHall.light === 'night' || photoHall.light === 'twilight' : theme.mood === 'night') ? 1.15 : 1.05} />
-            {/* Run CameraRigAndController FIRST before all PrefabMesh & HumanAvatar so every 3D mesh and <Html> label projects with the exact same frame's camera matrix */}
-            {!isPreview && (
-              <CameraRigAndController
-                grid={grid}
-                localPlayer={localPlayer}
-                localPosRef={localPosRef}
-                joystickInput={props.joystickInput}
-                targetPath={targetPath}
-                onArriveClickMarker={() => setClickMarker(null)}
-                onMove={props.onMove}
-                onFpsDrop={setAutoLowQuality}
-                enclosed={enclosed}
-                registerCaptureFn={props.registerCaptureFn}
-                focusRef={fireworksFocusRef}
-              />
-            )}
-            <VenueAtmosphere theme={theme} quality={lowQuality ? 'low' : 'high'} reference={photoHall} />
-            <ShadowCasters enabled={!lowQuality} />
-            {!lowQuality && (qualityPreset === 'high' || (isPreview && props.previewAutoRotate === false)) && (
-              <PostFX strength={photoComposition ? 0.12 : bloomStrength(theme, photoHall)} ambientOcclusion={!photoComposition && qualityPreset === 'high'} />
-            )}
-            {/* Monitor FPS in live hall and auto-preview so slower GPUs drop to light mode automatically */}
-            {qualityPreset === 'auto' && !(isPreview && props.previewAutoRotate === false) && <FpsGuard onLowFps={setAutoLowQuality} />}
-            {isPreview && props.previewAutoRotate === false && <FrameProbe orbit={previewOrbit} />}
+            <planeGeometry args={[30, 30]} />
+            {terrainFloor ? <meshBasicMaterial colorWrite={false} depthWrite={false} />
+              : <SurfaceMaterial color={theme.colors.f} theme={theme} role="floor" size={30} reference={photoHall} />}
+          </mesh>
 
-            <VenueEnvironment theme={theme} photoComposition={photoComposition} reference={photoHall} />
-            {props.splatUrl && <Splat src={props.splatUrl} position={[0, 0, 0]} scale={1} />}
-            {photoComposition ? <><GardenCameraFraming /><GardenCeremony /></> : <AmbientPetals lowQuality={lowQuality} templateId={layout.templateId} />}
-
-            {/* Soft ContactShadows anchoring banquet tables, chairs, pedestals and guests onto the floor (baked once = 0 per-frame GPU cost) */}
-            {!lowQuality && !photoComposition && (
-              <ContactShadows
-                position={[0, 0.004, 0]}
-                opacity={theme.mood === 'night' || theme.mood === 'indoor' ? 0.48 : 0.36}
-                scale={32}
-                blur={1.9}
-                far={4.2}
-                resolution={256}
-                color={theme.mood === 'night' ? '#09080c' : '#261e18'}
-                frames={1}
-              />
-            )}
-
-            {/* 30m x 30m Hall Floor */}
-            <mesh
-              rotation={[-Math.PI / 2, 0, 0]}
-              position={[0, 0, 0]}
-              userData={{ noCastShadow: terrainFloor }}
-              onClick={(e) => {
-                if (isPreview) return;
-                e.stopPropagation();
-                handleFloorClick(e.point);
-              }}
-            >
-              <planeGeometry args={[30, 30]} />
-              {terrainFloor ? <meshBasicMaterial colorWrite={false} depthWrite={false} />
-                : <SurfaceMaterial color={theme.colors.f} theme={theme} role="floor" size={30} reference={photoHall} />}
+          {/* Tap-to-Move Destination Ripple */}
+          {clickMarker && (
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[clickMarker.x, 0.03, clickMarker.z]}>
+              <ringGeometry args={[0.22, 0.34, 20]} />
+              <meshBasicMaterial color="#f43f5e" transparent opacity={0.75} />
             </mesh>
+          )}
 
-            {/* Tap-to-Move Destination Ripple */}
-            {clickMarker && (
-              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[clickMarker.x, 0.03, clickMarker.z]}>
-                <ringGeometry args={[0.22, 0.34, 20]} />
-                <meshBasicMaterial color="#f43f5e" transparent opacity={0.75} />
-              </mesh>
-            )}
+          {/* Placed Smart Prefabs */}
+          {!photoComposition && layout.prefabs.map((prefab) => (
+            <PrefabMesh
+              key={prefab.instanceId}
+              prefab={prefab}
+              templateId={layout.templateId}
+              tier={tier}
+              photos={photos}
+              photoIndexMap={photoIndexMap}
+              players={players}
+              onSitSeat={props.onSitSeat}
+              onOpenGuestbook={props.onOpenGuestbook}
+              onOpenGiftBox={props.onOpenGiftBox}
+              onOpenVideo={props.onOpenVideo}
+              onOpenPhoto={props.onOpenPhoto}
+            />
+          ))}
 
-            {/* Placed Smart Prefabs */}
-            {!photoComposition && layout.prefabs.map((prefab) => (
-              <PrefabMesh
-                key={prefab.instanceId}
-                prefab={prefab}
-                templateId={layout.templateId}
-                tier={tier}
-                photos={photos}
-                photoIndexMap={photoIndexMap}
-                players={players}
-                onSitSeat={props.onSitSeat}
-                onOpenGuestbook={props.onOpenGuestbook}
-                onOpenGiftBox={props.onOpenGiftBox}
-                onOpenVideo={props.onOpenVideo}
-                onOpenPhoto={props.onOpenPhoto}
+          {/* Auto-NPCs (Hidden when live taken over by Bride/Groom/MC) */}
+          {npcs
+            .filter((n) => !n.isTakenOver)
+            .map((npc) => (
+              <HumanAvatar
+                key={npc.npcId}
+                id={npc.npcId}
+                displayName={npc.displayName}
+                outfitId={npc.outfitId}
+                personId={npc.personId}
+                hairId={npc.npcId === 'BRIDE' ? 'hair_4' : 'hair_2'}
+                hairColor="#1f2937"
+                targetX={npc.x}
+                targetZ={npc.z}
+                targetRotY={npc.rotY}
+                anim={npc.anim}
+                bubbleText={npc.bubbleText}
+                isNpc
+                showLabel={!isPreview}
+                motion={props.motionStore}
+                motionKey={npcTrackKey(npc.npcId)}
               />
             ))}
 
-            {/* Auto-NPCs (Hidden when live taken over by Bride/Groom/MC) */}
-            {npcs
-              .filter((n) => !n.isTakenOver)
-              .map((npc) => (
-                <HumanAvatar
-                  key={npc.npcId}
-                  id={npc.npcId}
-                  displayName={npc.displayName}
-                  outfitId={npc.outfitId}
-                  personId={npc.personId}
-                  hairId={npc.npcId === 'BRIDE' ? 'hair_4' : 'hair_2'}
-                  hairColor="#1f2937"
-                  targetX={npc.x}
-                  targetZ={npc.z}
-                  targetRotY={npc.rotY}
-                  anim={npc.anim}
-                  bubbleText={npc.bubbleText}
-                  isNpc
-                  showLabel={!isPreview}
-                  motion={props.motionStore}
-                  motionKey={npcTrackKey(npc.npcId)}
-                />
-              ))}
-
-            {/* Live Multiplayer Avatars */}
-            {players.map((p) => {
-              const dist = localPlayer ? Math.hypot(p.x - localPlayer.x, p.z - localPlayer.z) : 0;
-              const showLabel = !isPreview && (!lowQuality || dist <= 18);
-              const isMe = p.sessionId === localSessionId;
-              return (
-                <HumanAvatar
-                  key={p.sessionId}
-                  id={p.sessionId}
-                  displayName={p.displayName}
-                  side={p.side}
-                  role={p.role}
-                  outfitId={p.outfitId}
-                  hairId={p.hairId}
-                  hairColor={p.hairColor}
-                  personId={p.personId}
-                  targetX={p.x}
-                  targetZ={p.z}
-                  targetRotY={p.rotY}
-                  anim={p.anim}
-                  hasBouquetCrown={p.hasBouquetCrown}
-                  isSpeaking={p.isSpeaking}
-                  bubbleText={p.bubbleText}
-                  showLabel={showLabel}
-                  isLocal={isMe}
-                  liveLocalRef={isMe ? localPosRef : undefined}
-                  motion={props.motionStore}
-                  motionKey={p.sessionId}
-                  isSeated={p.seatedTableNo >= 0}
-                  onClick={
-                    !isMe && props.onSelectPlayer
-                      ? () => props.onSelectPlayer?.(p)
-                      : undefined
-                  }
-                />
-              );
-            })}
-
-            <BouquetArcMesh bouquet={bouquet} />
-            <CelebrationParticles
-              activeRitual={activeRitual}
-              giftBurstKey={giftBurstKey}
-              lowQuality={lowQuality}
-            />
-            {!isPreview && props.fireworks && props.fireworks.length > 0 && (
-              <Fireworks shows={props.fireworks} stage={fireworksStage} focusRef={fireworksFocusRef} lowQuality={lowQuality} mood={theme.mood} enclosed={enclosed} />
-            )}
-
-            {isPreview && (
-              <OrbitControls
-                ref={previewOrbit}
-                target={previewTarget}
-                enablePan={Boolean(photoHall)}
-                zoomToCursor={Boolean(photoHall)}
-                screenSpacePanning={!photoHall}
-                panSpeed={0.65}
-                onChange={keepPreviewInside}
-                enableDamping
-                dampingFactor={0.08}
-                autoRotate={!photoComposition && !photoHall && props.previewAutoRotate !== false}
-                autoRotateSpeed={0.45}
-                minDistance={props.previewCamera ? 0.5 : photoHall ? 2.15 : 12}
-                maxDistance={enclosed && !props.previewCamera ? 14.6 : 46}
-                minPolarAngle={props.previewCamera ? 0 : Math.PI * (enclosed ? 0.42 : 0.12)}
-                maxPolarAngle={props.previewCamera ? Math.PI * 0.6 : Math.PI * (photoHall ? 0.492 : 0.46)}
+          {/* Live Multiplayer Avatars */}
+          {players.map((p) => {
+            const dist = localPlayer ? Math.hypot(p.x - localPlayer.x, p.z - localPlayer.z) : 0;
+            const showLabel = !isPreview && (!lowQuality || dist <= 18);
+            const isMe = p.sessionId === localSessionId;
+            return (
+              <HumanAvatar
+                key={p.sessionId}
+                id={p.sessionId}
+                displayName={p.displayName}
+                side={p.side}
+                role={p.role}
+                outfitId={p.outfitId}
+                hairId={p.hairId}
+                hairColor={p.hairColor}
+                personId={p.personId}
+                targetX={p.x}
+                targetZ={p.z}
+                targetRotY={p.rotY}
+                anim={p.anim}
+                hasBouquetCrown={p.hasBouquetCrown}
+                isSpeaking={p.isSpeaking}
+                bubbleText={p.bubbleText}
+                showLabel={showLabel}
+                isLocal={isMe}
+                liveLocalRef={isMe ? localPosRef : undefined}
+                motion={props.motionStore}
+                motionKey={p.sessionId}
+                isSeated={p.seatedTableNo >= 0}
+                onClick={
+                  !isMe && props.onSelectPlayer
+                    ? () => props.onSelectPlayer?.(p)
+                    : undefined
+                }
               />
-            )}
-          </Canvas>
-          </SceneLabelsContext.Provider>
-          {!isPreview && (
-            <div className="pointer-events-auto absolute left-3 top-14 z-10 flex items-center gap-1 rounded-full border border-white/15 bg-slate-900/75 px-2.5 py-1 text-[10px] font-medium text-slate-200 shadow backdrop-blur-sm sm:bottom-3 sm:top-auto">
-              <span className="text-slate-400">Đồ họa:</span>
-              {(['auto', 'high', 'low'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setQualityPreset(mode)}
-                  className={`rounded-full px-2 py-0.5 transition ${
-                    qualityPreset === mode
-                      ? 'bg-rose-600 font-bold text-white'
-                      : 'text-slate-300 hover:bg-white/10'
-                  }`}
-                >
-                  {mode === 'auto' ? (autoLowQuality ? 'Tự động (Nhẹ)' : 'Tự động') : mode === 'high' ? 'Cao (Photoreal)' : 'Tiết kiệm pin'}
-                </button>
-              ))}
-            </div>
+            );
+          })}
+
+          <BouquetArcMesh bouquet={bouquet} />
+          <CelebrationParticles
+            activeRitual={activeRitual}
+            giftBurstKey={giftBurstKey}
+            lowQuality={lowQuality}
+          />
+          {!isPreview && props.fireworks && props.fireworks.length > 0 && (
+            <Fireworks shows={props.fireworks} stage={fireworksStage} focusRef={fireworksFocusRef} lowQuality={lowQuality} mood={theme.mood} enclosed={enclosed} />
           )}
+
+          {isPreview && (
+            <OrbitControls
+              ref={previewOrbit}
+              target={previewTarget}
+              enablePan={Boolean(photoHall)}
+              zoomToCursor={Boolean(photoHall)}
+              screenSpacePanning={!photoHall}
+              panSpeed={0.65}
+              onChange={keepPreviewInside}
+              enableDamping
+              dampingFactor={0.08}
+              autoRotate={!photoComposition && !photoHall && props.previewAutoRotate !== false}
+              autoRotateSpeed={0.45}
+              minDistance={props.previewCamera ? 0.5 : photoHall ? 2.15 : 12}
+              maxDistance={enclosed && !props.previewCamera ? 14.6 : 46}
+              minPolarAngle={props.previewCamera ? 0 : Math.PI * (enclosed ? 0.42 : 0.12)}
+              maxPolarAngle={props.previewCamera ? Math.PI * 0.6 : Math.PI * (photoHall ? 0.492 : 0.46)}
+            />
+          )}
+        </Canvas>
+      </SceneLabelsContext.Provider>
+      {!isPreview && (
+        <div className="pointer-events-auto absolute left-3 top-14 z-10 flex items-center gap-1 rounded-full border border-white/15 bg-slate-900/75 px-2.5 py-1 text-[10px] font-medium text-slate-200 shadow backdrop-blur-sm sm:bottom-3 sm:top-auto">
+          <span className="text-slate-400">Đồ họa:</span>
+          {(['auto', 'high', 'low'] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setQualityPreset(mode)}
+              className={`rounded-full px-2 py-0.5 transition ${qualityPreset === mode
+                  ? 'bg-rose-600 font-bold text-white'
+                  : 'text-slate-300 hover:bg-white/10'
+                }`}
+            >
+              {mode === 'auto' ? (autoLowQuality ? 'Tự động (Nhẹ)' : 'Tự động') : mode === 'high' ? 'Cao (Photoreal)' : 'Tiết kiệm pin'}
+            </button>
+          ))}
         </div>
-      );
-    };
+      )}
+    </div>
+  );
+};

@@ -91,7 +91,7 @@ const profiles = {
   fr_paris: setting('twilight', 'stone', { architecture: 'skyline', plants: 'broadleaf' }, '#8c868c', '#ae9282', '#e0a671', '#494750'),
   es_andalusia: setting('clear', 'tile', { architecture: 'courtyard', plants: 'cypress' }, '#c8aa89', '#748266', '#b77056', '#534e41'),
   pt_lisbon: setting('clear', 'tile', { architecture: 'old-town', plants: 'broadleaf' }, '#c3ab8a', '#8b9c9d', '#65968e', '#574d44'),
-  uk_garden: setting('soft', 'grass', { terrain: 'meadow', plants: 'wildflower' }, '#7f9357', '#688052', '#e7cec0', '#44583a'),
+  uk_garden: setting('soft', 'grass', { terrain: 'meadow', plants: 'broadleaf' }, '#7f9357', '#688052', '#e7cec0', '#44583a'),
   sc_highlands: setting('soft', 'stone', { architecture: 'palace', terrain: 'lake', plants: 'pine' }, '#94826d', '#6e7b74', '#a8a69a', '#4d5653'),
   ie_celtic: setting('soft', 'grass', { terrain: 'meadow', plants: 'wildflower' }, '#778653', '#9c9d80', '#b0ad8c', '#4f5a48'),
   no_fjord: setting('soft', 'stone', { terrain: 'fjord', plants: 'pine' }, '#637c58', '#456974', '#a5b7b0', '#3f5159'),

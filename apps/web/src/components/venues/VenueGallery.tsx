@@ -5,6 +5,7 @@ import { Search, X } from 'lucide-react';
 import { VENUE_REGIONS, type VenueRegion, type VenueTheme } from '@dco/shared';
 import { normalizeSearch } from '@/lib/adminFormat';
 import { VenueCard } from './VenueCard';
+import { OrbitalVenueGallery } from '@/components/threeui/OrbitalVenueGallery';
 
 export function VenueGallery({ venues }: { venues: VenueTheme[] }) {
   const [region, setRegion] = useState<'ALL' | VenueRegion>('ALL');
@@ -31,7 +32,15 @@ export function VenueGallery({ venues }: { venues: VenueTheme[] }) {
     }`;
 
   return (
-    <div>
+    <div className="space-y-8">
+      {!query && shown.length >= 3 && (
+        <OrbitalVenueGallery
+          venues={shown.slice(0, 10)}
+          heading={region === 'ALL' ? 'Dạo Vòng 101 Không Gian Cưới 3D' : 'Không Gian Nổi Bật Trong Khu Vực'}
+        />
+      )}
+
+      <div>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div role="group" aria-label="Lọc theo vùng" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           <button type="button" aria-pressed={region === 'ALL'} onClick={() => setRegion('ALL')} className={tabClass(region === 'ALL')}>
@@ -80,6 +89,7 @@ export function VenueGallery({ venues }: { venues: VenueTheme[] }) {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

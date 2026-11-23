@@ -16,6 +16,9 @@ import { INVITATION_TEMPLATES, TIER_CATALOG, VENUE_THEMES, getVenueTheme, type I
 import { VenueCard } from '@/components/venues/VenueCard';
 import { CardFace } from '@/components/invitation/CardFace';
 import { getAdminSession } from '@/lib/adminPage';
+import { WeddingHeroAtmosphere } from '@/components/threeui/WeddingHeroAtmosphere';
+import { LiquidMetalButton, SparkBadgePill, WeddingTopDock } from '@/components/threeui/LiquidMetalButton';
+import { OrbitalVenueGallery } from '@/components/threeui/OrbitalVenueGallery';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,22 +88,14 @@ export default async function HomePage() {
             </span>
           </Link>
 
-          <div className="hidden items-center gap-6 text-xs font-semibold text-slate-700 md:flex">
-            <Link href="/thiep-cuoi" className="transition hover:text-rose-700">
-              Thiệp Cưới
-            </Link>
-            <a href="#khong-gian" className="transition hover:text-rose-700">
-              Không Gian 3D
-            </a>
-            <a href="#goi-dich-vu" className="transition hover:text-rose-700">
-              Bảng Gói
-            </a>
-            {isAdmin && (
-              <Link href="/partner" className="transition hover:text-rose-700">
-                Đối Tác Studio
-              </Link>
-            )}
-          </div>
+          <WeddingTopDock
+            items={[
+              { label: 'Thiệp Cưới', href: '/thiep-cuoi' },
+              { label: 'Không Gian 3D', href: '#khong-gian' },
+              { label: 'Bảng Gói', href: '#goi-dich-vu' },
+              ...(isAdmin ? [{ label: 'Đối Tác Studio', href: '/partner' }] : []),
+            ]}
+          />
 
           <div className="flex items-center gap-2.5">
             <Link
@@ -119,34 +114,31 @@ export default async function HomePage() {
         </nav>
       </header>
 
-      {/* Editorial Hero */}
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-16 pt-10 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:pt-14">
-        <div className="dco-fade-up">
-          <h1 className="font-serif text-4xl font-bold leading-[1.12] tracking-tight text-slate-900 sm:text-6xl">
-            Dự Tiệc Cưới Online Trong <span className="text-rose-700">5 Giây</span> — Kết Nối Yêu
-            Thương Không Khoảng Cách
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600">
-            Khách mời ở xa chỉ cần bấm đường dẫn mời là hóa thân thành Chibi bước vào sảnh cưới 3D,
-            ngắm ảnh cưới, ngồi bàn <strong>1-2-3 Dzô</strong> trò chuyện Voice Chat, tung bắt hoa
-            cưới và mừng cưới VietQR minh bạch trực tiếp tới Cô Dâu &amp; Chú Rể.
-          </p>
+      {/* Editorial Hero with ThreeUI Constellation & Silk Atmosphere */}
+      <div className="relative overflow-hidden">
+        <WeddingHeroAtmosphere mood="constellation" tone="light" />
+        <section className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-5 pb-16 pt-10 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:pt-14">
+          <div className="dco-fade-up">
+            <SparkBadgePill>101 Không Gian Cưới 3D · 100 Mẫu Thiệp · VietQR SePay</SparkBadgePill>
+            <h1 className="mt-4 font-serif text-4xl font-bold leading-[1.12] tracking-tight text-slate-900 sm:text-6xl">
+              Dự Tiệc Cưới Online Trong <span className="text-rose-700">5 Giây</span> — Kết Nối Yêu
+              Thương Không Khoảng Cách
+            </h1>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600">
+              Khách mời ở xa chỉ cần bấm đường dẫn mời là hóa thân thành nhân vật 3D bước vào sảnh cưới,
+              ngắm ảnh cưới, ngồi bàn <strong>1-2-3 Dzô</strong> trò chuyện Voice Chat, tung bắt hoa
+              cưới và mừng cưới VietQR minh bạch trực tiếp tới Cô Dâu &amp; Chú Rể.
+            </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link
-              href="/plaza"
-              className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-rose-500"
-            >
-              <Sparkles className="h-4 w-4" /> Vào Quảng Trường 24/7 (Miễn Phí)
-            </Link>
-            <Link
-              href="/create"
-              className="inline-flex items-center gap-2 rounded-2xl border border-amber-300 bg-white px-6 py-3.5 text-sm font-bold text-slate-900 shadow-sm transition hover:bg-amber-50"
-            >
-              Tạo Sảnh Cưới Riêng <ArrowRight className="h-4 w-4 text-rose-600" />
-            </Link>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <LiquidMetalButton href="/plaza" variant="crimson">
+                <Sparkles className="h-4 w-4" /> Vào Quảng Trường 24/7 (Miễn Phí)
+              </LiquidMetalButton>
+              <LiquidMetalButton href="/create" variant="gold">
+                Tạo Sảnh Cưới Riêng <ArrowRight className="h-4 w-4 text-rose-700" />
+              </LiquidMetalButton>
+            </div>
           </div>
-        </div>
 
         {/* Live Showcase Routes Panel */}
         <aside className="rounded-[2rem] border border-amber-200 bg-white p-6 shadow-xl">
@@ -217,6 +209,7 @@ export default async function HomePage() {
           </div>
         </aside>
       </section>
+      </div>
 
       {/* Wedding venues: Vietnamese spaces up front, the world catalogue one click away */}
       <section id="khong-gian" className="border-y border-amber-200/70 bg-amber-50/40 py-16">
@@ -237,6 +230,13 @@ export default async function HomePage() {
             >
               Khám phá cả {VENUE_THEMES.length} không gian <ArrowRight className="h-3.5 w-3.5" />
             </Link>
+          </div>
+
+          <div className="mt-8">
+            <OrbitalVenueGallery
+              venues={[...FEATURED_VENUES, ...VENUE_THEMES.filter((v) => !FEATURED_VENUES.some((f) => f.id === v.id)).slice(0, 4)]}
+              heading="Trình Diễn Quỹ Đạo 3D Không Gian Nổi Bật"
+            />
           </div>
 
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

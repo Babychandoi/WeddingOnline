@@ -13,6 +13,8 @@ import { vnDate } from './format';
 import { InvitationCover, type CoverData } from './covers';
 import { Album, ClosingPhoto, EventsBlock, Interlude, MonthCalendar, Section, type SectionTitle } from './blocks';
 import { Grain, Name, cityOf, isDark, keepAbbr, sized } from './parts';
+import { EngravedWeddingCertificate } from '@/components/threeui/EngravedWeddingCertificate';
+import { WeddingSketchbookAlbum } from '@/components/threeui/WeddingSketchbookAlbum';
 
 export interface InvitationPhoto {
   id: string;
@@ -446,6 +448,7 @@ export function InvitationView(props: InvitationViewProps) {
   const music = useRef<MusicBox | null>(null);
   const [playing, setPlaying] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
+  const [albumMode, setAlbumMode] = useState<'grid' | 'book'>('grid');
 
   useEffect(() => setHydrated(true), []);
   // The cover is the photo: keep it clear of floating buttons until the guest scrolls into the card
@@ -691,7 +694,41 @@ export function InvitationView(props: InvitationViewProps) {
           {sections.album && props.photos.length > 0 && (
             <EditSpot part="album" onEdit={onEditPart}>
             <Section id="album" t={T('Album ảnh cưới', 'Gallery')} theme={theme}>
-              <Album theme={theme} photos={props.photos} onOpen={setLightbox} />
+              {!onEditPart && props.photos.length >= 2 && (
+                <div className="mb-5 flex justify-center">
+                  <div className="inline-flex rounded-full border border-current/20 p-1 text-[11px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setAlbumMode('grid')}
+                      className={`rounded-full px-3 py-1 transition ${albumMode === 'grid' ? 'bg-rose-800 text-white' : 'opacity-75 hover:opacity-100'}`}
+                    >
+                      Lưới ảnh
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAlbumMode('book')}
+                      className={`rounded-full px-3 py-1 transition ${albumMode === 'book' ? 'bg-rose-800 text-white' : 'opacity-75 hover:opacity-100'}`}
+                    >
+                      📖 Lật sách 3D
+                    </button>
+                  </div>
+                </div>
+              )}
+              {albumMode === 'book' && !onEditPart && props.photos.length >= 2 ? (
+                <WeddingSketchbookAlbum
+                  title={`Album ${groom} & ${bride}`}
+                  coupleLabel={`${groom} & ${bride}`}
+                  dateLabel={vnDate(mainDate)}
+                  photos={props.photos.map((p) => ({ id: p.id, url: sized(p.url, true), caption: p.caption }))}
+                  wishes={props.initialWishes.map((w) => ({ id: w.id, authorName: w.name, message: w.message }))}
+                  onInspectPhoto={(bp) => {
+                    const idx = props.photos.findIndex((p) => p.id === bp.id);
+                    if (idx >= 0) setLightbox(idx);
+                  }}
+                />
+              ) : (
+                <Album theme={theme} photos={props.photos} onOpen={setLightbox} />
+              )}
             </Section>
             </EditSpot>
           )}
@@ -738,6 +775,20 @@ export function InvitationView(props: InvitationViewProps) {
               <GiftBox slug={slug} demo={demo} guestName={guest} bankName={props.gift.bankName} />
             </Section>
             </EditSpot>
+          )}
+
+          {/* ── Engraved VIP Wedding Seal Certificate ── */}
+          {!embedded && !onEditPart && (
+            <div className="px-5 pb-4 pt-2 sm:px-8">
+              <EngravedWeddingCertificate
+                groomName={groom}
+                brideName={bride}
+                weddingDate={mainDate}
+                subtitle="Chứng Nhận Hạnh Phúc VIP"
+                venueLabel={events[0]?.venueName || 'Thiệp Cưới Online DamCuoiOnline'}
+                compact
+              />
+            </div>
           )}
 
           {/* ── Thank you ── */}

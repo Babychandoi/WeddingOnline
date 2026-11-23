@@ -151,63 +151,74 @@ export function swagValance(width: number, swags = 4): THREE.BufferGeometry {
 
 /* ───────────────────────── Flowers ───────────────────────── */
 
-function petal(width: number, length: number, cup: number, curl: number): THREE.BufferGeometry {
-  // An odd number of cross-sections keeps both sides smooth while larger bouquets add depth.
-  const g = new THREE.PlaneGeometry(width, length, IS_HANDHELD ? 2 : 3, IS_HANDHELD ? 2 : 4);
+function petal(width: number, length: number, cup: number, curl: number, phase: number): THREE.BufferGeometry {
+  const g = new THREE.PlaneGeometry(width, length, IS_HANDHELD ? 2 : 4, IS_HANDHELD ? 3 : 4);
   const pos = g.attributes.position as THREE.BufferAttribute;
+  const uv = g.attributes.uv;
   for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i);
-    const y = pos.getY(i) + length / 2; // 0 at the base
-    const t = y / length;
-    // Taper to a rounded tip, wider in the upper half like a rose petal
-    const w = Math.sin(Math.min(1, t * 1.15) * Math.PI * 0.85 + 0.25);
-    const nx = x * w;
-    // Cupped across, then the outer edge curls back
-    const z = -(nx * nx) * cup / width + Math.pow(t, 3) * curl * length;
-    pos.setXYZ(i, nx, y, z);
+    const u = uv.getX(i) * 2 - 1;
+    const t = uv.getY(i);
+    const edge = Math.abs(u);
+    const upper = t ** 3;
+    const span = 0.10 + 0.92 * Math.sin(Math.PI * (0.10 + t * 0.76)) ** 0.79;
+    const wave = Math.sin(u * 5.9 + phase) * 0.030 + Math.cos(u * 11.6 - phase) * 0.016;
+    const x = width * (0.5 * u * span + upper * Math.sin(phase) * 0.067);
+    const y = length * (t + upper * (wave - edge ** 2 * 0.063));
+    const z = width * (1 - edge ** 1.8) * cup * Math.sin(Math.PI * t) * 0.15
+      + length * upper * (curl + wave + edge ** 2 * 0.13);
+    pos.setXYZ(i, x, y, z);
   }
   g.computeVertexNormals();
   return g;
 }
 
-/** A rose head ~7 cm across: a tight spiral bud wrapped by opening outer petals */
-export function roseHead(): THREE.BufferGeometry {
-  return cached('rose', () => {
+/** Two florist roses with asymmetric layers and a shaded throat visible at eye level. */
+export function roseHead(cupped = false): THREE.BufferGeometry {
+  return cached(cupped ? 'rose-cupped' : 'rose-open', () => {
     const parts: THREE.BufferGeometry[] = [];
+    const colors: number[] = [];
+    const random = rng(cupped ? 219 : 538);
     const layers = [
-      { n: 3, r: 0.004, len: 0.026, w: 0.022, open: 0.12, curl: 0.0 },
-      { n: 4, r: 0.008, len: 0.03, w: 0.028, open: 0.3, curl: 0.1 },
-      { n: 5, r: 0.012, len: 0.034, w: 0.032, open: 0.6, curl: 0.25 },
-      { n: 6, r: 0.016, len: 0.036, w: 0.036, open: 0.95, curl: 0.45 },
+      { count: 3, radius: 0.002, length: 0.024, width: 0.018, angle: 0.09, curl: -0.11 },
+      { count: 4, radius: 0.005, length: 0.027, width: 0.025, angle: 0.26, curl: -0.07 },
+      { count: 5, radius: 0.009, length: 0.033, width: 0.033, angle: 0.54, curl: 0.03 },
+      { count: 6, radius: 0.014, length: 0.040, width: 0.041, angle: 0.83, curl: 0.12 },
+      { count: 6, radius: 0.017, length: 0.043, width: 0.045, angle: 1.16, curl: 0.18 },
     ];
-    let k = 0;
-    for (const L of layers) {
-      for (let i = 0; i < L.n; i++) {
-        const a = (i / L.n) * Math.PI * 2 + k * 0.7;
-        const p = petal(L.w, L.len, 0.9, L.curl);
-        // Stand the petal up, tilt it outward, place it on its ring
-        p.rotateX(-L.open);
-        p.rotateY(-a + Math.PI / 2);
-        p.translate(Math.cos(a) * L.r, 0, Math.sin(a) * L.r);
+    for (const [ring, layer] of layers.entries()) {
+      for (let i = 0; i < layer.count; i++) {
+        const azimuth = (i / layer.count) * Math.PI * 2 + ring * 0.82 + (random() - 0.5) * 0.31;
+        const phase = random() * Math.PI * 2;
+        const p = petal(layer.width * (0.86 + 0.29 * random()), layer.length * (0.88 + 0.23 * random()), 0.72 + 0.48 * random(), layer.curl, phase);
+        const uv = p.attributes.uv;
+        for (let v = 0; v < uv.count; v++) {
+          const depth = uv.getY(v);
+          const lip = THREE.MathUtils.smoothstep(depth, 0.70, 1);
+          const shade = 0.53 + 0.08 * ring + 0.21 * depth + lip * (0.018 + 0.025 * Math.sin(phase + uv.getX(v) * 9));
+          colors.push(shade, shade * (0.91 + 0.08 * depth), shade * (0.94 + 0.035 * depth));
+        }
+        const opening = layer.angle * (cupped ? 0.73 : 1) + (random() - 0.5) * 0.24;
+        p.rotateZ((random() - 0.5) * 0.25);
+        p.rotateX(opening);
+        p.rotateY(-azimuth + Math.PI / 2);
+        p.translate(Math.cos(azimuth) * layer.radius, 0.012 - ring * 0.0028, Math.sin(azimuth) * layer.radius);
         parts.push(p);
       }
-      k++;
     }
-    // Sepals underneath
     for (let i = 0; i < 5; i++) {
       const a = (i / 5) * Math.PI * 2;
-      const s = petal(0.008, 0.022, 0.3, 0.2);
-      s.rotateX(-1.9);
+      const s = petal(0.009, 0.023, 0.4, -0.13, a);
+      s.rotateX(1.81);
       s.rotateY(-a + Math.PI / 2);
-      s.translate(Math.cos(a) * 0.006, 0.002, Math.sin(a) * 0.006);
+      s.translate(Math.cos(a) * 0.006, -0.005, Math.sin(a) * 0.006);
       parts.push(s);
+      for (let v = 0; v < s.attributes.position.count; v++) colors.push(0.34, 0.49, 0.25);
     }
     const g = merge(parts);
-    g.translate(0, -0.008, 0);
-    // An open bloom is wider than it is tall: flattened, the head reads as a rosette instead of
-    // a pointed bud (which, packed in a dome, looked like spikes)
-    g.scale(1.3, 0.55, 1.3);
-    g.computeVertexNormals();
+    parts.forEach((part) => part.dispose());
+    g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    const size = cupped ? 0.57 : 0.63;
+    g.scale(size, cupped ? 0.67 : 0.61, size);
     return g;
   });
 }
