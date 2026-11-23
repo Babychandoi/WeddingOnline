@@ -850,6 +850,8 @@ export function InvitationView(props: InvitationViewProps) {
                   dateLabel={vnDate(mainDate)}
                   photos={props.photos.map((p) => ({ id: p.id, url: sized(p.url, true), caption: p.caption }))}
                   wishes={props.initialWishes.map((w) => ({ id: w.id, authorName: w.name, message: w.message }))}
+                  accentColor={theme.accent}
+                  onAccentColor={theme.onAccent}
                   onInspectPhoto={(bp) => {
                     const idx = props.photos.findIndex((p) => p.id === bp.id);
                     if (idx >= 0) setLightbox(idx);
