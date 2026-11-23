@@ -15,6 +15,13 @@ import { Album, ClosingPhoto, EventsBlock, Interlude, MonthCalendar, Section, ty
 import { Grain, Name, cityOf, isDark, keepAbbr, sized } from './parts';
 import { EngravedWeddingCertificate } from '@/components/threeui/EngravedWeddingCertificate';
 import { WeddingSketchbookAlbum } from '@/components/threeui/WeddingSketchbookAlbum';
+import {
+  FoilTiltCard,
+  InvitationAmbientCanvas,
+  InvitationQuickDock,
+  SealSparkBurst,
+  type QuickDockItem,
+} from '@/components/threeui/InvitationThreeEffects';
 
 export interface InvitationPhoto {
   id: string;
@@ -169,10 +176,12 @@ function initials(a: string, b: string): string {
 
 function Envelope({ theme, guestName, photo, monogram, couple, date, onOpen }: { theme: InviteTheme; guestName: string | null; photo: string; monogram: string; couple: string; date: string; onOpen: () => void }) {
   const [phase, setPhase] = useState<'closed' | 'opening' | 'gone'>('closed');
+  const [tilt, setTilt] = useState({ rx: 0, ry: 0, gx: 50, gy: 46, active: false });
   const env = theme.envelope;
 
   const open = () => {
     if (phase !== 'closed') return;
+    setTilt({ rx: 0, ry: 0, gx: 50, gy: 46, active: false });
     onOpen();
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) return setPhase('gone');
@@ -183,6 +192,20 @@ function Envelope({ theme, guestName, photo, monogram, couple, date, onOpen }: {
   if (phase === 'gone') return null;
   const opening = phase === 'opening';
   const headInk = isDark(theme.ground) ? '#fff6ea' : theme.ink;
+
+  const handleEnvelopeMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (opening || e.pointerType === 'touch') return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / Math.max(1, rect.width);
+    const py = (e.clientY - rect.top) / Math.max(1, rect.height);
+    setTilt({
+      rx: (0.5 - py) * 9,
+      ry: (px - 0.5) * 11,
+      gx: Math.round(px * 100),
+      gy: Math.round(py * 100),
+      active: true,
+    });
+  };
 
   return (
     <div
@@ -199,54 +222,86 @@ function Envelope({ theme, guestName, photo, monogram, couple, date, onOpen }: {
       <button
         type="button"
         onClick={open}
+        onPointerMove={handleEnvelopeMove}
+        onPointerLeave={() => setTilt({ rx: 0, ry: 0, gx: 50, gy: 46, active: false })}
         aria-label="Mở thiệp cưới"
         className="group relative mt-[11vh] h-[min(50vh,460px)] w-[min(84vw,420px)] outline-none [perspective:1200px] focus-visible:ring-4 focus-visible:ring-white/60"
       >
-        {/* Card inside, peeking out, then rising out */}
         <div
-          className="absolute inset-x-[7%] top-[-17%] h-[92%] rounded-[3px] shadow-[0_-6px_20px_-8px_rgba(0,0,0,0.4)] transition-transform duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)] [transition-delay:520ms]"
-          style={{ background: theme.paper, transform: opening ? 'translateY(-60%)' : 'translateY(0)' }}
+          className="relative h-full w-full transition-transform duration-300 ease-out [transform-style:preserve-3d] motion-reduce:transform-none"
+          style={{
+            transform: !opening && tilt.active
+              ? `rotateX(${tilt.rx.toFixed(2)}deg) rotateY(${tilt.ry.toFixed(2)}deg)`
+              : 'rotateX(0deg) rotateY(0deg)',
+          }}
         >
-          <div className="flex h-full flex-col items-center justify-start p-[4%]">
-            {photo && <img src={sized(photo, true)} alt="" className="block h-[52%] w-full object-cover" style={{ filter: theme.layout.photoFilter }} />}
-            <span className="mt-[6%] text-[clamp(1.6rem,7vw,2.3rem)] leading-none" style={{ color: theme.accentText ?? theme.accent, fontFamily: theme.script }}>
-              {monogram}
-            </span>
-          </div>
-        </div>
-        {/* Envelope body with pocket flaps */}
-        <div className="absolute inset-0 overflow-hidden rounded-[6px]" style={{ background: env.body, boxShadow: `inset 0 0 0 1px ${theme.line}88, 0 30px 60px -20px rgba(0,0,0,0.6)` }}>
-          <Grain paper={env.body} strength={Math.max(0.3, theme.grain)} />
-        </div>
-        <div className="absolute inset-0 [clip-path:polygon(0_0,54%_50%,0_100%)]" style={{ background: env.flap, filter: 'brightness(0.94)' }} />
-        <div className="absolute inset-0 [clip-path:polygon(100%_0,46%_50%,100%_100%)]" style={{ background: env.flap, filter: 'brightness(0.9)' }} />
-        <div className="absolute inset-0 [clip-path:polygon(0_100%,50%_44%,100%_100%)]" style={{ background: env.body, filter: 'brightness(1.04)' }} />
-        {/* Address */}
-        <div className="absolute inset-x-0 bottom-[9%] z-[2] text-center" style={{ color: env.text }}>
-          <p className="text-[15px] tracking-[0.22em]" style={{ fontFamily: theme.display }}>
-            KÍNH MỜI
-          </p>
-          <p className="mt-2 px-6 text-[clamp(1.9rem,9vw,2.6rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.script }}>
-            {guestName || 'Quý khách'}
-          </p>
-        </div>
-        {/* Top flap, swinging open */}
-        <div
-          className="absolute inset-x-0 top-0 z-[3] h-[46%] origin-top transition-transform duration-[650ms] ease-[cubic-bezier(0.5,0,0.2,1)] [transform-style:preserve-3d]"
-          style={{ transform: opening ? 'rotateX(180deg)' : 'rotateX(0deg)' }}
-        >
-          <div className="absolute inset-0 [backface-visibility:hidden] [clip-path:polygon(0_0,100%_0,50%_100%)]" style={{ background: env.flap }} />
-          <div className="absolute inset-0 flex items-start justify-center pt-[10%] [backface-visibility:hidden] [clip-path:polygon(0_0,100%_0,50%_100%)] [transform:rotateX(180deg)]" style={{ background: env.liner }}>
-            <div className="w-[60%] opacity-50">
-              <Ornament kind={theme.ornament} theme={{ ...theme, accent: env.flap, line: env.flap, ink: env.flap }} variant="divider" />
+          {/* Card inside, peeking out, then rising out */}
+          <div
+            className="absolute inset-x-[7%] top-[-17%] h-[92%] rounded-[3px] shadow-[0_-6px_20px_-8px_rgba(0,0,0,0.4)] transition-transform duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)] [transition-delay:520ms]"
+            style={{ background: theme.paper, transform: opening ? 'translateY(-60%)' : 'translateY(0)' }}
+          >
+            <div className="flex h-full flex-col items-center justify-start p-[4%]">
+              {photo && <img src={sized(photo, true)} alt="" className="block h-[52%] w-full object-cover" style={{ filter: theme.layout.photoFilter }} />}
+              <span className="mt-[6%] text-[clamp(1.6rem,7vw,2.3rem)] leading-none" style={{ color: theme.accentText ?? theme.accent, fontFamily: theme.script }}>
+                {monogram}
+              </span>
             </div>
           </div>
-        </div>
-        {/* Seal */}
-        <div
-          className={`absolute left-1/2 top-[46%] z-[4] -translate-x-1/2 -translate-y-1/2 [&_svg]:h-[5.2rem] [&_svg]:w-[5.2rem] transition-all duration-300 ${opening ? 'scale-75 opacity-0' : 'group-hover:scale-105'}`}
-        >
-          <Seal theme={theme} monogram={monogram} />
+          {/* Envelope body with pocket flaps + interactive specular foil glint */}
+          <div className="absolute inset-0 overflow-hidden rounded-[6px]" style={{ background: env.body, boxShadow: `inset 0 0 0 1px ${theme.line}88, 0 30px 60px -20px rgba(0,0,0,0.6)` }}>
+            <Grain paper={env.body} strength={Math.max(0.3, theme.grain)} />
+          </div>
+          <div className="absolute inset-0 [clip-path:polygon(0_0,54%_50%,0_100%)]" style={{ background: env.flap, filter: 'brightness(0.94)' }} />
+          <div className="absolute inset-0 [clip-path:polygon(100%_0,46%_50%,100%_100%)]" style={{ background: env.flap, filter: 'brightness(0.9)' }} />
+          <div className="absolute inset-0 [clip-path:polygon(0_100%,50%_44%,100%_100%)]" style={{ background: env.body, filter: 'brightness(1.04)' }} />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-[2] rounded-[6px] transition-opacity duration-300 motion-reduce:hidden"
+            style={{
+              opacity: tilt.active && !opening ? 1 : 0.32,
+              background: `radial-gradient(circle at ${tilt.gx}% ${tilt.gy}%, rgba(255,250,235,0.28) 0%, transparent 56%)`,
+              mixBlendMode: 'soft-light',
+            }}
+          />
+          {/* Address */}
+          <div className="absolute inset-x-0 bottom-[9%] z-[2] text-center" style={{ color: env.text }}>
+            <p className="text-[15px] tracking-[0.22em]" style={{ fontFamily: theme.display }}>
+              KÍNH MỜI
+            </p>
+            <p className="mt-2 px-6 text-[clamp(1.9rem,9vw,2.6rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.script }}>
+              {guestName || 'Quý khách'}
+            </p>
+          </div>
+          {/* Top flap, swinging open */}
+          <div
+            className="absolute inset-x-0 top-0 z-[3] h-[46%] origin-top transition-transform duration-[650ms] ease-[cubic-bezier(0.5,0,0.2,1)] [transform-style:preserve-3d]"
+            style={{ transform: opening ? 'rotateX(180deg)' : 'rotateX(0deg)' }}
+          >
+            <div className="absolute inset-0 [backface-visibility:hidden] [clip-path:polygon(0_0,100%_0,50%_100%)]" style={{ background: env.flap }} />
+            <div className="absolute inset-0 flex items-start justify-center pt-[10%] [backface-visibility:hidden] [clip-path:polygon(0_0,100%_0,50%_100%)] [transform:rotateX(180deg)]" style={{ background: env.liner }}>
+              <div className="w-[60%] opacity-50">
+                <Ornament kind={theme.ornament} theme={{ ...theme, accent: env.flap, line: env.flap, ink: env.flap }} variant="divider" />
+              </div>
+            </div>
+          </div>
+          {/* Shimmer halo + Wax Seal + Spark Burst on open */}
+          {!opening && (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-1/2 top-[46%] z-[3] h-[6.2rem] w-[6.2rem] rounded-full motion-reduce:hidden"
+              style={{
+                border: `1px solid ${theme.line}`,
+                boxShadow: `0 0 24px ${theme.line}66`,
+                animation: 'inv-seal-pulse 2.8s ease-in-out infinite',
+              }}
+            />
+          )}
+          <SealSparkBurst active={opening} accent={theme.line} secondary={theme.accent} />
+          <div
+            className={`absolute left-1/2 top-[46%] z-[4] -translate-x-1/2 -translate-y-1/2 [&_svg]:h-[5.2rem] [&_svg]:w-[5.2rem] transition-all duration-300 ${opening ? 'scale-75 opacity-0' : 'group-hover:scale-105'}`}
+          >
+            <Seal theme={theme} monogram={monogram} />
+          </div>
         </div>
       </button>
       <p className="mt-6 text-[15px] font-medium motion-safe:animate-pulse" style={{ color: headInk }}>
@@ -504,8 +559,28 @@ export function InvitationView(props: InvitationViewProps) {
   let n = 0;
   const T = (title: string, kicker: string): SectionTitle => ({ title, kicker, index: ++n });
 
+  const dockItems = useMemo<QuickDockItem[]>(() => {
+    const items: QuickDockItem[] = [];
+    if (sections.events && events.length > 0) items.push({ id: 'su-kien', label: 'Lịch lễ', icon: 'calendar' });
+    if (sections.album && props.photos.length > 0) items.push({ id: 'album', label: 'Album', icon: 'images' });
+    if (sections.hall && props.hallUrl) items.push({ id: 'sanh-3d', label: 'Sảnh 3D', icon: 'sparkles' });
+    if (sections.rsvp) items.push({ id: 'xac-nhan', label: 'RSVP', icon: 'check' });
+    if (sections.gift && (props.gift.enabled || demo)) {
+      items.push({ id: 'mung-cuoi', label: 'Mừng cưới', icon: 'gift' });
+    } else if (sections.wishes && items.length < 5) {
+      items.push({ id: 'loi-chuc', label: 'Lời chúc', icon: 'wishes' });
+    }
+    return items.slice(0, 5);
+  }, [demo, events.length, props.gift.enabled, props.hallUrl, props.photos.length, sections.album, sections.events, sections.gift, sections.hall, sections.rsvp, sections.wishes]);
+
+  const coupleBaseColor = theme.namesIn === 'script' ? accent : theme.ink;
+  const guestBaseColor = theme.layout.events === 'panel' && theme.panelInk ? theme.line : accent;
+  const shimmerGlint = isDark(theme.paper)
+    ? `color-mix(in srgb, #fff8e6 82%, ${theme.line})`
+    : `color-mix(in srgb, #fff5d6 68%, ${theme.line})`;
+
   return (
-    <div data-skin={skinOf(theme)} className={`${INVITATION_FONT_VARS} inv-root min-h-screen ${hydrated ? 'inv-js' : ''} ${embedded ? '' : 'sm:px-0 sm:py-10'}`} style={{ ...themeVars(theme), background: theme.ground, color: theme.ink, fontFamily: theme.body }}>
+    <div data-skin={skinOf(theme)} className={`${INVITATION_FONT_VARS} inv-root relative min-h-screen ${hydrated ? 'inv-js' : ''} ${embedded ? '' : 'sm:px-0 sm:py-10'}`} style={{ ...themeVars(theme), background: theme.ground, color: theme.ink, fontFamily: theme.body }}>
       <style
         // raw CSS: as a text child React would escape the quotes inside url("…") and content: "…"
         dangerouslySetInnerHTML={{
@@ -517,6 +592,20 @@ export function InvitationView(props: InvitationViewProps) {
         @keyframes inv-pop { from { opacity: 0; transform: translateY(10px) scale(0.85); } to { opacity: 1; transform: none; } }
         @keyframes inv-heart { 0% { opacity: 0; transform: translate(-50%, 0) scale(0.4); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--hx)), -150px) scale(1.15); } }
         @keyframes inv-cue { 0%, 100% { transform: translateY(0); opacity: 0.55; } 50% { transform: translateY(6px); opacity: 1; } }
+        @keyframes inv-spark-burst { 0% { opacity: 1; transform: translate3d(0,0,0) scale(0.5); } 65% { opacity: 0.95; } 100% { opacity: 0; transform: translate3d(var(--sx),var(--sy),0) scale(0); } }
+        @keyframes inv-seal-pulse { 0%, 100% { opacity: 0.3; transform: translate(-50%,-50%) scale(0.94); } 50% { opacity: 0.72; transform: translate(-50%,-50%) scale(1.12); } }
+        @keyframes inv-shimmer-sweep { 0%, 100% { background-position: 180% 50%; } 55% { background-position: -80% 50%; } }
+        .inv-shimmer-text { display: inline-block; padding: 0.12em 0.08em; margin: -0.12em -0.08em; }
+        @supports (-webkit-background-clip: text) {
+          .inv-shimmer-text {
+            background-image: linear-gradient(112deg, var(--inv-shimmer-base, currentColor) 0%, var(--inv-shimmer-base, currentColor) 40%, var(--inv-shimmer-glint, #fff6db) 50%, var(--inv-shimmer-base, currentColor) 60%, var(--inv-shimmer-base, currentColor) 100%);
+            background-size: 240% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent !important;
+            animation: inv-shimmer-sweep 5.8s ease-in-out infinite;
+          }
+        }
         .inv-cover-in [data-a] { animation: inv-rise 1100ms cubic-bezier(0.16,1,0.3,1) both; animation-delay: calc(var(--d, 0) * 160ms + 250ms); }
         .inv-cover-in [data-zoom] { animation: inv-zoom 2800ms cubic-bezier(0.2,0.7,0.2,1) both; }
         .inv-js .inv-reveal { opacity: 0; transform: translateY(28px); transition: opacity 900ms ease, transform 1000ms cubic-bezier(0.16,1,0.3,1); }
@@ -529,10 +618,21 @@ export function InvitationView(props: InvitationViewProps) {
         @media (prefers-reduced-motion: reduce) {
           .inv-root *, .inv-root *::before, .inv-root *::after { animation: none !important; }
           .inv-js .inv-reveal { opacity: 1; transform: none; transition: none; }
+          .inv-shimmer-text { background: none !important; -webkit-background-clip: border-box !important; background-clip: border-box !important; color: var(--inv-shimmer-base, inherit) !important; }
         }
       `,
         }}
       />
+
+      {!embedded && (
+        <InvitationAmbientCanvas
+          ornament={theme.ornament}
+          ground={theme.ground}
+          accent={theme.accent}
+          line={theme.line}
+          dark={isDark(theme.ground)}
+        />
+      )}
 
       {!embedded && !opened && (
         <Envelope
@@ -551,7 +651,7 @@ export function InvitationView(props: InvitationViewProps) {
       {opened && !embedded && <Petals colors={theme.petals} />}
 
       <main
-        className={`relative mx-auto max-w-[560px] overflow-hidden ${embedded ? '' : 'sm:rounded-[var(--inv-r)] sm:shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6)]'}`}
+        className={`relative z-[2] mx-auto max-w-[560px] overflow-hidden ${embedded ? '' : 'sm:rounded-[var(--inv-r)] sm:shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6)]'}`}
         style={{ background: theme.paper }}
       >
         <Grain paper={theme.paper} strength={theme.grain} />
@@ -600,22 +700,49 @@ export function InvitationView(props: InvitationViewProps) {
               <p className={`${familyFilled ? 'mt-11' : ''} text-[13px] uppercase leading-relaxed tracking-[0.24em] [text-wrap:balance]`} style={{ color: theme.inkSoft, fontFamily: theme.display }}>
                 {config.headline || 'Trân trọng báo tin lễ thành hôn'} của con chúng tôi
               </p>
-              <p className={`mt-4 [text-wrap:balance] ${theme.namesUpper ? 'uppercase' : ''}`} style={{ ...namesStyle, color: theme.namesIn === 'script' ? accent : theme.ink }}>
-                <Name>{groom}</Name>
-                <span className="mx-2 inline-block text-[0.55em]" style={{ color: accent, fontFamily: theme.script }}>
-                  &amp;
+              <p className={`mt-4 [text-wrap:balance] ${theme.namesUpper ? 'uppercase' : ''}`} style={{ ...namesStyle, color: coupleBaseColor }}>
+                <span
+                  className="inv-shimmer-text"
+                  style={
+                    {
+                      '--inv-shimmer-base': coupleBaseColor,
+                      '--inv-shimmer-glint': shimmerGlint,
+                    } as React.CSSProperties
+                  }
+                >
+                  <Name>{groom}</Name>
+                  <span className="mx-2 inline-block text-[0.55em]" style={{ fontFamily: theme.script }}>
+                    &amp;
+                  </span>
+                  <Name>{bride}</Name>
                 </span>
-                <Name>{bride}</Name>
               </p>
-              <div className="mx-auto mt-10 max-w-[420px] rounded-[calc(var(--inv-r)+4px)] px-5 py-7" style={{ background: theme.panel === theme.paper ? 'transparent' : `${theme.panel}`, color: theme.layout.events === 'panel' && theme.panelInk ? theme.panelInk : theme.ink, border: `1px solid ${theme.line}66` }}>
-                <p className="text-[14px] uppercase tracking-[0.26em]" style={{ fontFamily: theme.display, opacity: 0.85 }}>
-                  Trân trọng kính mời
-                </p>
-                <p className="mt-2 text-[clamp(2rem,9vw,2.6rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.script, color: theme.layout.events === 'panel' && theme.panelInk ? theme.line : accent }}>
-                  {guest || 'Quý khách'}
-                </p>
-                {config.message && <p className="mx-auto mt-4 max-w-[36ch] text-[16px] leading-relaxed [text-wrap:pretty]">{config.message}</p>}
-              </div>
+              <FoilTiltCard
+                accent={theme.accent}
+                line={theme.line}
+                disabled={embedded || Boolean(onEditPart)}
+                className="mx-auto mt-10 max-w-[420px] rounded-[calc(var(--inv-r)+4px)]"
+              >
+                <div className="rounded-[calc(var(--inv-r)+4px)] px-5 py-7" style={{ background: theme.panel === theme.paper ? 'transparent' : `${theme.panel}`, color: theme.layout.events === 'panel' && theme.panelInk ? theme.panelInk : theme.ink, border: `1px solid ${theme.line}66` }}>
+                  <p className="text-[14px] uppercase tracking-[0.26em]" style={{ fontFamily: theme.display, opacity: 0.85 }}>
+                    Trân trọng kính mời
+                  </p>
+                  <p className="mt-2 text-[clamp(2rem,9vw,2.6rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.script, color: guestBaseColor }}>
+                    <span
+                      className="inv-shimmer-text"
+                      style={
+                        {
+                          '--inv-shimmer-base': guestBaseColor,
+                          '--inv-shimmer-glint': shimmerGlint,
+                        } as React.CSSProperties
+                      }
+                    >
+                      {guest || 'Quý khách'}
+                    </span>
+                  </p>
+                  {config.message && <p className="mx-auto mt-4 max-w-[36ch] text-[16px] leading-relaxed [text-wrap:pretty]">{config.message}</p>}
+                </div>
+              </FoilTiltCard>
             </Section>
             </EditSpot>
           )}
@@ -696,18 +823,20 @@ export function InvitationView(props: InvitationViewProps) {
             <Section id="album" t={T('Album ảnh cưới', 'Gallery')} theme={theme}>
               {!onEditPart && props.photos.length >= 2 && (
                 <div className="mb-5 flex justify-center">
-                  <div className="inline-flex rounded-full border border-current/20 p-1 text-[11px] font-bold">
+                  <div className="inline-flex rounded-full p-1 text-[11px] font-bold" style={{ border: `1px solid ${theme.line}` }}>
                     <button
                       type="button"
                       onClick={() => setAlbumMode('grid')}
-                      className={`rounded-full px-3 py-1 transition ${albumMode === 'grid' ? 'bg-rose-800 text-white' : 'opacity-75 hover:opacity-100'}`}
+                      className="rounded-full px-3 py-1 transition"
+                      style={albumMode === 'grid' ? { background: theme.accent, color: theme.onAccent } : { opacity: 0.78 }}
                     >
                       Lưới ảnh
                     </button>
                     <button
                       type="button"
                       onClick={() => setAlbumMode('book')}
-                      className={`rounded-full px-3 py-1 transition ${albumMode === 'book' ? 'bg-rose-800 text-white' : 'opacity-75 hover:opacity-100'}`}
+                      className="rounded-full px-3 py-1 transition"
+                      style={albumMode === 'book' ? { background: theme.accent, color: theme.onAccent } : { opacity: 0.78 }}
                     >
                       📖 Lật sách 3D
                     </button>
@@ -737,9 +866,16 @@ export function InvitationView(props: InvitationViewProps) {
           {sections.hall && props.hallUrl && (
             <Section id="sanh-3d" t={T('Sảnh cưới 3D', 'Online')} theme={theme}>
               {props.venueThumb && (
-                <div className="overflow-hidden rounded-[var(--inv-r)]" style={{ border: `1px solid ${theme.line}` }}>
-                  <img src={props.venueThumb} alt="Sảnh cưới 3D của cô dâu chú rể" loading="lazy" className="block aspect-[16/10] w-full object-cover" />
-                </div>
+                <FoilTiltCard
+                  accent={theme.accent}
+                  line={theme.line}
+                  disabled={embedded || Boolean(onEditPart)}
+                  className="rounded-[var(--inv-r)]"
+                >
+                  <div className="overflow-hidden rounded-[var(--inv-r)]" style={{ border: `1px solid ${theme.line}` }}>
+                    <img src={props.venueThumb} alt="Sảnh cưới 3D của cô dâu chú rể" loading="lazy" className="block aspect-[16/10] w-full object-cover" />
+                  </div>
+                </FoilTiltCard>
               )}
               <p className="mx-auto mt-5 max-w-[36ch] text-[16px] leading-relaxed [text-wrap:pretty]">
                 Ở xa không về kịp? Mời bạn vào sảnh cưới 3D trên điện thoại: ngồi cùng bàn với mọi người, cụng ly 1-2-3 Dzô và bắt hoa cưới.
@@ -794,7 +930,7 @@ export function InvitationView(props: InvitationViewProps) {
           {/* ── Thank you ── */}
           <EditSpot part="closing" onEdit={onEditPart}>
           {theme.layout.closing === 'photo' && closingSrc && <ClosingPhoto theme={theme} src={closingSrc} thanks={config.thankYou} couple={`${groom} & ${bride}`} />}
-          <footer className="px-6 pb-14 pt-10 text-center sm:px-10">
+          <footer className={`px-6 pt-10 text-center sm:px-10 ${embedded ? 'pb-14' : 'pb-24 sm:pb-20'}`}>
             {!(theme.layout.closing === 'photo' && closingSrc) && (
               <>
                 <Ornament kind={theme.ornament} theme={theme} variant="divider" />
@@ -819,6 +955,16 @@ export function InvitationView(props: InvitationViewProps) {
         </div>
       </main>
 
+      {!embedded && !onEditPart && opened && pastCover && (
+        <InvitationQuickDock
+          items={dockItems}
+          paper={theme.paper}
+          ink={theme.ink}
+          accent={theme.accent}
+          onAccent={theme.onAccent}
+          line={theme.line}
+        />
+      )}
       {!embedded && opened && pastCover && <HeartButton theme={theme} />}
       {!embedded && opened && config.music.mode !== 'OFF' && (
         <button

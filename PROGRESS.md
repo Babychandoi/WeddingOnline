@@ -329,6 +329,13 @@
   - `LiquidMetalButton.tsx` (*từ `liquid-metal-button`, `spark-badge`, `animated-top-dock`*): Nút CTA kim loại lỏng phản sáng theo chuột, thẻ `SparkBadgePill`, và thanh menu nam châm `WeddingTopDock` trên trang chủ (giữ nguyên ẩn `Đối Tác Studio` với khách thường)
   - `OrbitalVenueGallery.tsx` (*từ `gallery`, `gallery-heading`, `character-carousel`*): Băng chuyền không gian cưới 3D uốn cong trên `/` và `/khong-gian`, kèm thanh lướt sóng nhân vật `CharacterWaveCarousel` ngoài sảnh chờ `HallExperience.tsx`
   - `StarPortalLoader.tsx` (*từ `star-portal`, `portal-field`, `uplink-loader`*): Màn hình chuyển cảnh cổng sao ánh vàng–đỏ rượu khi bước vào sảnh cưới 3D (`HallExperience.tsx`, `VenuePreviewClient.tsx`), tự gỡ hẳn sau khi dựng cảnh xong nên 0 tốn GPU trong sảnh
+- [x] **6 hiệu ứng ThreeUI đồng bộ bảng màu tự động bên trong không gian của cả 100 mẫu thiệp cưới** (`InvitationThreeEffects.tsx`, `InvitationView.tsx`, `InvitationForms.tsx`):
+  - `InvitationAmbientCanvas`: Nền bầu không khí Canvas 2D quanh tấm thiệp 560px tự đổi theo `theme.ornament` (truyền thống `song-hy`/`clouds`/`lotus` → lụa & cá Koi gợn nước; biển `waves` → gợn sóng tương tác chuột/chạm; sang trọng `baroque`/`masthead`/`hairline` → chòm sao champagne; thiên nhiên `eucalyptus`/`watercolor`/`rose-line`/`lace`/`ribbon` → dải lụa & ánh hoa)
+  - Phong bì `<Envelope>` nghiêng 3D theo chuột kèm ánh nhũ specular, vòng sáng quanh dấu sáp và pháo tia lửa `SealSparkBurst` khi chạm mở thiệp
+  - `FoilTiltCard`: Hiệu ứng nghiêng 3D ép kim ánh sáng cho khung `"Trân trọng kính mời <Khách>"` và khung ảnh Sảnh cưới 3D (tự tắt trong trình sửa thiệp `embedded`/`onEditPart`)
+  - `.inv-shimmer-text`: Chữ tên Cô Dâu – Chú Rể & tên khách mời lướt ánh kim nhẹ (có lớp bảo vệ không cắt dấu tiếng Việt & tắt sạch khi `prefers-reduced-motion`)
+  - `.inv-btn-metal`: Nút CTA chính (**Vào sảnh cưới 3D**, **Gửi xác nhận**, **Gửi lời chúc**, **Tạo mã QR mừng cưới**) có luồng ánh sáng kim loại lỏng lướt mượt theo đúng màu `--inv-accent` của từng mẫu thiệp
+  - `InvitationQuickDock`: Thanh điều hướng nhanh theo chủ đề nổi ở mép dưới khi cuộn qua bìa (`Lịch lễ`, `Album`, `Sảnh 3D`, `RSVP`, `Mừng cưới`), tự tách khoảng an toàn khỏi nút Nhạc & Thả tim trên mobile `375px`
 
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)

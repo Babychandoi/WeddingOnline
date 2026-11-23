@@ -17,7 +17,7 @@ const SIDE_LABEL: Record<Side, string> = { GROOM_SIDE: 'Nhà trai', BRIDE_SIDE: 
 /** Field look comes from the template's skin (underline, soft, boxed); see formSkinCss */
 export const fieldClass = 'inv-field';
 export const primaryButton =
-  'inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[var(--inv-btn-r)] bg-[var(--inv-accent)] px-7 text-[15px] font-semibold text-[color:var(--inv-on-accent)] shadow-[var(--inv-btn-shadow)] transition hover:brightness-110 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55';
+  'inv-btn-metal relative isolate overflow-hidden inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[var(--inv-btn-r)] bg-[var(--inv-accent)] px-7 text-[15px] font-semibold text-[color:var(--inv-on-accent)] shadow-[var(--inv-btn-shadow)] transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-px active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-55';
 const labelClass = 'inv-label';
 
 function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor: string }) {
@@ -466,4 +466,12 @@ export const formSkinCss = `
 .inv-root[data-skin="line"] .inv-wish::before { left:0; top:4px; }
 .inv-root[data-skin="line"] .inv-wishes { gap:0; border-top:1px solid var(--inv-field-line); }
 .inv-root[data-skin="line"] .inv-card { background:transparent; }
+
+/* ThreeUI liquid-metal sheen for primary invitation CTA buttons */
+@keyframes inv-metal-sweep { 0% { transform:translateX(-150%) skewX(-22deg); } 28%, 100% { transform:translateX(280%) skewX(-22deg); } }
+.inv-root .inv-btn-metal { box-shadow:inset 0 1px 0 rgba(255,255,255,0.34), inset 0 -1px 0 rgba(0,0,0,0.18), var(--inv-btn-shadow); }
+.inv-root .inv-btn-metal::before { content:""; position:absolute; inset:-2px auto -2px -30%; width:42%; pointer-events:none;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent);
+  transform:translateX(-150%) skewX(-22deg); animation:inv-metal-sweep 4.8s cubic-bezier(0.22,1,0.36,1) infinite; }
+.inv-root .inv-btn-metal:hover::before { animation-duration:1.9s; }
 `;
