@@ -12,18 +12,15 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import { INVITATION_TEMPLATES, TIER_CATALOG, VENUE_THEMES, getVenueTheme, type InvitationTemplateId, type WeddingTier } from '@dco/shared';
+import { INVITATION_TEMPLATES, TIER_CATALOG, VENUE_THEMES, getVenueTheme, type WeddingTier } from '@dco/shared';
 import { VenueCard } from '@/components/venues/VenueCard';
-import { CardFace } from '@/components/invitation/CardFace';
 import { getAdminSession } from '@/lib/adminPage';
 import { WeddingHeroAtmosphere } from '@/components/threeui/WeddingHeroAtmosphere';
 import { LiquidMetalButton, SparkBadgePill, WeddingTopDock } from '@/components/threeui/LiquidMetalButton';
 import { OrbitalVenueGallery } from '@/components/threeui/OrbitalVenueGallery';
+import { FannedInvitationDeck } from '@/components/motion/ShowcaseMotion';
 
 export const dynamic = 'force-dynamic';
-
-// One traditional, one stamp, one romantic, one travel: the range of the 100 templates at a glance
-const HOME_INVITATIONS: InvitationTemplateId[] = ['song-hy-do', 'tem-hy', 'i-love-you', 've-ra-dao'];
 
 /** Vietnamese spaces featured on the landing page; the full catalogue lives at /khong-gian */
 const FEATURED_VENUES = [
@@ -273,17 +270,8 @@ export default async function HomePage() {
               </Link>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {HOME_INVITATIONS.map((id) => (
-              <Link
-                key={id}
-                href={`/thiep-cuoi/${id}`}
-                className="overflow-hidden rounded-[6px] shadow-[0_18px_36px_-18px_rgba(60,20,20,0.55)] transition hover:-translate-y-1"
-                aria-label={`Thiệp mẫu ${INVITATION_TEMPLATES.find((t) => t.id === id)?.nameVi ?? ''}`}
-              >
-                <CardFace templateId={id} groom="Minh Quân" bride="Thu Hà" />
-              </Link>
-            ))}
+          <div className="overflow-visible pt-4">
+            <FannedInvitationDeck />
           </div>
         </div>
       </section>

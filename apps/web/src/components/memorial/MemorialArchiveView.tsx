@@ -12,6 +12,7 @@ import type {
 import { EngravedWeddingCertificate } from '@/components/threeui/EngravedWeddingCertificate';
 import { SilkCoupleHeading } from '@/components/threeui/SilkTypographyHeader';
 import { WeddingSketchbookAlbum } from '@/components/threeui/WeddingSketchbookAlbum';
+import { WishesHeart3D } from '@/components/motion/InvitationDelight';
 import { LiquidMetalButton } from '@/components/threeui/LiquidMetalButton';
 
 interface MemorialArchiveViewProps {
@@ -169,6 +170,14 @@ export const MemorialArchiveView: React.FC<MemorialArchiveViewProps> = ({
               <BookHeart className="h-5 w-5 text-rose-600" />
               <h2 className="text-xl font-bold text-slate-900">Sổ Lưu Bút Trăm Năm</h2>
             </div>
+            <WishesHeart3D
+              wishes={guestbook.map((g) => ({ id: g.id, name: g.authorName, message: g.message }))}
+              coupleName={`${wedding.groomName} & ${wedding.brideName}`}
+              accent="#be123c"
+              line="#d9a441"
+              paper="#fffdf8"
+              ink="#1e293b"
+            />
             <div className="space-y-3">
               {guestbook.map((g) => (
                 <div key={g.id} className="rounded-2xl border border-amber-100 bg-amber-50/40 p-4">

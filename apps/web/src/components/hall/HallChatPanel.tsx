@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowDown, ChevronLeft, Gift, Lock, MessageCircleHeart, Minus, Send, ShieldOff, Sparkles } from 'lucide-react';
+import { ArrowDown, ChevronLeft, Gift, Lock, MessageCircleHeart, Minus, Plus, Send, ShieldOff, Sparkles } from 'lucide-react';
 import { HALL_CHAT_MAX_LENGTH, PRIVATE_MESSAGE_MAX_LENGTH, getFireworkPack, type HallChatMessage, type PrivateMessage } from '@dco/shared';
 
 export interface DmThread {
@@ -134,6 +134,7 @@ export function HallChatPanel(props: {
   const totalUnread = props.chatUnread + dmUnread;
   const [draft, setDraft] = useState('');
   const [dmDraft, setDmDraft] = useState('');
+  const [pivotOpen, setPivotOpen] = useState(true);
   const peer = dmPeer ? threads.find((t) => t.userId === dmPeer) : undefined;
   const chatList = useStickToBottom(messages.length);
   const dmList = useStickToBottom(`${dmPeer}:${peer?.messages.length ?? 0}`);
@@ -231,23 +232,69 @@ export function HallChatPanel(props: {
             )}
           </div>
 
-          <div className="border-t border-amber-100 bg-white/70 p-2">
-            {!draft && !props.muted && (
-              <div className="mb-1.5 flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
+          <div className="border-t border-amber-100 bg-white/80 p-2 backdrop-blur-sm" data-pivot-composer="true">
+            {/* Pivot-inspired hinged quick-blessing & gift/fireworks tool tray */}
+            <div
+              className={`origin-bottom overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                pivotOpen && !props.muted ? 'mb-2 max-h-36 translate-y-0 opacity-100' : 'max-h-0 translate-y-1 opacity-0'
+              }`}
+            >
+              <div className="mb-1.5 flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none]">
                 {QUICK_WISHES.map((w) => (
-                  <button key={w} type="button" onClick={() => sendChat(w)} className="shrink-0 rounded-full border border-rose-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-rose-800 transition hover:border-rose-400 hover:bg-rose-50">
+                  <button
+                    key={w}
+                    type="button"
+                    onClick={() => sendChat(w)}
+                    className="shrink-0 rounded-full border border-rose-200/90 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-rose-800 shadow-xs transition hover:-translate-y-0.5 hover:border-rose-400 hover:bg-rose-50"
+                  >
                     {w}
                   </button>
                 ))}
               </div>
-            )}
+              <div className="grid grid-cols-2 gap-1.5">
+                {props.canGift ? (
+                  <button
+                    type="button"
+                    onClick={props.onGift}
+                    className="inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl bg-rose-50 text-[12px] font-bold text-rose-800 ring-1 ring-rose-200 transition hover:bg-rose-100"
+                  >
+                    <Gift className="h-3.5 w-3.5" /> Mừng cưới
+                  </button>
+                ) : (
+                  <span />
+                )}
+                <button
+                  type="button"
+                  onClick={props.onFireworks}
+                  className={`${props.canGift ? '' : 'col-span-2 '}inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#3a1b4a] to-[#7a2350] text-[12px] font-bold text-amber-100 shadow-sm transition hover:brightness-110`}
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-300" /> Bắn pháo hoa
+                </button>
+              </div>
+            </div>
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 sendChat(draft);
               }}
-              className="flex gap-1.5"
+              className="flex items-center gap-1.5"
             >
+              {!props.muted && (
+                <button
+                  type="button"
+                  onClick={() => setPivotOpen((v) => !v)}
+                  aria-expanded={pivotOpen}
+                  aria-label={pivotOpen ? 'Thu gọn khay tiện ích' : 'Mở khay chúc nhanh & pháo hoa'}
+                  className={`grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl border transition-all duration-300 ${
+                    pivotOpen
+                      ? 'border-rose-300 bg-rose-50 text-rose-700'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-rose-300 hover:text-rose-700'
+                  }`}
+                >
+                  <Plus className={`h-4 w-4 transition-transform duration-300 ${pivotOpen ? 'rotate-45' : 'rotate-0'}`} />
+                </button>
+              )}
               <label htmlFor="hall-chat-input" className="sr-only">
                 Lời chúc
               </label>
@@ -261,26 +308,10 @@ export function HallChatPanel(props: {
                 placeholder={props.muted ? 'Bạn đang bị tắt tiếng' : 'Gửi lời chúc tới cô dâu chú rể…'}
                 className="min-h-[42px] min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-[14px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 disabled:bg-slate-50"
               />
-              <button type="submit" disabled={props.muted || !draft.trim()} aria-label="Gửi" className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl bg-rose-600 text-white transition hover:bg-rose-500 disabled:opacity-40">
+              <button type="submit" disabled={props.muted || !draft.trim()} aria-label="Gửi" className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl bg-rose-600 text-white transition hover:bg-rose-500 active:scale-95 disabled:opacity-40">
                 <Send className="h-4 w-4" />
               </button>
             </form>
-            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-              {props.canGift ? (
-                <button type="button" onClick={props.onGift} className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-rose-50 text-[12.5px] font-bold text-rose-800 ring-1 ring-rose-200 transition hover:bg-rose-100">
-                  <Gift className="h-4 w-4" /> Mừng cưới
-                </button>
-              ) : (
-                <span />
-              )}
-              <button
-                type="button"
-                onClick={props.onFireworks}
-                className={`${props.canGift ? '' : 'col-span-2 '}inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#3a1b4a] to-[#7a2350] text-[12.5px] font-bold text-amber-100 shadow-sm transition hover:brightness-110`}
-              >
-                <Sparkles className="h-4 w-4 text-amber-300" /> Bắn pháo hoa
-              </button>
-            </div>
           </div>
         </>
       ) : props.isPlaza ? (

@@ -2,12 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { INVITATION_PLANS, INVITATION_TEMPLATES, TIER_CATALOG } from '@dco/shared';
-import { CardFace } from '@/components/invitation/CardFace';
 import { TemplateGallery } from '@/components/invitation/TemplateGallery';
 import { SAMPLE_COUPLE } from '@/components/invitation/sampleInvitation';
 import { EngravedWeddingCertificate } from '@/components/threeui/EngravedWeddingCertificate';
 import { LiquidMetalButton, SparkBadgePill } from '@/components/threeui/LiquidMetalButton';
 import { WeddingHeroAtmosphere } from '@/components/threeui/WeddingHeroAtmosphere';
+import { FannedInvitationDeck, StyleAccordionShowcase } from '@/components/motion/ShowcaseMotion';
 
 export const metadata: Metadata = {
   title: 'Thiệp Cưới Online Đẹp — DamCuoiOnline.vn',
@@ -25,7 +25,6 @@ const FEATURES: Array<{ title: string; text: string }> = [
 ];
 
 export default function InvitationGalleryPage() {
-  const fan = ['song-hy-do', 'mau-nuoc', 'baroque-vang'] as const;
   return (
     <main className="min-h-screen bg-[#FFFDF8] text-slate-900">
       <div className="relative overflow-hidden border-b border-amber-200/70">
@@ -54,23 +53,16 @@ export default function InvitationGalleryPage() {
               </div>
             </div>
 
-            {/* A fan of real template fronts */}
-            <div className="relative mx-auto h-[380px] w-full max-w-[460px] sm:h-[440px]" aria-hidden="true">
-              {fan.map((id, i) => (
-                <div
-                  key={id}
-                  className="absolute top-4 w-[52%] overflow-hidden rounded-[6px] shadow-[0_24px_50px_-20px_rgba(60,20,20,0.6)]"
-                  style={{ left: `${6 + i * 21}%`, transform: `rotate(${(i - 1) * 9}deg) translateY(${i === 1 ? -6 : 18}px)`, zIndex: i === 1 ? 3 : 1 }}
-                >
-                  <CardFace templateId={id} groom={SAMPLE_COUPLE.groomName} bride={SAMPLE_COUPLE.brideName} />
-                </div>
-              ))}
-            </div>
+            {/* Gesso-inspired 7-card interactive fanned deck reacting to hover & scroll */}
+            <FannedInvitationDeck compact className="mt-4 lg:mt-0" />
           </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-6xl px-5 py-12 sm:px-6 sm:py-16">
+        {/* Moonart-inspired 4-style interactive horizontal accordion */}
+        <StyleAccordionShowcase />
+
         {/* ThreeUI Engraved Certificate VIP Showcase */}
         <section className="mb-14 grid items-center gap-8 rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-50/70 via-white to-rose-50/50 p-6 sm:p-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div>

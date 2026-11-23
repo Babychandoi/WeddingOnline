@@ -337,6 +337,29 @@
   - `.inv-btn-metal`: Nút CTA chính (**Vào sảnh cưới 3D**, **Gửi xác nhận**, **Gửi lời chúc**, **Tạo mã QR mừng cưới**) có luồng ánh sáng kim loại lỏng lướt mượt theo đúng màu `--inv-accent` của từng mẫu thiệp
   - `InvitationQuickDock`: Thanh điều hướng nhanh theo chủ đề nổi ở mép dưới khi cuộn qua bìa (`Lịch lễ`, `Album`, `Sảnh 3D`, `RSVP`, `Mừng cưới`), tự tách khoảng an toàn khỏi nút Nhạc & Thả tim trên mobile `375px`
 
+### [x] Nhóm 39: Trọn Bộ 5 Gói Motion & Micro-Interaction Độc Bản (Cảm Hứng Nghệ Thuật Chuyển Động Từ `codeandchill.store`, Tự Code Gốc 100%)
+- [x] **Gói 1 — Bộ Đôi "Wow" Cho 100 Mẫu Thiệp & Sổ Kỷ Niệm** (`InvitationDelight.tsx`, `InvitationForms.tsx`, `InvitationView.tsx`, `MemorialArchiveView.tsx`):
+  - `WishesHeart3D` (*`Heartcode` + `Pulse`*): Trái tim 3D Canvas 2D dệt từ chòm sao & chính các lời chúc thật của khách mời (kéo ngang xoay 3D, lời chúc mới gửi lập tức bay vào quỹ đạo)
+  - Nút gửi lời chúc máy bay giấy (`Dart / Contrail`), nút chọn RSVP rót chất lỏng (`Decant`), nút xác nhận lan màu (`Quench`), nút chia sẻ xòe quạt (`ShareSplayButton` / `Splay`) và đĩa than xoay có cần kim nhạc nền (`VinylMusicButton` / `Lullo`)
+- [x] **Gói 2 — Trang Chủ (`/`), Thư Viện 100 Mẫu (`/thiep-cuoi`) & 101 Không Gian (`/khong-gian`)** (`ShowcaseMotion.tsx`, `OrbitalVenueGallery.tsx`, `TemplateGallery.tsx`, `VenueGallery.tsx`):
+  - `FannedInvitationDeck` (*`Gesso`*): Bộ bài 7 mẫu thiệp cưới xòe quạt kèm nhãn nổi, tự tách giãn theo cuộn trang & nâng nổi khi rê chuột
+  - Nâng cấp `OrbitalVenueGallery` (*`Monolith`*): Coverflow 3D phối cảnh sâu, bóng phản chiếu sàn, nghiêng theo chuột ở thẻ giữa, tiêu đề hiện từng từ & vòng tròn SVG đếm ngược autoplay quanh nút `>`
+  - `StyleAccordionShowcase` (*`Moonart`*), `OpalFilterTabs` (*`Opal`* viên thuốc trượt đàn hồi) & `ScrySearchInput` (*`Scry`* tìm kiếm co giãn cho cả 100 thiệp lẫn 101 sảnh)
+- [x] **Gói 3 — Nghi Thức Mở Thiệp Đặc Biệt & Bìa Tạp Chí Đan Lớp** (`InvitationRituals.tsx`, `InvitationView.tsx`):
+  - Bổ sung thanh chuyển nghi thức mở đầu ngay trên màn bìa thiệp: **✉️ Phong bì sáp** · **💘 Cung Cupid** (*`Birthday` / `Love Letter`* — kéo & thả dây cung bắn trái tim bung hoa) · **🏮 Đèn lồng** (*`Lucerna`* — lướt tay thắp sáng 7 đèn lồng mở thiệp)
+  - `WovenEditorialBanner` (*`Kesten`*): Chữ tên Cô Dâu – Chú Rể đan 3 lớp (nền đặc phía sau ảnh + viền nét mảnh 1px đè phía trước ảnh, giãn chữ khi cuộn) cho nhóm thiệp tạp chí/sang trọng
+  - `EditorialStoryChapters` (*`Lunde`*): Nâng cấp mục **Chuyện của chúng mình** thành các chương đánh số `01–05` đóng mở mượt đồng bộ khung ảnh
+- [x] **Gói 4 — Sảnh Chờ 3D & HUD Trong Phòng Cưới** (`OrbitalVenueGallery.tsx`, `HallChatPanel.tsx`, `InvitationThreeEffects.tsx`):
+  - `CharacterWaveCarousel` (*`Atlas`*): Băng chuyền chọn 51 nhân vật 3D với hiệu ứng hai bên đen trắng nghệ thuật, nhân vật đang chọn bừng màu nổi sóng
+  - `HallChatPanel` (*`Pivot`*): Khay công cụ bản lề bung/thu mượt cho chúc nhanh, mừng cưới & pháo hoa ngay cạnh ô chat
+  - `InvitationQuickDock` (*`Arc / Meniscus`*): Nâng cấp viên thuốc phát sáng trượt mượt giữa các mục khi cuộn
+- [x] **Gói 5 — Dashboard, Đăng Nhập, Thanh Toán & Trang 404** (`SystemDelight.tsx`, `OAuthModal.tsx`, `PrintQrTab.tsx`, `DashboardClient.tsx`, `create/page.tsx`, `not-found.tsx`):
+  - `PlimsollUploadDropzone` (*`Plimsoll / Upload`*): Hộp kéo thả tải nhiều ảnh cưới có mực nước hồng vàng dâng sóng
+  - `ParachuteDownloadButton` (*`Parachute / Bead`*): Nút tải ảnh QR in ấn 1200×1600 có vệt tiến độ & mũi tên lướt xuống
+  - `OAuthModal` (*`Nocturne / Portal`*): Nền kính mờ ánh sáng đêm tiệc & biểu tượng cánh cửa mở mời vào trên nút Google OAuth
+  - `TenderCheckoutButton` (*`Tender`*): Nút thanh toán VietQR trượt ánh kim tại `/create`
+  - `not-found.tsx` (`SleuthNotFoundClient`, *`Sleuth`*): Trang 404 tương tác có kính lúp chạy theo chuột soi chữ 404 kèm lối tắt về Trang chủ / 100 Thiệp / 101 Không gian
+
 ## Các Bước Tiếp Theo Khi Go-Live
 - [x] **Đổi secret & khởi động lại** (`npm run secrets:rotate` → `npm run docker:up`)
 - [x] **Triển khai trang admin**: `npm run db:push` (thêm bảng `PlatformSetting`) → `npm run docker:up`; `.env` đổi `NEXT_PUBLIC_APP_URL`/`NEXTAUTH_URL` sang `https://poiplegal.online`

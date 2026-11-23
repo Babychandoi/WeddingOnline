@@ -7,6 +7,7 @@ import { CheckCircle2, Loader2, LogOut, Sparkles } from 'lucide-react';
 import { TIER_CATALOG, isVenueId, type TemplateId, type WeddingTier } from '@dco/shared';
 import { OAuthModal } from '@/components/hall/OAuthModal';
 import { VenuePicker } from '@/components/venues/VenuePicker';
+import { TenderCheckoutButton } from '@/components/motion/SystemDelight';
 
 export default function CreateWeddingPage() {
   const router = useRouter();
@@ -378,15 +379,7 @@ export default function CreateWeddingPage() {
 
             {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full rounded-2xl bg-rose-600 py-3.5 text-sm font-bold text-white shadow-lg hover:bg-rose-500 disabled:opacity-60"
-            >
-              {submitting
-                ? 'Đang khởi tạo...'
-                : 'Tạo Phòng & Thanh Toán VietQR'}
-            </button>
+            <TenderCheckoutButton submitting={submitting} />
           </form>
         )}
       </div>

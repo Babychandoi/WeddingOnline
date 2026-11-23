@@ -3,8 +3,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import QRCode from 'qrcode';
-import { Download, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import type { PublicWeddingDTO } from '@dco/database';
+import { ParachuteDownloadButton } from '@/components/motion/SystemDelight';
 
 export const PrintQrTab: React.FC<{ wedding: PublicWeddingDTO }> = ({ wedding }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -121,14 +122,7 @@ export const PrintQrTab: React.FC<{ wedding: PublicWeddingDTO }> = ({ wedding })
         </p>
 
         <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={handleDownload}
-            disabled={!previewUrl}
-            className="flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-3 text-sm font-bold text-white shadow hover:bg-rose-500 disabled:opacity-50"
-          >
-            <Download className="h-4 w-4" /> Tải Ảnh QR Chất Lượng Cao (PNG)
-          </button>
+          <ParachuteDownloadButton onClick={handleDownload} disabled={!previewUrl} />
           <Link
             href={`/w/${wedding.slug}/invite`}
             target="_blank"

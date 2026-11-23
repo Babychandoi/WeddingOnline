@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Heart, Music2, Share2, Sparkles, VolumeX, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Sparkles, X } from 'lucide-react';
 import type { InvitationConfig, InvitationTemplateId } from '@dco/shared';
 import type { InvitationWish } from '@/app/api/invitations/[slug]/wishes/route';
 import { INVITATION_FONT_VARS } from './fonts';
@@ -22,6 +22,13 @@ import {
   SealSparkBurst,
   type QuickDockItem,
 } from '@/components/threeui/InvitationThreeEffects';
+import { ShareSplayButton, VinylMusicButton } from '@/components/motion/InvitationDelight';
+import {
+  CupidBowOpener,
+  EditorialStoryChapters,
+  LucernaLanternOpener,
+  WovenEditorialBanner,
+} from '@/components/motion/InvitationRituals';
 
 export interface InvitationPhoto {
   id: string;
@@ -176,6 +183,7 @@ function initials(a: string, b: string): string {
 
 function Envelope({ theme, guestName, photo, monogram, couple, date, onOpen }: { theme: InviteTheme; guestName: string | null; photo: string; monogram: string; couple: string; date: string; onOpen: () => void }) {
   const [phase, setPhase] = useState<'closed' | 'opening' | 'gone'>('closed');
+  const [ritual, setRitual] = useState<'envelope' | 'cupid' | 'lanterns'>('envelope');
   const [tilt, setTilt] = useState({ rx: 0, ry: 0, gx: 50, gy: 46, active: false });
   const env = theme.envelope;
 
@@ -187,6 +195,12 @@ function Envelope({ theme, guestName, photo, monogram, couple, date, onOpen }: {
     if (reduce) return setPhase('gone');
     setPhase('opening');
     setTimeout(() => setPhase('gone'), 1900);
+  };
+
+  const openDirect = () => {
+    if (phase !== 'closed') return;
+    onOpen();
+    setPhase('gone');
   };
 
   if (phase === 'gone') return null;
@@ -212,101 +226,143 @@ function Envelope({ theme, guestName, photo, monogram, couple, date, onOpen }: {
       className={`fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden px-5 transition-opacity duration-500 ${opening ? 'pointer-events-none opacity-0 [transition-delay:1350ms]' : ''}`}
       style={{ background: `radial-gradient(120% 80% at 50% 30%, ${theme.ground}, ${theme.ground} 40%, #00000022 100%), ${theme.ground}` }}
     >
-      <div className={`text-center transition-all duration-500 ${opening ? '-translate-y-3 opacity-0' : ''}`} style={{ color: headInk }}>
-        <p className="text-[12px] uppercase tracking-[0.42em] opacity-85">Thiệp mời cưới</p>
-        <p className="mt-1.5 px-2 text-[clamp(2.2rem,10vw,3rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.script }}>
-          {couple}
-        </p>
-        <p className="mt-1 text-[14px] tabular-nums tracking-[0.32em] opacity-90">{date}</p>
-      </div>
-      <button
-        type="button"
-        onClick={open}
-        onPointerMove={handleEnvelopeMove}
-        onPointerLeave={() => setTilt({ rx: 0, ry: 0, gx: 50, gy: 46, active: false })}
-        aria-label="Mở thiệp cưới"
-        className="group relative mt-[11vh] h-[min(50vh,460px)] w-[min(84vw,420px)] outline-none [perspective:1200px] focus-visible:ring-4 focus-visible:ring-white/60"
-      >
-        <div
-          className="relative h-full w-full transition-transform duration-300 ease-out [transform-style:preserve-3d] motion-reduce:transform-none"
-          style={{
-            transform: !opening && tilt.active
-              ? `rotateX(${tilt.rx.toFixed(2)}deg) rotateY(${tilt.ry.toFixed(2)}deg)`
-              : 'rotateX(0deg) rotateY(0deg)',
-          }}
-        >
-          {/* Card inside, peeking out, then rising out */}
-          <div
-            className="absolute inset-x-[7%] top-[-17%] h-[92%] rounded-[3px] shadow-[0_-6px_20px_-8px_rgba(0,0,0,0.4)] transition-transform duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)] [transition-delay:520ms]"
-            style={{ background: theme.paper, transform: opening ? 'translateY(-60%)' : 'translateY(0)' }}
-          >
-            <div className="flex h-full flex-col items-center justify-start p-[4%]">
-              {photo && <img src={sized(photo, true)} alt="" className="block h-[52%] w-full object-cover" style={{ filter: theme.layout.photoFilter }} />}
-              <span className="mt-[6%] text-[clamp(1.6rem,7vw,2.3rem)] leading-none" style={{ color: theme.accentText ?? theme.accent, fontFamily: theme.script }}>
-                {monogram}
-              </span>
-            </div>
-          </div>
-          {/* Envelope body with pocket flaps + interactive specular foil glint */}
-          <div className="absolute inset-0 overflow-hidden rounded-[6px]" style={{ background: env.body, boxShadow: `inset 0 0 0 1px ${theme.line}88, 0 30px 60px -20px rgba(0,0,0,0.6)` }}>
-            <Grain paper={env.body} strength={Math.max(0.3, theme.grain)} />
-          </div>
-          <div className="absolute inset-0 [clip-path:polygon(0_0,54%_50%,0_100%)]" style={{ background: env.flap, filter: 'brightness(0.94)' }} />
-          <div className="absolute inset-0 [clip-path:polygon(100%_0,46%_50%,100%_100%)]" style={{ background: env.flap, filter: 'brightness(0.9)' }} />
-          <div className="absolute inset-0 [clip-path:polygon(0_100%,50%_44%,100%_100%)]" style={{ background: env.body, filter: 'brightness(1.04)' }} />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-[2] rounded-[6px] transition-opacity duration-300 motion-reduce:hidden"
-            style={{
-              opacity: tilt.active && !opening ? 1 : 0.32,
-              background: `radial-gradient(circle at ${tilt.gx}% ${tilt.gy}%, rgba(255,250,235,0.28) 0%, transparent 56%)`,
-              mixBlendMode: 'soft-light',
-            }}
-          />
-          {/* Address */}
-          <div className="absolute inset-x-0 bottom-[9%] z-[2] text-center" style={{ color: env.text }}>
-            <p className="text-[15px] tracking-[0.22em]" style={{ fontFamily: theme.display }}>
-              KÍNH MỜI
+      {ritual === 'cupid' ? (
+        <CupidBowOpener theme={theme} couple={couple} guestName={guestName} date={date} onOpen={openDirect} />
+      ) : ritual === 'lanterns' ? (
+        <LucernaLanternOpener theme={theme} couple={couple} guestName={guestName} date={date} onOpen={openDirect} />
+      ) : (
+        <>
+          <div className={`text-center transition-all duration-500 ${opening ? '-translate-y-3 opacity-0' : ''}`} style={{ color: headInk }}>
+            <p className="text-[12px] uppercase tracking-[0.42em] opacity-85">Thiệp mời cưới</p>
+            <p className="mt-1.5 px-2 text-[clamp(2.2rem,10vw,3rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.script }}>
+              {couple}
             </p>
-            <p className="mt-2 px-6 text-[clamp(1.9rem,9vw,2.6rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.script }}>
-              {guestName || 'Quý khách'}
-            </p>
+            <p className="mt-1 text-[14px] tabular-nums tracking-[0.32em] opacity-90">{date}</p>
           </div>
-          {/* Top flap, swinging open */}
-          <div
-            className="absolute inset-x-0 top-0 z-[3] h-[46%] origin-top transition-transform duration-[650ms] ease-[cubic-bezier(0.5,0,0.2,1)] [transform-style:preserve-3d]"
-            style={{ transform: opening ? 'rotateX(180deg)' : 'rotateX(0deg)' }}
+          <button
+            type="button"
+            onClick={open}
+            onPointerMove={handleEnvelopeMove}
+            onPointerLeave={() => setTilt({ rx: 0, ry: 0, gx: 50, gy: 46, active: false })}
+            aria-label="Mở thiệp cưới"
+            className="group relative mt-[9vh] h-[min(46vh,430px)] w-[min(84vw,420px)] outline-none [perspective:1200px] focus-visible:ring-4 focus-visible:ring-white/60"
           >
-            <div className="absolute inset-0 [backface-visibility:hidden] [clip-path:polygon(0_0,100%_0,50%_100%)]" style={{ background: env.flap }} />
-            <div className="absolute inset-0 flex items-start justify-center pt-[10%] [backface-visibility:hidden] [clip-path:polygon(0_0,100%_0,50%_100%)] [transform:rotateX(180deg)]" style={{ background: env.liner }}>
-              <div className="w-[60%] opacity-50">
-                <Ornament kind={theme.ornament} theme={{ ...theme, accent: env.flap, line: env.flap, ink: env.flap }} variant="divider" />
+            <div
+              className="relative h-full w-full transition-transform duration-300 ease-out [transform-style:preserve-3d] motion-reduce:transform-none"
+              style={{
+                transform: !opening && tilt.active
+                  ? `rotateX(${tilt.rx.toFixed(2)}deg) rotateY(${tilt.ry.toFixed(2)}deg)`
+                  : 'rotateX(0deg) rotateY(0deg)',
+              }}
+            >
+              {/* Card inside, peeking out, then rising out */}
+              <div
+                className="absolute inset-x-[7%] top-[-17%] h-[92%] rounded-[3px] shadow-[0_-6px_20px_-8px_rgba(0,0,0,0.4)] transition-transform duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)] [transition-delay:520ms]"
+                style={{ background: theme.paper, transform: opening ? 'translateY(-60%)' : 'translateY(0)' }}
+              >
+                <div className="flex h-full flex-col items-center justify-start p-[4%]">
+                  {photo && <img src={sized(photo, true)} alt="" className="block h-[52%] w-full object-cover" style={{ filter: theme.layout.photoFilter }} />}
+                  <span className="mt-[6%] text-[clamp(1.6rem,7vw,2.3rem)] leading-none" style={{ color: theme.accentText ?? theme.accent, fontFamily: theme.script }}>
+                    {monogram}
+                  </span>
+                </div>
+              </div>
+              {/* Envelope body with pocket flaps + interactive specular foil glint */}
+              <div className="absolute inset-0 overflow-hidden rounded-[6px]" style={{ background: env.body, boxShadow: `inset 0 0 0 1px ${theme.line}88, 0 30px 60px -20px rgba(0,0,0,0.6)` }}>
+                <Grain paper={env.body} strength={Math.max(0.3, theme.grain)} />
+              </div>
+              <div className="absolute inset-0 [clip-path:polygon(0_0,54%_50%,0_100%)]" style={{ background: env.flap, filter: 'brightness(0.94)' }} />
+              <div className="absolute inset-0 [clip-path:polygon(100%_0,46%_50%,100%_100%)]" style={{ background: env.flap, filter: 'brightness(0.9)' }} />
+              <div className="absolute inset-0 [clip-path:polygon(0_100%,50%_44%,100%_100%)]" style={{ background: env.body, filter: 'brightness(1.04)' }} />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 z-[2] rounded-[6px] transition-opacity duration-300 motion-reduce:hidden"
+                style={{
+                  opacity: tilt.active && !opening ? 1 : 0.32,
+                  background: `radial-gradient(circle at ${tilt.gx}% ${tilt.gy}%, rgba(255,250,235,0.28) 0%, transparent 56%)`,
+                  mixBlendMode: 'soft-light',
+                }}
+              />
+              {/* Address */}
+              <div className="absolute inset-x-0 bottom-[9%] z-[2] text-center" style={{ color: env.text }}>
+                <p className="text-[15px] tracking-[0.22em]" style={{ fontFamily: theme.display }}>
+                  KÍNH MỜI
+                </p>
+                <p className="mt-2 px-6 text-[clamp(1.9rem,9vw,2.6rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.script }}>
+                  {guestName || 'Quý khách'}
+                </p>
+              </div>
+              {/* Top flap, swinging open */}
+              <div
+                className="absolute inset-x-0 top-0 z-[3] h-[46%] origin-top transition-transform duration-[650ms] ease-[cubic-bezier(0.5,0,0.2,1)] [transform-style:preserve-3d]"
+                style={{ transform: opening ? 'rotateX(180deg)' : 'rotateX(0deg)' }}
+              >
+                <div className="absolute inset-0 [backface-visibility:hidden] [clip-path:polygon(0_0,100%_0,50%_100%)]" style={{ background: env.flap }} />
+                <div className="absolute inset-0 flex items-start justify-center pt-[10%] [backface-visibility:hidden] [clip-path:polygon(0_0,100%_0,50%_100%)] [transform:rotateX(180deg)]" style={{ background: env.liner }}>
+                  <div className="w-[60%] opacity-50">
+                    <Ornament kind={theme.ornament} theme={{ ...theme, accent: env.flap, line: env.flap, ink: env.flap }} variant="divider" />
+                  </div>
+                </div>
+              </div>
+              {/* Shimmer halo + Wax Seal + Spark Burst on open */}
+              {!opening && (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-1/2 top-[46%] z-[3] h-[6.2rem] w-[6.2rem] rounded-full motion-reduce:hidden"
+                  style={{
+                    border: `1px solid ${theme.line}`,
+                    boxShadow: `0 0 24px ${theme.line}66`,
+                    animation: 'inv-seal-pulse 2.8s ease-in-out infinite',
+                  }}
+                />
+              )}
+              <SealSparkBurst active={opening} accent={theme.line} secondary={theme.accent} />
+              <div
+                className={`absolute left-1/2 top-[46%] z-[4] -translate-x-1/2 -translate-y-1/2 [&_svg]:h-[5.2rem] [&_svg]:w-[5.2rem] transition-all duration-300 ${opening ? 'scale-75 opacity-0' : 'group-hover:scale-105'}`}
+              >
+                <Seal theme={theme} monogram={monogram} />
               </div>
             </div>
-          </div>
-          {/* Shimmer halo + Wax Seal + Spark Burst on open */}
-          {!opening && (
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute left-1/2 top-[46%] z-[3] h-[6.2rem] w-[6.2rem] rounded-full motion-reduce:hidden"
-              style={{
-                border: `1px solid ${theme.line}`,
-                boxShadow: `0 0 24px ${theme.line}66`,
-                animation: 'inv-seal-pulse 2.8s ease-in-out infinite',
-              }}
-            />
-          )}
-          <SealSparkBurst active={opening} accent={theme.line} secondary={theme.accent} />
-          <div
-            className={`absolute left-1/2 top-[46%] z-[4] -translate-x-1/2 -translate-y-1/2 [&_svg]:h-[5.2rem] [&_svg]:w-[5.2rem] transition-all duration-300 ${opening ? 'scale-75 opacity-0' : 'group-hover:scale-105'}`}
-          >
-            <Seal theme={theme} monogram={monogram} />
-          </div>
+          </button>
+          <p className="mt-5 text-[14.5px] font-medium motion-safe:animate-pulse" style={{ color: headInk }}>
+            Chạm vào thiệp để mở
+          </p>
+        </>
+      )}
+
+      {/* Discreet opening-ritual selector (Classic Envelope · Cupid Bow · Lucerna Lanterns) */}
+      {!opening && (
+        <div
+          className="mt-4 inline-flex items-center gap-1 rounded-full p-1 text-[11px] font-semibold backdrop-blur-md"
+          style={{
+            background: isDark(theme.ground) ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+            border: `1px solid ${theme.line}55`,
+            color: headInk,
+          }}
+        >
+          {(
+            [
+              { id: 'envelope', label: '✉️ Phong bì' },
+              { id: 'cupid', label: '💘 Cung Cupid' },
+              { id: 'lanterns', label: '🏮 Đèn lồng' },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setRitual(opt.id)}
+              className="rounded-full px-3 py-1 transition"
+              style={
+                ritual === opt.id
+                  ? { background: theme.accent, color: theme.onAccent }
+                  : { opacity: 0.8 }
+              }
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
-      </button>
-      <p className="mt-6 text-[15px] font-medium motion-safe:animate-pulse" style={{ color: headInk }}>
-        Chạm vào thiệp để mở
-      </p>
+      )}
     </div>
   );
 }
@@ -537,17 +593,6 @@ export function InvitationView(props: InvitationViewProps) {
     }
   };
 
-  const share = async () => {
-    const url = window.location.href;
-    const title = `Thiệp cưới ${groom} & ${bride}`;
-    if (navigator.share) {
-      await navigator.share({ title, url }).catch(() => undefined);
-    } else {
-      await navigator.clipboard?.writeText(url);
-      alert('Đã chép đường dẫn thiệp');
-    }
-  };
-
   const familyFilled = [config.groomFamily, config.brideFamily].some((f) => f.father || f.mother || f.address);
   const accent = theme.accentText ?? theme.accent;
   const namesStyle: React.CSSProperties =
@@ -747,14 +792,27 @@ export function InvitationView(props: InvitationViewProps) {
             </EditSpot>
           )}
 
-          {/* ── A photo between the wording and the schedule ── */}
+          {/* ── A photo between the wording and the schedule (Kesten woven editorial for magazine/noir/editorial themes) ── */}
           {(interludeSrc && theme.layout.interlude !== 'none') || config.quote ? (
             <EditSpot part="quote" onEdit={onEditPart}>
-              <Interlude theme={theme} src={interludeSrc} alt={`${groom} và ${bride}`} quote={config.quote} />
-              {(!interludeSrc || theme.layout.interlude === 'none') && config.quote && (
-                <p className="mx-auto max-w-[36ch] px-8 py-6 text-center text-[17px] italic leading-relaxed [text-wrap:balance]" style={{ color: theme.inkSoft }}>
-                  “{config.quote}”
-                </p>
+              {!embedded && !onEditPart && interludeSrc && (theme.ornament === 'masthead' || theme.ornament === 'baroque' || theme.ornament === 'hairline') ? (
+                <>
+                  <WovenEditorialBanner groom={groom} bride={bride} src={interludeSrc} theme={theme} />
+                  {config.quote && (
+                    <p className="mx-auto max-w-[36ch] px-8 pb-6 text-center text-[17px] italic leading-relaxed [text-wrap:balance]" style={{ color: theme.inkSoft }}>
+                      “{config.quote}”
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Interlude theme={theme} src={interludeSrc} alt={`${groom} và ${bride}`} quote={config.quote} />
+                  {(!interludeSrc || theme.layout.interlude === 'none') && config.quote && (
+                    <p className="mx-auto max-w-[36ch] px-8 py-6 text-center text-[17px] italic leading-relaxed [text-wrap:balance]" style={{ color: theme.inkSoft }}>
+                      “{config.quote}”
+                    </p>
+                  )}
+                </>
               )}
             </EditSpot>
           ) : (
@@ -793,25 +851,29 @@ export function InvitationView(props: InvitationViewProps) {
           {sections.story && config.story.length > 0 && (
             <EditSpot part="story" onEdit={onEditPart}>
             <Section id="chuyen-tinh" t={T('Chuyện của chúng mình', 'Our story')} theme={theme}>
-              <ol className="relative mx-auto max-w-[420px] text-left">
-                <span className="absolute bottom-2 left-[7px] top-2 w-px" style={{ background: theme.line }} aria-hidden="true" />
-                {config.story.map((s) => (
-                  <li key={s.id} className="relative pb-9 pl-9 last:pb-0">
-                    <span className="absolute left-0 top-1.5 h-[15px] w-[15px] rounded-full border-2" style={{ borderColor: theme.accent, background: theme.paper }} aria-hidden="true" />
-                    {s.when && (
-                      <p className="text-[13px] uppercase tracking-[0.2em]" style={{ color: accent }}>
-                        {s.when}
-                      </p>
-                    )}
-                    {s.title && (
-                      <h3 className="mt-0.5 text-[20px] leading-snug" style={{ fontFamily: theme.display, fontWeight: theme.namesWeight === 400 ? 400 : 600 }}>
-                        {s.title}
-                      </h3>
-                    )}
-                    {s.text && <p className="mt-1.5 text-[15.5px] leading-relaxed [text-wrap:pretty]" style={{ color: theme.inkSoft }}>{s.text}</p>}
-                  </li>
-                ))}
-              </ol>
+              {!onEditPart && !embedded ? (
+                <EditorialStoryChapters story={config.story} photos={props.photos} theme={theme} />
+              ) : (
+                <ol className="relative mx-auto max-w-[420px] text-left">
+                  <span className="absolute bottom-2 left-[7px] top-2 w-px" style={{ background: theme.line }} aria-hidden="true" />
+                  {config.story.map((s) => (
+                    <li key={s.id} className="relative pb-9 pl-9 last:pb-0">
+                      <span className="absolute left-0 top-1.5 h-[15px] w-[15px] rounded-full border-2" style={{ borderColor: theme.accent, background: theme.paper }} aria-hidden="true" />
+                      {s.when && (
+                        <p className="text-[13px] uppercase tracking-[0.2em]" style={{ color: accent }}>
+                          {s.when}
+                        </p>
+                      )}
+                      {s.title && (
+                        <h3 className="mt-0.5 text-[20px] leading-snug" style={{ fontFamily: theme.display, fontWeight: theme.namesWeight === 400 ? 400 : 600 }}>
+                          {s.title}
+                        </h3>
+                      )}
+                      {s.text && <p className="mt-1.5 text-[15.5px] leading-relaxed [text-wrap:pretty]" style={{ color: theme.inkSoft }}>{s.text}</p>}
+                    </li>
+                  ))}
+                </ol>
+              )}
             </Section>
             </EditSpot>
           )}
@@ -899,7 +961,15 @@ export function InvitationView(props: InvitationViewProps) {
           {sections.wishes && (
             <EditSpot part="replies" onEdit={onEditPart}>
             <Section id="loi-chuc" t={T('Gửi lời chúc', 'Wishes')} theme={theme}>
-              <WishesSection slug={slug} demo={demo} guestName={guest} initial={props.initialWishes} />
+              <WishesSection
+                slug={slug}
+                demo={demo}
+                guestName={guest}
+                initial={props.initialWishes}
+                coupleName={`${groom} & ${bride}`}
+                showHeart3D={!embedded && !onEditPart}
+                themeColors={{ accent: theme.accent, line: theme.line, paper: theme.paper, ink: theme.ink }}
+              />
             </Section>
             </EditSpot>
           )}
@@ -943,11 +1013,14 @@ export function InvitationView(props: InvitationViewProps) {
               </>
             )}
             {!embedded && (
-              <div className="mt-7 flex justify-center">
-                <button type="button" onClick={share} className="inline-flex min-h-[48px] items-center gap-2 rounded-[var(--inv-btn-r)] border px-6 text-[15px] font-semibold" style={{ borderColor: theme.accent }}>
-                  <Share2 className="h-4 w-4" /> Chia sẻ thiệp
-                </button>
-              </div>
+              <ShareSplayButton
+                title={`Thiệp cưới ${groom} & ${bride}`}
+                accent={theme.accent}
+                onAccent={theme.onAccent}
+                paper={theme.paper}
+                line={theme.line}
+                ink={theme.ink}
+              />
             )}
             <p className="mt-10 text-[13px]" style={{ color: theme.inkSoft }}>
               Thiệp cưới online · <a href="/thiep-cuoi" className="underline underline-offset-4">DamCuoiOnline</a>
@@ -969,16 +1042,14 @@ export function InvitationView(props: InvitationViewProps) {
       )}
       {!embedded && opened && pastCover && <HeartButton theme={theme} />}
       {!embedded && opened && config.music.mode !== 'OFF' && (
-        <button
-          type="button"
-          onClick={toggleMusic}
-          aria-label={playing ? 'Tắt nhạc' : 'Bật nhạc'}
-          aria-pressed={playing}
-          className={`fixed bottom-4 right-4 z-40 grid place-items-center rounded-full shadow-[0_8px_20px_-6px_rgba(0,0,0,0.5)] backdrop-blur transition-all duration-300 ${pastCover ? 'h-12 w-12' : 'h-11 w-11 opacity-80 hover:opacity-100'}`}
-          style={{ background: pastCover ? theme.accent : `color-mix(in srgb, ${theme.accent} 70%, transparent)`, color: theme.onAccent }}
-        >
-          {playing ? <Music2 className="h-5 w-5 motion-safe:animate-[spin_6s_linear_infinite]" /> : <VolumeX className="h-5 w-5" />}
-        </button>
+        <VinylMusicButton
+          playing={playing}
+          pastCover={pastCover}
+          accent={theme.accent}
+          onAccent={theme.onAccent}
+          line={theme.line}
+          onToggle={toggleMusic}
+        />
       )}
 
       {lightbox !== null && (

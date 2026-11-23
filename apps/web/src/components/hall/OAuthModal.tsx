@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Crown, Loader2 } from 'lucide-react';
+import { ArrowLeft, Crown, DoorOpen, Loader2 } from 'lucide-react';
 import type { AuthProvider } from '@dco/shared';
 
 interface OAuthModalProps {
@@ -113,8 +113,20 @@ export const OAuthModal: React.FC<OAuthModalProps> = ({
       : '/';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
-      <div className="dco-fade-up w-full max-w-md rounded-3xl border border-amber-200 bg-[#FFFDF8] p-6 shadow-2xl sm:p-7">
+    <div
+      data-nocturne-auth="true"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-[#120911]/75 p-4 backdrop-blur-md"
+    >
+      {/* Nocturne atmospheric wedding-night bokeh orbs behind frosted card */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(38% 36% at 24% 26%, rgba(251,191,36,0.22), transparent 70%), radial-gradient(42% 40% at 78% 72%, rgba(225,29,72,0.24), transparent 72%)',
+        }}
+      />
+      <div className="dco-fade-up relative z-[1] w-full max-w-md rounded-3xl border border-amber-200/80 bg-[#FFFDF8]/92 p-6 shadow-[0_32px_80px_-24px_rgba(0,0,0,0.65)] ring-1 ring-white/50 backdrop-blur-xl sm:p-7">
         <div className="mb-4 flex items-center justify-between">
           {onClose ? (
             <button
@@ -151,12 +163,12 @@ export const OAuthModal: React.FC<OAuthModalProps> = ({
           </p>
         )}
 
-        {/* Primary Google OAuth 2.0 Button */}
+        {/* Primary Google OAuth 2.0 Button with Portal subtle opening-door cue */}
         <a
           href={`/api/auth/oauth/google?next=${encodeURIComponent(currentPath)}`}
-          className={`flex w-full items-center justify-center gap-3 rounded-2xl border px-4 py-3 text-sm font-bold shadow-sm transition ${
+          className={`group flex w-full items-center justify-center gap-3 rounded-2xl border px-4 py-3.5 text-sm font-bold shadow-sm transition-all duration-300 hover:-translate-y-0.5 ${
             googleConfigured
-              ? 'border-slate-300 bg-white text-slate-900 hover:border-rose-300 hover:bg-rose-50/40'
+              ? 'border-slate-300 bg-white text-slate-900 hover:border-rose-300 hover:bg-rose-50/40 hover:shadow-md'
               : 'border-amber-200 bg-white/80 text-slate-700 hover:bg-amber-50/40'
           }`}
         >
@@ -179,6 +191,7 @@ export const OAuthModal: React.FC<OAuthModalProps> = ({
             />
           </svg>
           <span>Tiếp tục bằng Tài khoản Google</span>
+          <DoorOpen className="h-4 w-4 text-rose-600/80 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:scale-110" />
         </a>
 
         {googleConfigured === false && (

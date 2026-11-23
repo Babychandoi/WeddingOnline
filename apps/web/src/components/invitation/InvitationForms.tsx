@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Copy, Gift, HeartHandshake, Loader2, Minus, Plus, Send, X } from 'lucide-react';
 import type { InvitationWish } from '@/app/api/invitations/[slug]/wishes/route';
+import { WishesHeart3D } from '@/components/motion/InvitationDelight';
 import { formatVnd } from './format';
 
 type Side = 'GROOM_SIDE' | 'BRIDE_SIDE' | 'FRIEND' | 'COLLEAGUE';
@@ -150,7 +151,7 @@ export function RsvpForm({ slug, demo, guestName, deadline }: { slug: string; de
         </p>
       )}
       <div className="pt-1 text-center">
-        <button type="submit" className={primaryButton} disabled={busy}>
+        <button type="submit" className={`${primaryButton} inv-quench`} data-sending={busy ? 'true' : undefined} disabled={busy}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Gửi xác nhận
         </button>
         {deadline && <p className="mt-3 text-[14px] text-[color:var(--inv-ink-soft)]">Vui lòng xác nhận trước {deadline}</p>}
@@ -161,12 +162,29 @@ export function RsvpForm({ slug, demo, guestName, deadline }: { slug: string; de
 
 /* ───────────────────────── Wishes ───────────────────────── */
 
-export function WishesSection({ slug, demo, guestName, initial }: { slug: string; demo: boolean; guestName: string; initial: InvitationWish[] }) {
+export function WishesSection({
+  slug,
+  demo,
+  guestName,
+  initial,
+  coupleName,
+  showHeart3D = false,
+  themeColors,
+}: {
+  slug: string;
+  demo: boolean;
+  guestName: string;
+  initial: InvitationWish[];
+  coupleName?: string;
+  showHeart3D?: boolean;
+  themeColors?: { accent: string; line: string; paper: string; ink: string };
+}) {
   const [wishes, setWishes] = useState(initial);
   const [name, setName] = useState(guestName);
   const [message, setMessage] = useState('');
   const [side, setSide] = useState<Side>('FRIEND');
   const [busy, setBusy] = useState(false);
+  const [launched, setLaunched] = useState(false);
   const [error, setError] = useState('');
   const [shown, setShown] = useState(12);
 
@@ -180,17 +198,32 @@ export function WishesSection({ slug, demo, guestName, initial }: { slug: string
       await new Promise((r) => setTimeout(r, 400));
       setWishes((w) => [{ id: `demo_${Date.now()}`, name: name.trim(), side, message: message.trim(), createdAt: new Date().toISOString(), withGift: false }, ...w]);
       setMessage('');
-      return setBusy(false);
+      setBusy(false);
+      setLaunched(true);
+      window.setTimeout(() => setLaunched(false), 2200);
+      return;
     }
     const { ok, data } = await postJson<{ wish: InvitationWish }>(`/api/invitations/${slug}/wishes`, { name, message, side });
     setBusy(false);
     if (!ok) return setError(data.message || 'Chưa gửi được, bạn thử lại nhé.');
     setWishes((w) => [data.wish, ...w]);
     setMessage('');
+    setLaunched(true);
+    window.setTimeout(() => setLaunched(false), 2200);
   }
 
   return (
     <div className="text-left">
+      {showHeart3D && (
+        <WishesHeart3D
+          wishes={wishes.map((w) => ({ id: w.id, name: w.name, message: w.message }))}
+          coupleName={coupleName || 'Cô Dâu & Chú Rể'}
+          accent={themeColors?.accent}
+          line={themeColors?.line}
+          paper={themeColors?.paper}
+          ink={themeColors?.ink}
+        />
+      )}
       <form onSubmit={submit} className="inv-form space-y-5" noValidate>
         <div>
           <Label htmlFor="wish-name">Tên của bạn</Label>
@@ -207,8 +240,15 @@ export function WishesSection({ slug, demo, guestName, initial }: { slug: string
           </p>
         )}
         <div className="text-center">
-          <button type="submit" className={primaryButton} disabled={busy}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Gửi lời chúc
+          <button type="submit" className={`${primaryButton} inv-dart-btn`} data-launched={launched ? 'true' : undefined} disabled={busy}>
+            {busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : launched ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <Send className="inv-plane h-4 w-4" />
+            )}
+            <span>{launched ? 'Đã bay vào trái tim lời chúc!' : 'Gửi lời chúc'}</span>
           </button>
         </div>
       </form>
@@ -428,11 +468,15 @@ export const formSkinCss = `
 .inv-root .inv-field:focus { border-color:var(--inv-accent); box-shadow:0 0 0 4px color-mix(in srgb, var(--inv-accent) 15%, transparent); }
 .inv-root select.inv-field { background-image:${CHEVRON}; background-repeat:no-repeat; background-position:right 16px center; padding-right:42px; }
 
-.inv-root .inv-choice { display:flex; align-items:center; gap:12px; min-height:64px; padding:12px 14px; text-align:left; color:var(--inv-ink);
-  background:var(--inv-field-bg); border:1px solid var(--inv-field-line); border-radius:var(--inv-field-r); transition:all .2s; }
-.inv-root .inv-choice:hover { border-color:color-mix(in srgb, var(--inv-accent) 55%, var(--inv-field-line)); }
+.inv-root .inv-choice { position:relative; overflow:hidden; isolation:isolate; display:flex; align-items:center; gap:12px; min-height:64px; padding:12px 14px; text-align:left; color:var(--inv-ink);
+  background:var(--inv-field-bg); border:1px solid var(--inv-field-line); border-radius:var(--inv-field-r); transition:all .28s cubic-bezier(0.22,1,0.36,1); }
+.inv-root .inv-choice::after { content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--inv-accent) 18%, transparent), color-mix(in srgb, var(--inv-accent) 8%, transparent));
+  transform:translateY(102%); border-radius:42% 42% 0 0 / 18% 18% 0 0; transition:transform .52s cubic-bezier(0.16,1,0.3,1), border-radius .52s ease; }
+.inv-root .inv-choice:hover { border-color:color-mix(in srgb, var(--inv-accent) 55%, var(--inv-field-line)); transform:translateY(-1px); }
 .inv-root .inv-choice[aria-checked="true"] { color:var(--inv-accent-text); border-color:var(--inv-accent);
-  background:color-mix(in srgb, var(--inv-accent) 9%, var(--inv-field-bg)); box-shadow:inset 0 0 0 1px var(--inv-accent); }
+  box-shadow:inset 0 0 0 1px var(--inv-accent), 0 8px 20px -12px color-mix(in srgb, var(--inv-accent) 45%, transparent); }
+.inv-root .inv-choice[aria-checked="true"]::after { transform:translateY(0); border-radius:0; }
 
 .inv-root .inv-chip { display:inline-flex; align-items:center; gap:6px; min-height:42px; padding:0 16px; font-size:14.5px; font-weight:500; color:var(--inv-ink);
   background:var(--inv-field-bg); border:1px solid var(--inv-field-line); border-radius:var(--inv-chip-r); transition:all .2s; }
@@ -467,11 +511,17 @@ export const formSkinCss = `
 .inv-root[data-skin="line"] .inv-wishes { gap:0; border-top:1px solid var(--inv-field-line); }
 .inv-root[data-skin="line"] .inv-card { background:transparent; }
 
-/* ThreeUI liquid-metal sheen for primary invitation CTA buttons */
+/* ThreeUI liquid-metal sheen + Gói 1 Quench liquid confirm & Dart paper-plane send */
 @keyframes inv-metal-sweep { 0% { transform:translateX(-150%) skewX(-22deg); } 28%, 100% { transform:translateX(280%) skewX(-22deg); } }
+@keyframes inv-quench-fill { 0% { transform:translateX(-100%); } 100% { transform:translateX(0%); } }
+@keyframes inv-plane-hover { 0%, 100% { transform:translate3d(0,0,0) rotate(0deg); } 50% { transform:translate3d(3px,-2px,0) rotate(-6deg); } }
 .inv-root .inv-btn-metal { box-shadow:inset 0 1px 0 rgba(255,255,255,0.34), inset 0 -1px 0 rgba(0,0,0,0.18), var(--inv-btn-shadow); }
 .inv-root .inv-btn-metal::before { content:""; position:absolute; inset:-2px auto -2px -30%; width:42%; pointer-events:none;
   background:linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent);
   transform:translateX(-150%) skewX(-22deg); animation:inv-metal-sweep 4.8s cubic-bezier(0.22,1,0.36,1) infinite; }
 .inv-root .inv-btn-metal:hover::before { animation-duration:1.9s; }
+.inv-root .inv-quench[data-sending="true"]::after { content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background:rgba(255,255,255,0.22); animation:inv-quench-fill 700ms ease-out forwards; }
+.inv-root .inv-dart-btn:hover .inv-plane { animation:inv-plane-hover 620ms ease-in-out infinite; }
+.inv-root .inv-dart-btn[data-launched="true"] { filter:brightness(1.08); box-shadow:0 10px 24px -8px color-mix(in srgb, var(--inv-accent) 65%, transparent); }
 `;

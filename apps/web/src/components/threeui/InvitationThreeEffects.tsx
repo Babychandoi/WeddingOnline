@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, CheckCircle2, Gift, Images, MessageCircleHeart, Sparkles } from 'lucide-react';
 import type { OrnamentKind } from '@/components/invitation/themes';
 
@@ -567,6 +567,19 @@ const DOCK_ICONS = {
 export function InvitationQuickDock({ items, paper, ink, accent, onAccent, line }: InvitationQuickDockProps) {
   const [activeId, setActiveId] = useState<string>(items[0]?.id ?? '');
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [halo, setHalo] = useState<{ left: number; width: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const sync = () => {
+      const btn = btnRefs.current[activeId];
+      if (!btn) return;
+      setHalo({ left: btn.offsetLeft, width: btn.offsetWidth });
+    };
+    sync();
+    window.addEventListener('resize', sync);
+    return () => window.removeEventListener('resize', sync);
+  }, [activeId, items.length]);
 
   useEffect(() => {
     if (items.length === 0 || typeof IntersectionObserver === 'undefined') return;
@@ -605,7 +618,7 @@ export function InvitationQuickDock({ items, paper, ink, accent, onAccent, line 
       className="fixed bottom-4 left-3 right-[72px] z-40 flex justify-center animate-[inv-pop_320ms_ease-out_both] motion-reduce:animate-none sm:left-1/2 sm:right-auto sm:-translate-x-1/2"
     >
       <div
-        className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full px-1.5 py-1.5 shadow-[0_14px_34px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="relative flex max-w-full items-center gap-1 overflow-x-auto rounded-full px-1.5 py-1.5 shadow-[0_14px_34px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{
           background: `color-mix(in srgb, ${paper} 88%, transparent)`,
           border: `1px solid color-mix(in srgb, ${line} 75%, transparent)`,
@@ -613,23 +626,38 @@ export function InvitationQuickDock({ items, paper, ink, accent, onAccent, line 
         }}
         onMouseLeave={() => setHoveredIdx(null)}
       >
+        {/* Arc / Meniscus sliding glowing pill */}
+        {halo && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-1.5 rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{
+              left: halo.left,
+              width: halo.width,
+              background: accent,
+              boxShadow: `0 0 18px -4px ${accent}`,
+            }}
+          />
+        )}
         {items.map((item, idx) => {
           const Icon = DOCK_ICONS[item.icon];
           const isActive = activeId === item.id;
           const dist = hoveredIdx === null ? 99 : Math.abs(hoveredIdx - idx);
-          const scale = dist === 0 ? 1.07 : dist === 1 ? 1.02 : 1;
-          const lift = dist === 0 ? -2 : dist === 1 ? -0.5 : 0;
+          const scale = dist === 0 ? 1.06 : dist === 1 ? 1.02 : 1;
+          const lift = dist === 0 ? -1.5 : dist === 1 ? -0.5 : 0;
 
           return (
             <button
               key={item.id}
+              ref={(el) => {
+                btnRefs.current[item.id] = el;
+              }}
               type="button"
               onClick={() => jumpTo(item.id)}
               onMouseEnter={() => setHoveredIdx(idx)}
               aria-current={isActive ? 'true' : undefined}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-2 text-[12px] font-semibold tracking-tight transition-all duration-200 sm:px-3 sm:text-[12.5px]"
+              className="relative z-[1] inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-2 text-[12px] font-semibold tracking-tight transition-all duration-200 sm:px-3 sm:text-[12.5px]"
               style={{
-                background: isActive ? accent : 'transparent',
                 color: isActive ? onAccent : ink,
                 transform: `translateY(${lift}px) scale(${scale})`,
               }}

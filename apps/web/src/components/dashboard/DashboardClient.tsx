@@ -33,6 +33,7 @@ import type {
 import { TIER_CATALOG, type SceneLayoutDocument, type WeddingTier } from '@dco/shared';
 import { SceneBuilderEditor } from '../builder/SceneBuilderEditor';
 import { PrintQrTab } from './PrintQrTab';
+import { PlimsollUploadDropzone } from '@/components/motion/SystemDelight';
 import { InvitationEditor } from './InvitationEditor';
 import { RoomSetupEditor } from './RoomSetupEditor';
 import { GiftReceivingSettings } from './GiftReceivingSettings';
@@ -670,12 +671,9 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({
 
         {tab === 'photos' && (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900">Kho Ảnh Cưới 3D &amp; Photobooth</h3>
-              <label className="cursor-pointer rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-500">
-                + Tải Ảnh Cưới Mới
-                <input type="file" accept="image/*" multiple onChange={handleUploadPhoto} className="hidden" />
-              </label>
+            <div className="mb-4">
+              <h3 className="mb-3 text-base font-bold text-slate-900">Kho Ảnh Cưới 3D &amp; Photobooth</h3>
+              <PlimsollUploadDropzone onChange={handleUploadPhoto} />
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               {photos.map((p) => (
