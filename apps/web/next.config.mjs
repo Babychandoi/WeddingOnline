@@ -52,7 +52,7 @@ const nextConfig = {
       {
         key: 'Content-Security-Policy',
         value:
-          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; media-src 'self' data: blob: https:; worker-src 'self' blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https:",
+          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' data: blob: https: wss:; media-src 'self' data: blob: https:; worker-src 'self' blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https:",
       },
     ];
     return [
@@ -62,6 +62,7 @@ const nextConfig = {
         '/assets/ph/:path*',
         '/assets/venue-references/:path*',
         '/assets/venues/:path*',
+        '/invitation-3d/:path*',
         '/invitation-samples/:path*',
         '/fonts/:path*',
         '/models/:path*',

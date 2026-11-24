@@ -43,6 +43,41 @@ import { GARDEN_VENUE } from './gardenReference';
 /** In-scene HTML labels and buttons are hidden in the non-interactive venue preview */
 const SceneLabelsContext = createContext(true);
 
+class SceneCanvasBoundary extends React.Component<
+  { children: React.ReactNode; bg: string },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: unknown) {
+    console.error('[VenueScene] 3D render error', error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          className="grid h-full w-full place-items-center px-6 text-center text-sm text-white/90"
+          style={{ backgroundColor: this.props.bg }}
+        >
+          <div className="max-w-sm rounded-2xl bg-slate-950/70 p-5 backdrop-blur">
+            <p className="font-semibold">Không gian 3D tạm gặp sự cố hiển thị WebGL trên thiết bị này.</p>
+            <button
+              type="button"
+              onClick={() => this.setState({ hasError: false })}
+              className="mt-3 rounded-full bg-rose-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-rose-700"
+            >
+              Thử tải lại cảnh 3D
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function SceneLabel(props: React.ComponentProps<typeof Html>) {
   // Labels stay under the hall's own panels and dialogs (z-20 and up); drei's default stacks them on top
   return useContext(SceneLabelsContext) ? <Html zIndexRange={[15, 0]} eps={0} {...props} /> : null;
@@ -1228,18 +1263,24 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
 
   return (
     <div className="relative h-full w-full">
-      <SceneLabelsContext.Provider value={!isPreview}>
-        <Canvas
-          shadows={lowQuality ? false : qualityPreset === 'high' ? 'soft' : true}
-          dpr={lowQuality ? 1 : qualityPreset === 'high' ? [1, 1.75] : [1, 1.25]}
-          camera={{
-            position: isPreview ? previewPosition : [0, 8.5, 17.5],
-            fov: photoComposition ? 36 : 50,
-            near: 0.1,
-            far: 2000,
-          }}
-          gl={{ preserveDrawingBuffer: true, antialias: !lowQuality, powerPreference: 'high-performance' }}
-        >
+      <SceneCanvasBoundary bg={theme.colors.s}>
+        <SceneLabelsContext.Provider value={!isPreview}>
+          <Canvas
+            shadows={lowQuality ? false : qualityPreset === 'high' ? 'soft' : true}
+            dpr={lowQuality ? 1 : qualityPreset === 'high' ? [1, 1.75] : [1, 1.25]}
+            camera={{
+              position: isPreview ? previewPosition : [0, 8.5, 17.5],
+              fov: photoComposition ? 36 : 50,
+              near: 0.1,
+              far: 2000,
+            }}
+            gl={{ preserveDrawingBuffer: true, antialias: !lowQuality, powerPreference: 'high-performance' }}
+            fallback={
+              <div className="grid h-full w-full place-items-center px-6 text-center text-sm text-white/90" style={{ backgroundColor: theme.colors.s }}>
+                Thiết bị này chưa hỗ trợ WebGL để hiển thị sảnh cưới 3D.
+              </div>
+            }
+          >
           {/* Sky, sun with soft shadows, fill and image-based light */}
           <RendererSetup exposure={(photoHall ? photoHall.light === 'night' || photoHall.light === 'twilight' : theme.mood === 'night') ? 1.15 : 1.05} />
           {/* Run CameraRigAndController FIRST before all PrefabMesh & HumanAvatar so every 3D mesh and <Html> label projects with the exact same frame's camera matrix */}
@@ -1418,8 +1459,9 @@ export const VenueScene: React.FC<VenueSceneProps> = (props) => {
               maxPolarAngle={props.previewCamera ? Math.PI * 0.6 : Math.PI * (photoHall ? 0.492 : 0.46)}
             />
           )}
-        </Canvas>
-      </SceneLabelsContext.Provider>
+          </Canvas>
+        </SceneLabelsContext.Provider>
+      </SceneCanvasBoundary>
       {!isPreview && (
         <div className="pointer-events-auto absolute left-3 top-14 z-10 flex items-center gap-1 rounded-full border border-white/15 bg-slate-900/75 px-2.5 py-1 text-[10px] font-medium text-slate-200 shadow backdrop-blur-sm sm:bottom-3 sm:top-auto">
           <span className="text-slate-400">Đồ họa:</span>

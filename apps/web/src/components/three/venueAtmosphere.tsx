@@ -7,7 +7,7 @@
  * Everything heavy switches off in low quality.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, Stars } from '@react-three/drei';
 import * as THREE from 'three';
@@ -20,7 +20,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import type { VenueTheme } from '@dco/shared';
 import { IS_HANDHELD } from './deviceTier';
 import { GARDEN_VENUE } from './gardenReference';
-import { PhSky, type PhMood, type SkyInfo } from './phAssets';
+import { PhBoundary, PhSky, type PhMood, type SkyInfo } from './phAssets';
 import { photoHallSeed, type PhotoHallProfile, type ReferenceLight } from './photoHallProfiles';
 import { getPhotoHallLighting, type PhotoHallLighting } from './photoHallLighting';
 
@@ -319,31 +319,43 @@ export function VenueAtmosphere({ theme, quality, reference }: { theme: VenueThe
   const usePractical = Boolean(practical && quality === 'high' && !IS_HANDHELD);
   const warmBounce = setup.warmFill * 0.45 + (practical && !usePractical ? 0.08 : 0);
 
+  const formersEnv = (
+    <Environment key="formers" resolution={256} frames={1} environmentIntensity={setup.envIntensity}>
+      {/* Until the photographed light arrives (or if HDRI fails): a plain sky above and ground below */}
+      <color attach="background" args={[mixHex(setup.sky.horizon, '#000000', mood === 'night' ? 0.4 : 0.15)]} />
+      <mesh position={[0, -40, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[400, 400]} />
+        <meshBasicMaterial color={mixHex(theme.colors.f, '#000000', 0.35)} side={THREE.DoubleSide} />
+      </mesh>
+      {setup.formers.map((f, i) => (
+        <Lightformer key={i} form="rect" position={f.position} scale={f.scale} color={f.color} intensity={f.intensity} target={[0, 0, 0]} />
+      ))}
+    </Environment>
+  );
+
   const proceduralSky = (
     <>
       <GradientSky sky={setup.sky} />
       {quality === 'high' && (
-        <Environment
-          key={hdri ?? 'formers'}
-          files={hdri}
-          resolution={256}
-          frames={1}
-          environmentIntensity={setup.envIntensity * (hdri ? 1.1 : 1)}
-        >
-          {!hdri && (
-            <>
-              {/* Until the photographed light arrives: a plain sky above and ground below */}
-              <color attach="background" args={[mixHex(setup.sky.horizon, '#000000', mood === 'night' ? 0.4 : 0.15)]} />
-              <mesh position={[0, -40, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                <planeGeometry args={[400, 400]} />
-                <meshBasicMaterial color={mixHex(theme.colors.f, '#000000', 0.35)} side={THREE.DoubleSide} />
-              </mesh>
-            </>
-          )}
-          {setup.formers.map((f, i) => (
-            <Lightformer key={i} form="rect" position={f.position} scale={f.scale} color={f.color} intensity={f.intensity * (hdri ? 0.5 : 1)} target={[0, 0, 0]} />
-          ))}
-        </Environment>
+        hdri ? (
+          <PhBoundary fallback={formersEnv}>
+            <Suspense fallback={formersEnv}>
+              <Environment
+                key={hdri}
+                files={hdri}
+                resolution={256}
+                frames={1}
+                environmentIntensity={setup.envIntensity * 1.1}
+              >
+                {setup.formers.map((f, i) => (
+                  <Lightformer key={i} form="rect" position={f.position} scale={f.scale} color={f.color} intensity={f.intensity * 0.5} target={[0, 0, 0]} />
+                ))}
+              </Environment>
+            </Suspense>
+          </PhBoundary>
+        ) : (
+          formersEnv
+        )
       )}
     </>
   );
