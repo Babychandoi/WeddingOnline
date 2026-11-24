@@ -367,7 +367,7 @@ export function WalkthroughInvitationHero({
                   if (!autoTour && stationIndex >= stations.length - 1) goToStation(0);
                   setAutoTour((v) => !v);
                 }}
-                className="inline-flex h-10 items-center gap-1.5 rounded-full border border-amber-300/45 bg-[#161834]/70 px-3.5 text-xs font-bold text-[#fef6e4] shadow-lg backdrop-blur-md transition hover:bg-[#1e2147]/85"
+                className="inline-flex h-10 items-center gap-1.5 rounded-full border border-amber-300/50 bg-[#161834]/85 px-3.5 text-xs font-bold text-[#fef6e4] shadow-lg backdrop-blur-md transition hover:bg-[#1e2147]/95"
               >
                 {autoTour ? <Pause className="h-3.5 w-3.5 text-amber-300" /> : <Play className="h-3.5 w-3.5 text-amber-300" />}
                 <span>{autoTour ? 'Đang dẫn' : 'Tự dẫn'}</span>
@@ -377,7 +377,7 @@ export function WalkthroughInvitationHero({
                 data-testid="walkthrough-camera-mode"
                 onClick={cycleCameraStyle}
                 title={`Đổi kiểu bay camera (${GALLERY_LAYOUT_LABELS[theme.galleryLayout]})`}
-                className="inline-flex h-10 items-center gap-1.5 rounded-full border border-white/25 bg-[#161834]/65 px-3 text-xs font-semibold text-amber-100 shadow-lg backdrop-blur-md transition hover:bg-[#1e2147]/85"
+                className="inline-flex h-10 items-center gap-1.5 rounded-full border border-white/30 bg-[#161834]/85 px-3 text-xs font-semibold text-amber-100 shadow-lg backdrop-blur-md transition hover:bg-[#1e2147]/95"
               >
                 <Camera className="h-3.5 w-3.5 text-amber-300" />
                 <span className="hidden sm:inline">{CAMERA_FLIGHT_LABELS[activeCameraStyle]}</span>
@@ -386,7 +386,7 @@ export function WalkthroughInvitationHero({
                 type="button"
                 data-testid="walkthrough-details-btn"
                 onClick={() => scrollToSection(detailsAnchorId)}
-                className="inline-flex h-10 items-center gap-1 rounded-full border border-white/25 bg-[#161834]/65 px-3 text-xs font-bold text-white/95 shadow-lg backdrop-blur-md transition hover:bg-[#1e2147]/85"
+                className="inline-flex h-10 items-center gap-1 rounded-full border border-white/30 bg-[#161834]/85 px-3 text-xs font-bold text-white shadow-lg backdrop-blur-md transition hover:bg-[#1e2147]/95"
               >
                 <span>Chi tiết</span>
                 <ChevronDown className="h-3.5 w-3.5 text-amber-300" />
@@ -401,7 +401,7 @@ export function WalkthroughInvitationHero({
             data-testid="walkthrough-music-btn"
             onClick={onToggleMusic}
             aria-label={playing ? 'Tắt nhạc cưới' : 'Bật nhạc cưới'}
-            className="absolute right-3.5 top-3.5 z-30 grid h-[42px] w-[42px] place-items-center rounded-full border border-amber-300/55 bg-[#161834]/72 text-[#f6dc9c] shadow-lg backdrop-blur-md transition hover:scale-105 hover:bg-[#1e2147]"
+            className="absolute right-3.5 top-3.5 z-30 grid h-[42px] w-[42px] place-items-center rounded-full border border-amber-300/55 bg-[#161834]/85 text-[#f6dc9c] shadow-lg backdrop-blur-md transition hover:scale-105 hover:bg-[#1e2147]"
           >
             {playing ? <Volume2 className="h-[18px] w-[18px]" /> : <VolumeX className="h-[18px] w-[18px]" />}
           </button>
@@ -456,7 +456,7 @@ export function WalkthroughInvitationHero({
               type="button"
               data-testid="walkthrough-open-memory"
               onClick={() => inspectPhotoAt(activePhotoIndex)}
-              className="inline-flex min-h-[38px] items-center gap-2 rounded-full border border-amber-300/60 bg-[#161834]/82 px-4 text-xs font-bold text-[#fae6b8] shadow-xl backdrop-blur-md transition hover:scale-105 hover:bg-[#232652]"
+              className="inline-flex min-h-[38px] items-center gap-2 rounded-full border border-amber-300/60 bg-[#161834]/90 px-4 text-xs font-bold text-[#fae6b8] shadow-xl backdrop-blur-md transition hover:scale-105 hover:bg-[#232652]"
             >
               <BookOpen className="h-3.5 w-3.5 text-amber-300" />
               <span>Xem kỷ niệm: {activeMemory.title}</span>
@@ -471,7 +471,7 @@ export function WalkthroughInvitationHero({
               type="button"
               data-testid="walkthrough-open-event"
               onClick={() => inspectEventAt(activeEventIndex)}
-              className="inline-flex min-h-[38px] items-center gap-2 rounded-full border border-amber-300/60 bg-[#161834]/82 px-4 text-xs font-bold text-[#fae6b8] shadow-xl backdrop-blur-md transition hover:scale-105 hover:bg-[#232652]"
+              className="inline-flex min-h-[38px] items-center gap-2 rounded-full border border-amber-300/60 bg-[#161834]/90 px-4 text-xs font-bold text-[#fae6b8] shadow-xl backdrop-blur-md transition hover:scale-105 hover:bg-[#232652]"
             >
               <MapPin className="h-3.5 w-3.5 text-amber-300" />
               <span>Xem bản đồ &amp; chi tiết {activeEvent.title}</span>
@@ -487,7 +487,7 @@ export function WalkthroughInvitationHero({
               : 'pointer-events-none translate-y-3 opacity-0'
           }`}
         >
-          <div className="max-w-md rounded-2xl border border-amber-200/40 bg-[#161834]/78 px-4 py-2.5 text-center text-white shadow-xl backdrop-blur-md">
+          <div className="max-w-md rounded-2xl border border-amber-200/45 bg-[#161834]/90 px-4 py-2.5 text-center text-white shadow-xl backdrop-blur-md">
             {daysUntilWedding !== null && (
               <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-300">
                 {daysUntilWedding > 0 ? `Đếm ngược · Còn ${daysUntilWedding} ngày tới lễ cưới` : 'Hôm nay là ngày trọng đại'}
@@ -549,7 +549,7 @@ export function WalkthroughInvitationHero({
             data-testid="walkthrough-memory-card"
             role="dialog"
             aria-label={`Kỷ niệm ${activePhotoIndex + 1}`}
-            className="absolute inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[560px] rounded-t-[26px] border-t border-amber-200/35 bg-[#1b1640]/92 px-6 pb-6 pt-5 text-white shadow-[0_-20px_60px_rgba(8,6,24,0.75)] backdrop-blur-xl"
+            className="absolute inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[560px] rounded-t-[26px] border-t border-amber-200/40 bg-[#1b1640]/95 px-6 pb-6 pt-5 text-white shadow-[0_-20px_60px_rgba(8,6,24,0.75)] backdrop-blur-xl"
           >
             <div className="flex items-center justify-between gap-2">
               <button
@@ -606,7 +606,7 @@ export function WalkthroughInvitationHero({
             data-testid="walkthrough-event-card"
             role="dialog"
             aria-label={activeEvent.title}
-            className="absolute inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[560px] rounded-t-[26px] border-t border-amber-200/35 bg-[#151326]/94 px-6 pb-6 pt-5 text-white shadow-[0_-20px_60px_rgba(8,6,24,0.75)] backdrop-blur-xl"
+            className="absolute inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[560px] rounded-t-[26px] border-t border-amber-200/40 bg-[#151326]/95 px-6 pb-6 pt-5 text-white shadow-[0_-20px_60px_rgba(8,6,24,0.75)] backdrop-blur-xl"
           >
             <button
               type="button"
@@ -680,7 +680,7 @@ export function WalkthroughInvitationHero({
             }}
             onPointerUp={resetJoystick}
             onPointerCancel={resetJoystick}
-            className="absolute bottom-4 left-4 z-20 grid h-[88px] w-[88px] cursor-grab touch-none place-items-center rounded-full border border-amber-300/55 bg-[#161834]/58 shadow-[0_8px_24px_rgba(0,0,0,0.45)] backdrop-blur-md active:cursor-grabbing"
+            className="absolute bottom-4 left-4 z-20 grid h-[88px] w-[88px] cursor-grab touch-none place-items-center rounded-full border border-amber-300/60 bg-[#161834]/75 shadow-[0_8px_24px_rgba(0,0,0,0.45)] backdrop-blur-md active:cursor-grabbing"
           >
             <ChevronUp className="pointer-events-none absolute top-1.5 h-3.5 w-3.5 text-amber-200/80" />
             <ChevronDown className="pointer-events-none absolute bottom-1.5 h-3.5 w-3.5 text-amber-200/80" />
@@ -705,7 +705,7 @@ export function WalkthroughInvitationHero({
               <div
                 role="menu"
                 aria-label="Chọn trạm tham quan 3D"
-                className="max-h-[48vh] w-56 overflow-y-auto rounded-2xl border border-amber-300/45 bg-[#141630]/92 p-1.5 text-xs text-amber-50 shadow-2xl backdrop-blur-md"
+                className="max-h-[48vh] w-56 overflow-y-auto rounded-2xl border border-amber-300/45 bg-[#141630]/95 p-1.5 text-xs text-amber-50 shadow-2xl backdrop-blur-md"
               >
                 {stations.map((st, idx) => (
                   <button
@@ -747,7 +747,7 @@ export function WalkthroughInvitationHero({
                 type="button"
                 data-testid="walkthrough-station-pill"
                 onClick={() => setStationMenuOpen((o) => !o)}
-                className="inline-flex min-h-[40px] min-w-[118px] items-center justify-center rounded-full border border-amber-300/55 bg-[#161834]/82 px-4 text-[13px] font-bold tracking-wide text-[#fef5df] shadow-lg backdrop-blur-md transition hover:bg-[#232754]"
+                className="inline-flex min-h-[40px] min-w-[118px] items-center justify-center rounded-full border border-amber-300/60 bg-[#161834]/90 px-4 text-[13px] font-bold tracking-wide text-[#fef5df] shadow-lg backdrop-blur-md transition hover:bg-[#232754]"
               >
                 {freeWalkActive ? 'Đi dạo tự do' : currentStation.label}
               </button>
