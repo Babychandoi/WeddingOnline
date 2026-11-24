@@ -201,6 +201,11 @@ function RightPageContent({
             <img
               src={nextSheet.photo.url}
               alt={nextSheet.photo.caption || title}
+              width={640}
+              height={400}
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
               draggable={false}
               className="h-full w-full object-cover"
             />
@@ -231,6 +236,10 @@ function RightPageContent({
             <img
               src={sheet.photo.url}
               alt={sheet.photo.caption || 'Ảnh cưới'}
+              width={640}
+              height={400}
+              loading="lazy"
+              decoding="async"
               draggable={false}
               className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
             />

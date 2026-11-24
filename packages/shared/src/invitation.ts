@@ -3,7 +3,29 @@
  * which sections show. Stored as JSON on the wedding; validated here for both the API and UI.
  */
 
+export const WALKTHROUGH_3D_IDS = [
+  '3d-oai-huong',
+  '3d-mua-dong-tuyet',
+  '3d-mua-thu',
+  '3d-ho-sen-hoa-dang',
+  '3d-rung-thong',
+  '3d-dem-trang',
+  '3d-tren-may',
+  '3d-vuon-hoa-dao',
+  '3d-co-truyen',
+  '3d-rap-cuoi',
+] as const;
+
+export type Walkthrough3DTemplateId = (typeof WALKTHROUGH_3D_IDS)[number];
+
+const WALKTHROUGH_3D_SET = new Set<string>(WALKTHROUGH_3D_IDS);
+
+export function isWalkthrough3DTemplate(id: unknown): id is Walkthrough3DTemplateId {
+  return typeof id === 'string' && WALKTHROUGH_3D_SET.has(id);
+}
+
 export const INVITATION_TEMPLATE_IDS = [
+  ...WALKTHROUGH_3D_IDS,
   'song-hy-do',
   'son-mai',
   'sen-hong',
@@ -108,10 +130,21 @@ export const INVITATION_TEMPLATE_IDS = [
 
 export type InvitationTemplateId = (typeof INVITATION_TEMPLATE_IDS)[number];
 
-export type InvitationTemplateStyle = 'truyen-thong' | 'lang-man' | 'hien-dai' | 'toi-gian' | 'sang-trong' | 'co-dien' | 'thien-nhien' | 'de-thuong';
+export type InvitationTemplateStyle =
+  | 'thiep-3d'
+  | 'truyen-thong'
+  | 'lang-man'
+  | 'hien-dai'
+  | 'toi-gian'
+  | 'sang-trong'
+  | 'co-dien'
+  | 'thien-nhien'
+  | 'de-thuong';
 
-/** Gallery filter labels, in display order */
-export const INVITATION_STYLE_LABELS: Record<InvitationTemplateStyle, string> = {
+export type Invitation2DTemplateStyle = Exclude<InvitationTemplateStyle, 'thiep-3d'>;
+
+/** Gallery filter labels for 2D templates, in display order */
+export const INVITATION_2D_STYLE_LABELS: Record<Invitation2DTemplateStyle, string> = {
   'truyen-thong': 'Truyền thống',
   'lang-man': 'Lãng mạn',
   'hien-dai': 'Hiện đại',
@@ -120,6 +153,12 @@ export const INVITATION_STYLE_LABELS: Record<InvitationTemplateStyle, string> = 
   'co-dien': 'Cổ điển',
   'thien-nhien': 'Thiên nhiên',
   'de-thuong': 'Dễ thương',
+};
+
+/** Gallery filter labels, in display order */
+export const INVITATION_STYLE_LABELS: Record<InvitationTemplateStyle, string> = {
+  'thiep-3d': 'Thiệp 3D',
+  ...INVITATION_2D_STYLE_LABELS,
 };
 
 export interface InvitationTemplateMeta {
@@ -232,7 +271,22 @@ export const INVITATION_TEMPLATES: InvitationTemplateMeta[] = [
   { id: 'lich-cuoi', nameVi: 'Lịch Ngày Cưới', descriptionVi: 'Trang lịch tối giản, ngày cưới khoanh tim, ảnh studio trắng.', style: 'toi-gian' },
   { id: 'i-love-you', nameVi: 'I Love You', descriptionVi: 'Nền đỏ rượu vang, ảnh khung vòm và chữ I Love You xếp dọc.', style: 'lang-man' },
   { id: 'cam-dat', nameVi: 'Cam Đất', descriptionVi: 'Cam đất ấm, ảnh dù đỏ trong khung vòm, chữ dọc hai bên.', style: 'hien-dai' },
+  // 10 interactive 3D scroll-walk templates (added after the first 12 originals)
+  { id: '3d-oai-huong', nameVi: 'Oải Hương 3D', descriptionVi: 'Thiệp cưới 3D · Ba khu đón khách · tiệc · lễ đài giữa cánh đồng tím hoàng hôn.', style: 'thiep-3d' },
+  { id: '3d-mua-dong-tuyet', nameVi: 'Mùa Đông Tuyết 3D', descriptionVi: 'Thiệp cưới 3D · Sân tròn · gazebo kính lung linh · tuyết rơi lãng mạn.', style: 'thiep-3d' },
+  { id: '3d-mua-thu', nameVi: 'Mùa Thu Lá Phong 3D', descriptionVi: 'Thiệp cưới 3D · Triển lãm ảnh cưới dưới vòm lá phong đỏ rực.', style: 'thiep-3d' },
+  { id: '3d-ho-sen-hoa-dang', nameVi: 'Hồ Sen Hoa Đăng 3D', descriptionVi: 'Thiệp cưới 3D · Cầu cửu khúc · hoa đăng trôi nước · thủy tạ trăng thanh.', style: 'thiep-3d' },
+  { id: '3d-rung-thong', nameVi: 'Rừng Thông 3D', descriptionVi: 'Thiệp cưới 3D · Đường mòn gỗ uốn lượn · sương sớm rừng thông Đà Lạt.', style: 'thiep-3d' },
+  { id: '3d-dem-trang', nameVi: 'Đêm Trăng Sao 3D', descriptionVi: 'Thiệp cưới 3D · Vầng trăng tròn cổ tích · đèn trời · pháo hoa chúc mừng.', style: 'thiep-3d' },
+  { id: '3d-tren-may', nameVi: 'Trên Mây Hồng 3D', descriptionVi: 'Thiệp cưới 3D · Biển mây hồng bồng bềnh · đảo hoa lơ lửng · điện thần tiên.', style: 'thiep-3d' },
+  { id: '3d-vuon-hoa-dao', nameVi: 'Vườn Hoa Đào 3D', descriptionVi: 'Thiệp cưới 3D · Vườn xuân hoa đào · đèn lồng đỏ · thảm đỏ & tráp hỷ.', style: 'thiep-3d' },
+  { id: '3d-co-truyen', nameVi: 'Cổ Truyền Rồng Phụng 3D', descriptionVi: 'Thiệp cưới 3D · Cổng rồng phụng kết hoa · áo dài · hoành phi Song Hỷ.', style: 'thiep-3d' },
+  { id: '3d-rap-cuoi', nameVi: 'Rạp Cưới Voan Hồng 3D', descriptionVi: 'Thiệp cưới 3D · Rạp voan hồng lụa mềm · dãy bàn tiệc · áo dài chào khách.', style: 'thiep-3d' },
 ];
+
+export const INVITATION_2D_TEMPLATES: InvitationTemplateMeta[] = INVITATION_TEMPLATES.filter((t) => !isWalkthrough3DTemplate(t.id));
+
+export const INVITATION_3D_TEMPLATES: InvitationTemplateMeta[] = INVITATION_TEMPLATES.filter((t) => isWalkthrough3DTemplate(t.id));
 
 export const DEFAULT_INVITATION_TEMPLATE: InvitationTemplateId = 'song-hy-do';
 
@@ -275,6 +329,18 @@ export interface InvitationStoryItem {
   text: string;
 }
 
+/** Per-photo memory card shown when a guest taps a 3D photo easel ("Kỷ niệm 1/6") */
+export interface InvitationMemoryItem {
+  /** Matches PhotoAsset.publicUrl (empty falls back to slot order) */
+  photoUrl: string;
+  /** Year or short milestone: "2023", "10.2024" */
+  year: string;
+  /** Bold serif headline: "Phố Hội lên đèn" */
+  title: string;
+  /** Warm story paragraph shown in the slide-up glass card */
+  story: string;
+}
+
 export interface InvitationFamily {
   father: string;
   mother: string;
@@ -315,8 +381,14 @@ export interface InvitationConfig {
   brideFamily: InvitationFamily;
   events: InvitationEvent[];
   story: InvitationStoryItem[];
+  /** Optional per-photo memory titles & stories shown when tapping 3D photo easels */
+  memories: InvitationMemoryItem[];
   /** https or site-relative image; empty = first album photo */
   coverPhotoUrl: string;
+  /** Optional custom transparent/full-body standee image for 3D walkthrough invitations */
+  coupleCutoutUrl: string;
+  /** Optional greeting shown in the 3D couple speech bubble ({khach} is replaced by guest name) */
+  walkthroughGreeting: string;
   /** SYNTH = a built-in piece played in the browser (track), URL = the couple's own audio link */
   music: { mode: 'SYNTH' | 'URL' | 'OFF'; url: string; track: InvitationMusicTrackId };
   sections: Record<InvitationSectionKey, boolean>;
@@ -330,6 +402,7 @@ export const INVITATION_LIMITS = {
   headline: 120,
   message: 600,
   quote: 240,
+  greeting: 140,
   familyField: 120,
   events: 6,
   eventTitle: 80,
@@ -341,6 +414,10 @@ export const INVITATION_LIMITS = {
   storyWhen: 40,
   storyTitle: 80,
   storyText: 500,
+  memories: 8,
+  memoryYear: 24,
+  memoryTitle: 80,
+  memoryStory: 320,
   dressCode: 120,
   thankYou: 400,
 } as const;
@@ -374,7 +451,10 @@ export function defaultInvitationConfig(w: { groomName: string; brideName: strin
       { id: 'ev_tiec', kind: 'TIEC_CUOI', title: INVITATION_EVENT_LABELS.TIEC_CUOI, startsAt: atVietnamHour(w.weddingDate, 18), venueName: '', address: '', mapUrl: '', note: 'Đón khách từ 17:30' },
     ],
     story: [],
+    memories: [],
     coverPhotoUrl: '',
+    coupleCutoutUrl: '',
+    walkthroughGreeting: '',
     music: { mode: 'SYNTH', url: '', track: 'hop-nhac' },
     sections: { countdown: true, family: true, events: true, story: true, album: true, rsvp: true, wishes: true, gift: true, hall: true },
     rsvpDeadline: '',
@@ -460,6 +540,21 @@ export function sanitizeInvitationConfig(input: unknown, base: InvitationConfig)
         .filter((s) => s.title || s.text)
     : base.story;
 
+  const memories = Array.isArray(o.memories)
+    ? o.memories
+        .slice(0, INVITATION_LIMITS.memories)
+        .map((raw) => {
+          const m = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+          return {
+            photoUrl: safeInvitationUrl(m.photoUrl),
+            year: str(m.year, INVITATION_LIMITS.memoryYear),
+            title: str(m.title, INVITATION_LIMITS.memoryTitle),
+            story: str(m.story, INVITATION_LIMITS.memoryStory),
+          };
+        })
+        .filter((m) => m.photoUrl || m.title || m.story || m.year)
+    : base.memories;
+
   const musicIn = (o.music && typeof o.music === 'object' ? o.music : {}) as Record<string, unknown>;
   const musicMode = musicIn.mode === 'URL' || musicIn.mode === 'OFF' || musicIn.mode === 'SYNTH' ? musicIn.mode : base.music.mode;
   const musicUrl = has('music') ? safeInvitationUrl(musicIn.url) : base.music.url;
@@ -481,7 +576,10 @@ export function sanitizeInvitationConfig(input: unknown, base: InvitationConfig)
     brideFamily: has('brideFamily') ? family(o.brideFamily) : base.brideFamily,
     events,
     story,
+    memories,
     coverPhotoUrl: has('coverPhotoUrl') ? safeInvitationUrl(o.coverPhotoUrl) : base.coverPhotoUrl,
+    coupleCutoutUrl: has('coupleCutoutUrl') ? safeInvitationUrl(o.coupleCutoutUrl) : base.coupleCutoutUrl,
+    walkthroughGreeting: has('walkthroughGreeting') ? str(o.walkthroughGreeting, INVITATION_LIMITS.greeting) : base.walkthroughGreeting,
     music: { mode: musicMode as InvitationConfig['music']['mode'], url: musicUrl, track: musicTrack },
     sections,
     rsvpDeadline: has('rsvpDeadline') ? (o.rsvpDeadline ? iso(o.rsvpDeadline, '') : '') : base.rsvpDeadline,
@@ -514,8 +612,8 @@ export interface InvitationRsvpInput {
 /* ───────────── Selling the invitation ───────────── */
 
 /**
- * The invitation is sold on its own (separate from the 3D hall). Designing is free and saved as a
- * draft; guests see it once it is published with one of these plans. Paid 3D halls include it.
+ * The 2D invitation is sold on its own (separate from 3D invitations and 3D halls). Designing is
+ * free and saved as a draft; guests see it once published with one of these plans.
  */
 export const INVITATION_PLANS = [
   { id: '1m', nameVi: '1 tháng', months: 1, priceVnd: 150_000 },
@@ -525,52 +623,123 @@ export const INVITATION_PLANS = [
   { id: 'life', nameVi: 'Trọn đời', months: null, priceVnd: 3_000_000 },
 ] as const;
 
+export const INVITATION_2D_PLANS = INVITATION_PLANS;
+
 export type InvitationPlanId = (typeof INVITATION_PLANS)[number]['id'];
 
 export function isInvitationPlanId(v: unknown): v is InvitationPlanId {
   return typeof v === 'string' && INVITATION_PLANS.some((p) => p.id === v);
 }
 
+/**
+ * 3D Walkthrough invitations are sold at a dedicated tier (higher than 2D invitations).
+ * Buying a 3D plan also permits using 2D templates; buying a 2D plan does NOT unlock 3D templates.
+ */
+export const INVITATION_3D_PLANS = [
+  { id: '1m', nameVi: '1 tháng', months: 1, priceVnd: 290_000 },
+  { id: '3m', nameVi: '3 tháng', months: 3, priceVnd: 690_000 },
+  { id: '6m', nameVi: '6 tháng', months: 6, priceVnd: 1_190_000 },
+  { id: '12m', nameVi: '1 năm', months: 12, priceVnd: 1_990_000 },
+  { id: 'life', nameVi: 'Trọn đời', months: null, priceVnd: 3_990_000 },
+] as const;
+
+export type Invitation3dPlanId = (typeof INVITATION_3D_PLANS)[number]['id'];
+
+export function isInvitation3dPlanId(v: unknown): v is Invitation3dPlanId {
+  return typeof v === 'string' && INVITATION_3D_PLANS.some((p) => p.id === v);
+}
+
 /** "Lifetime" is stored as this far-future date */
 export const INVITATION_LIFETIME_UNTIL = '2999-12-31T00:00:00.000Z';
 
-/** New end of the publishing period: a renewal adds onto time not yet used */
-export function invitationPlanEnd(plan: InvitationPlanId, currentUntil: string | null | undefined, now = new Date()): string {
-  const p = INVITATION_PLANS.find((x) => x.id === plan)!;
-  if (p.months === null) return INVITATION_LIFETIME_UNTIL;
+function addMonthsPlanEnd(months: number | null, currentUntil: string | null | undefined, now = new Date()): string {
+  if (months === null) return INVITATION_LIFETIME_UNTIL;
   const cur = currentUntil ? new Date(currentUntil) : null;
   const from = cur && cur.getTime() > now.getTime() ? cur : now;
   const end = new Date(from);
-  end.setUTCMonth(end.getUTCMonth() + p.months);
+  end.setUTCMonth(end.getUTCMonth() + months);
   return end.toISOString();
+}
+
+/** New end of the publishing period for 2D invitations: a renewal adds onto time not yet used */
+export function invitationPlanEnd(plan: InvitationPlanId, currentUntil: string | null | undefined, now = new Date()): string {
+  const p = INVITATION_PLANS.find((x) => x.id === plan)!;
+  return addMonthsPlanEnd(p.months, currentUntil, now);
+}
+
+/** New end of the publishing period for 3D walkthrough invitations */
+export function invitation3dPlanEnd(plan: Invitation3dPlanId, currentUntil: string | null | undefined, now = new Date()): string {
+  const p = INVITATION_3D_PLANS.find((x) => x.id === plan)!;
+  return addMonthsPlanEnd(p.months, currentUntil, now);
 }
 
 export interface InvitationAccess {
   /** Guests can open the invitation */
   published: boolean;
-  /** Why: a paid 3D hall includes it, or an invitation plan */
-  source: 'hall' | 'plan' | null;
+  /** Why: a paid 3D hall includes it, a 3D plan, or a 2D plan */
+  source: 'hall' | 'plan_3d' | 'plan' | null;
   /** End of the plan (ISO), null for "while the hall is active" or never bought */
   until: string | null;
   lifetime: boolean;
   /** A plan was bought and has run out */
   expired: boolean;
+  /** Whether the resolved template is a 3D walkthrough template */
+  is3D: boolean;
+  /** True when only a 2D plan is active while attempting to publish a 3D template */
+  needs3dUpgrade: boolean;
 }
 
 export function invitationAccess(
-  w: { tier: string; status: string; invitationPaidUntil?: string | null },
-  now = Date.now(),
+  w: {
+    tier: string;
+    status: string;
+    invitationPaidUntil?: string | null;
+    invitation3dPaidUntil?: string | null;
+    invitationConfig?: unknown;
+  },
+  nowOrOpts?: number | { is3D?: boolean; templateId?: string | null; now?: number },
 ): InvitationAccess {
-  const until = w.invitationPaidUntil ?? null;
-  const planActive = Boolean(until && Date.parse(until) > now);
-  // A paid hall includes the invitation while it runs. The tier alone is not proof of payment: a
-  // paid package chosen at creation sits in DRAFT until the transfer arrives.
+  const now = typeof nowOrOpts === 'number' ? nowOrOpts : (nowOrOpts?.now ?? Date.now());
+  const storedTpl =
+    w.invitationConfig && typeof w.invitationConfig === 'object'
+      ? (w.invitationConfig as Record<string, unknown>).templateId
+      : undefined;
+  const is3D =
+    typeof nowOrOpts === 'object' && nowOrOpts !== null
+      ? (nowOrOpts.is3D ?? (nowOrOpts.templateId ? isWalkthrough3DTemplate(nowOrOpts.templateId) : isWalkthrough3DTemplate(storedTpl)))
+      : isWalkthrough3DTemplate(storedTpl);
+
+  const plan2dUntil = w.invitationPaidUntil ?? null;
+  const plan2dActive = Boolean(plan2dUntil && Date.parse(plan2dUntil) > now);
+  const plan3dUntil = w.invitation3dPaidUntil ?? null;
+  const plan3dActive = Boolean(plan3dUntil && Date.parse(plan3dUntil) > now);
+
+  // A paid hall includes both 2D and 3D invitations while it runs. The tier alone is not proof of payment:
+  // a paid package chosen at creation sits in DRAFT until the transfer arrives.
   const hallIncluded = (w.tier === 'HAPPINESS' || w.tier === 'VIP_FULFILLMENT') && (w.status === 'PUBLISHED_3D' || w.status === 'GRACE_PERIOD_7D');
+
+  if (is3D) {
+    return {
+      published: plan3dActive || hallIncluded,
+      source: plan3dActive ? 'plan_3d' : hallIncluded ? 'hall' : null,
+      until: plan3dActive ? plan3dUntil : null,
+      lifetime: plan3dActive && plan3dUntil === INVITATION_LIFETIME_UNTIL,
+      expired: Boolean(plan3dUntil) && !plan3dActive && !hallIncluded,
+      is3D: true,
+      needs3dUpgrade: plan2dActive && !plan3dActive && !hallIncluded,
+    };
+  }
+
+  const pick3d = plan3dActive && (!plan2dActive || Date.parse(plan3dUntil!) >= Date.parse(plan2dUntil!));
+  const bestUntil = pick3d ? plan3dUntil : plan2dActive ? plan2dUntil : null;
+
   return {
-    published: planActive || hallIncluded,
-    source: planActive ? 'plan' : hallIncluded ? 'hall' : null,
-    until: planActive ? until : null,
-    lifetime: planActive && until === INVITATION_LIFETIME_UNTIL,
-    expired: Boolean(until) && !planActive && !hallIncluded,
+    published: plan2dActive || plan3dActive || hallIncluded,
+    source: pick3d ? 'plan_3d' : plan2dActive ? 'plan' : hallIncluded ? 'hall' : null,
+    until: bestUntil,
+    lifetime: Boolean(bestUntil === INVITATION_LIFETIME_UNTIL),
+    expired: Boolean(plan2dUntil || plan3dUntil) && !plan2dActive && !plan3dActive && !hallIncluded,
+    is3D: false,
+    needs3dUpgrade: false,
   };
 }

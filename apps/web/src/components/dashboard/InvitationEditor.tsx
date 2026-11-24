@@ -3,26 +3,30 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ExternalLink, Eye, Gift, ImagePlus, LayoutList, Link2, ListChecks, Loader2, MapPin, Music2, MousePointerClick, Palette, Play, Plus, Save, Square, Star, Trash2, Users, VolumeX, X } from 'lucide-react';
 import {
+  INVITATION_2D_STYLE_LABELS,
+  INVITATION_2D_TEMPLATES,
+  INVITATION_3D_TEMPLATES,
   INVITATION_EVENT_LABELS,
   INVITATION_LIMITS,
   INVITATION_MUSIC_TRACKS,
-  INVITATION_STYLE_LABELS,
-  INVITATION_TEMPLATES,
   invitationAccess,
   invitationItemId,
+  isWalkthrough3DTemplate,
+  type Invitation2DTemplateStyle,
   type InvitationConfig,
   type InvitationEventKind,
   type InvitationMusicTrackId,
   type InvitationSectionKey,
-  type InvitationTemplateStyle,
 } from '@dco/shared';
 import type { InvitationRsvpRecord, PhotoAssetRecord, PublicWeddingDTO } from '@dco/database';
 import { CardFace } from '@/components/invitation/CardFace';
+import { walkthrough3DTheme } from '@/components/invitation/walkthrough3d/themes3d';
 import { styleCount, templatesFor } from '@/components/invitation/templateOrder';
 import { InvitationView, type EditPart } from '@/components/invitation/InvitationView';
 import { SAMPLE_WISHES } from '@/components/invitation/sampleInvitation';
 import { MusicBox } from '@/components/invitation/musicBox';
 import { deleteWeddingPhoto, uploadWeddingPhoto } from '@/lib/uploadWeddingPhoto';
+import { createStandeeCutoutBlob } from '@/lib/standeeCutout';
 import { InvitationPublish } from './InvitationPublish';
 import { CopyField, GiftReceivingSettings, type GiftSettings } from './GiftReceivingSettings';
 
@@ -135,9 +139,11 @@ export function InvitationEditor({
   const [guestForLink, setGuestForLink] = useState('');
   const [origin, setOrigin] = useState('');
   const [showPreview, setShowPreview] = useState(false);
-  const [pickStyle, setPickStyle] = useState<InvitationTemplateStyle | 'all'>('all');
+  const [pickStyle, setPickStyle] = useState<Invitation2DTemplateStyle | 'all'>('all');
+  const [tplTierTab, setTplTierTab] = useState<'2d' | '3d'>('2d');
   const [pickShown, setPickShown] = useState(18);
   const [uploading, setUploading] = useState(0);
+  const [cutoutBusy, setCutoutBusy] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const [mode, setModeState] = useState<Mode>('visual');
   const [active, setActive] = useState<{ title: string; groups: GroupKey[] } | null>(null);
@@ -170,6 +176,7 @@ export function InvitationEditor({
       .then((d: { config: InvitationConfig; rsvps: InvitationRsvpRecord[] }) => {
         setConfig(d.config);
         latest.current = d.config;
+        setTplTierTab(isWalkthrough3DTemplate(d.config.templateId) ? '3d' : '2d');
         setRsvps(d.rsvps);
       })
       .catch((e: Error) => setLoadError(e.message));
@@ -274,6 +281,24 @@ export function InvitationEditor({
     }
   };
 
+  const uploadCutout = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    setPhotoError('');
+    setCutoutBusy(true);
+    try {
+      const cutoutBlob = await createStandeeCutoutBlob(file);
+      const cutoutFile = new File([cutoutBlob], `${file.name.replace(/\.[a-z0-9]+$/i, '')}-cutout.webp`, { type: 'image/webp' });
+      const photo = await uploadWeddingPhoto(wedding.slug, cutoutFile, { preserveAlpha: true });
+      onPhotosChange([...photos, photo]);
+      patch({ coupleCutoutUrl: photo.publicUrl });
+    } catch (e) {
+      setPhotoError(e instanceof Error ? e.message : 'Chưa tải được ảnh đôi đón khách.');
+    } finally {
+      setCutoutBusy(false);
+    }
+  };
+
   const togglePreview = async (track: InvitationMusicTrackId) => {
     previewBox.current?.dispose();
     previewBox.current = null;
@@ -290,7 +315,7 @@ export function InvitationEditor({
   const cover = config.coverPhotoUrl || gallery[0]?.publicUrl || '';
   const mainDate = config.events.find((e) => e.kind === 'THANH_HON' || e.kind === 'TIEC_CUOI')?.startsAt ?? wedding.weddingDate;
 
-  const published = invitationAccess(wedding).published;
+  const published = invitationAccess(wedding, { templateId: config.templateId }).published;
   const status =
     state === 'saving' ? 'Đang lưu…' : state === 'dirty' ? 'Sắp tự lưu…' : state === 'error' ? 'Chưa lưu được, bấm Lưu' : published ? 'Đã lưu tự động' : 'Đã lưu nháp';
   const statusClass = state === 'error' ? 'text-rose-700' : state === 'saved' ? 'text-emerald-700' : 'text-slate-500';
@@ -355,6 +380,98 @@ export function InvitationEditor({
                 <Loader2 className="h-4 w-4 animate-spin" /> Đang tải {uploading} ảnh…
               </p>
             )}
+            {isWalkthrough3DTemplate(config.templateId) && (
+              <div className="mt-3 space-y-3">
+                <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5">
+                  <p className="text-xs font-black text-rose-900">Ảnh đôi đứng đón khách (Thiệp 3D)</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-slate-600">
+                    Tải ảnh đôi tách nền (hoặc ảnh nền trơn) để hiện chính cô dâu chú rể đứng chào khách giữa lối đi 3D. Bỏ trống sẽ dùng nhân vật minh hoạ có sẵn của mẫu.
+                  </p>
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                    <label className="inline-flex min-h-[38px] cursor-pointer items-center gap-1.5 rounded-full bg-rose-700 px-3.5 text-xs font-bold text-white hover:bg-rose-600">
+                      {cutoutBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+                      {cutoutBusy ? 'Đang tách nền…' : config.coupleCutoutUrl ? 'Đổi ảnh đôi 3D' : 'Tải ảnh đôi đứng'}
+                      <input type="file" accept="image/*" className="sr-only" disabled={cutoutBusy} onChange={(e) => { void uploadCutout(e.target.files); e.target.value = ''; }} />
+                    </label>
+                    {config.coupleCutoutUrl && (
+                      <button
+                        type="button"
+                        onClick={() => patch({ coupleCutoutUrl: '' })}
+                        className="inline-flex min-h-[38px] items-center rounded-full border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                      >
+                        Dùng nhân vật minh hoạ
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Editable 3D Photo Memory Stories (shown when guest taps any of the 6 3D photo easels) */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5">
+                  <p className="text-xs font-black text-slate-900">Câu chuyện kỷ niệm trên 6 giá vẽ 3D</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-slate-600">
+                    Khi khách chạm vào từng khung ảnh Kỷ niệm 1/6..6/6 trong không gian 3D, camera sẽ phóng cận cảnh và hiện năm, tiêu đề và lời kể bạn nhập dưới đây.
+                  </p>
+                  {gallery.length === 0 ? (
+                    <p className="mt-2 text-[11px] font-semibold text-amber-800">Tải ảnh cưới ở trên trước để viết câu chuyện kỷ niệm cho từng khung ảnh 3D.</p>
+                  ) : (
+                    <div className="mt-3 space-y-2.5">
+                      {gallery.slice(0, 6).map((p, idx) => {
+                        const existing = config.memories.find((m) => m.photoUrl === p.publicUrl) ?? config.memories[idx];
+                        const updateMemory = (field: 'year' | 'title' | 'story', val: string) => {
+                          const list = gallery.slice(0, 6).map((ph, i) => {
+                            const cur = config.memories.find((m) => m.photoUrl === ph.publicUrl) ?? config.memories[i];
+                            const item = {
+                              photoUrl: ph.publicUrl,
+                              year: cur?.year ?? '',
+                              title: cur?.title ?? '',
+                              story: cur?.story ?? '',
+                            };
+                            if (i === idx) item[field] = val;
+                            return item;
+                          });
+                          patch({ memories: list });
+                        };
+                        return (
+                          <div key={p.id} className="grid grid-cols-[56px_minmax(0,1fr)] gap-2.5 rounded-xl border border-slate-200 bg-white p-2.5">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={p.publicUrl} alt={`Kỷ niệm ${idx + 1}`} className="aspect-[3/4] w-14 rounded-lg object-cover ring-1 ring-slate-200" />
+                            <div className="min-w-0 space-y-1.5">
+                              <div className="grid gap-1.5 sm:grid-cols-[92px_minmax(0,1fr)]">
+                                <input
+                                  aria-label={`Năm kỷ niệm ${idx + 1}`}
+                                  placeholder="Năm (2023)"
+                                  maxLength={INVITATION_LIMITS.memoryYear}
+                                  className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs outline-none focus:border-rose-500"
+                                  value={existing?.year ?? ''}
+                                  onChange={(e) => updateMemory('year', e.target.value)}
+                                />
+                                <input
+                                  aria-label={`Tiêu đề kỷ niệm ${idx + 1}`}
+                                  placeholder={`Tiêu đề Kỷ niệm ${idx + 1} (VD: Phố Hội lên đèn)`}
+                                  maxLength={INVITATION_LIMITS.memoryTitle}
+                                  className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold outline-none focus:border-rose-500"
+                                  value={existing?.title ?? ''}
+                                  onChange={(e) => updateMemory('title', e.target.value)}
+                                />
+                              </div>
+                              <textarea
+                                aria-label={`Lời kể kỷ niệm ${idx + 1}`}
+                                placeholder="Lời kể ngắn về khoảnh khắc trong bức ảnh này…"
+                                maxLength={INVITATION_LIMITS.memoryStory}
+                                rows={2}
+                                className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs outline-none focus:border-rose-500"
+                                value={existing?.story ?? ''}
+                                onChange={(e) => updateMemory('story', e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {photoError && <p className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800" role="alert">{photoError}</p>}
           </Group>
         );
@@ -376,6 +493,20 @@ export function InvitationEditor({
               <label className={label} htmlFor="inv-headline">Dòng tiêu đề</label>
               <input id="inv-headline" className={input} value={config.headline} maxLength={INVITATION_LIMITS.headline} onChange={(e) => patch({ headline: e.target.value })} />
             </div>
+            {isWalkthrough3DTemplate(config.templateId) && (
+              <div>
+                <label className={label} htmlFor="inv-greeting-3d">Câu chào trên bong bóng thoại 3D</label>
+                <input
+                  id="inv-greeting-3d"
+                  className={input}
+                  placeholder={walkthrough3DTheme(config.templateId).defaultGreeting}
+                  value={config.walkthroughGreeting}
+                  maxLength={INVITATION_LIMITS.greeting}
+                  onChange={(e) => patch({ walkthroughGreeting: e.target.value })}
+                />
+                <p className="mt-1 text-[11px] text-slate-500">Gõ <code>{'{khach}'}</code> để tự động điền tên từng vị khách mở thiệp.</p>
+              </div>
+            )}
             <p className="text-xs text-slate-500">Ngày trên bìa lấy theo giờ của Lễ Thành Hôn hoặc Tiệc Cưới ở phần Các lễ & địa điểm.</p>
           </Group>
         );
@@ -405,7 +536,11 @@ export function InvitationEditor({
             id="le"
             bare={bare}
             title="Các lễ & địa điểm"
-            hint="Mỗi lễ có giờ và địa điểm riêng, ví dụ: Lễ Vu Quy tại nhà gái ở Đà Nẵng, Lễ Thành Hôn tại nhà trai ở Huế, Tiệc cưới ở nhà hàng. Giờ tính theo giờ Việt Nam; bỏ trống link bản đồ thì thiệp tự tìm theo địa chỉ."
+            hint={
+              isWalkthrough3DTemplate(config.templateId)
+                ? 'Trên Thiệp 3D, tối đa 3 lễ/tiệc đầu tiên tự động dựng thành các Giá vẽ 3D Thông tin lễ / Thông tin tiệc riêng biệt (hiện giờ lớn, ngày âm lịch, địa chỉ & nút chỉ đường Google Maps).'
+                : 'Mỗi lễ có giờ và địa điểm riêng, ví dụ: Lễ Vu Quy tại nhà gái ở Đà Nẵng, Lễ Thành Hôn tại nhà trai ở Huế, Tiệc cưới ở nhà hàng. Giờ tính theo giờ Việt Nam; bỏ trống link bản đồ thì thiệp tự tìm theo địa chỉ.'
+            }
           >
             {config.events.map((ev, i) => {
               const setField = (field: keyof typeof ev, value: string) => {
@@ -516,56 +651,103 @@ export function InvitationEditor({
             key={key}
             id="mau"
             bare={bare}
-            title="Mẫu thiệp"
-            hint={gallery.length ? 'Đổi mẫu bất cứ lúc nào, nội dung giữ nguyên.' : 'Đổi mẫu bất cứ lúc nào, nội dung giữ nguyên. Ảnh trên thẻ là ảnh minh hoạ; thiệp của bạn dùng ảnh bạn tải lên ở phần Ảnh cưới.'}
+            title="Mẫu thiệp 2D & Thiệp 3D"
+            hint={gallery.length ? 'Thiệp 2D (từ 150k) và Thiệp 3D (từ 290k) có gói phát hành riêng; đổi mẫu giữ nguyên toàn bộ nội dung.' : 'Đổi mẫu bất cứ lúc nào, nội dung giữ nguyên. Ảnh trên thẻ là ảnh minh hoạ; thiệp của bạn dùng ảnh bạn tải lên ở phần Ảnh cưới.'}
           >
-            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Lọc mẫu theo phong cách">
-              {([['all', 'Tất cả'], ...Object.entries(INVITATION_STYLE_LABELS)] as Array<[InvitationTemplateStyle | 'all', string]>).map(([id, text]) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={pickStyle === id}
-                  onClick={() => {
-                    setPickStyle(id);
-                    setPickShown(18);
-                  }}
-                  className={`min-h-[36px] shrink-0 whitespace-nowrap rounded-full px-3.5 text-xs font-semibold transition ${pickStyle === id ? 'bg-rose-700 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-slate-400'}`}
-                >
-                  {text} <span className="tabular-nums opacity-60">{styleCount(id)}</span>
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-slate-100 p-1" role="tablist" aria-label="Phân loại thiệp 2D và 3D">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tplTierTab === '2d'}
+                onClick={() => setTplTierTab('2d')}
+                className={`min-h-[38px] rounded-lg px-3 text-xs font-bold transition ${tplTierTab === '2d' ? 'bg-white text-rose-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                Thiệp 2D ({INVITATION_2D_TEMPLATES.length} mẫu · 150k+)
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tplTierTab === '3d'}
+                onClick={() => setTplTierTab('3d')}
+                className={`min-h-[38px] rounded-lg px-3 text-xs font-bold transition ${tplTierTab === '3d' ? 'bg-white text-rose-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                Thiệp 3D ({INVITATION_3D_TEMPLATES.length} bộ · 290k+)
+              </button>
             </div>
-            <div className={`grid gap-3 ${bare ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6'}`}>
-              {[...INVITATION_TEMPLATES.filter((t) => t.id === config.templateId), ...templatesFor(pickStyle).filter((t) => t.id !== config.templateId)]
-                .slice(0, pickShown)
-                .map((t) => (
+
+            {tplTierTab === '2d' ? (
+              <>
+                <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Lọc mẫu 2D theo phong cách">
+                  {([['all', 'Tất cả'], ...Object.entries(INVITATION_2D_STYLE_LABELS)] as Array<[Invitation2DTemplateStyle | 'all', string]>).map(([id, text]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={pickStyle === id}
+                      onClick={() => {
+                        setPickStyle(id);
+                        setPickShown(18);
+                      }}
+                      className={`min-h-[36px] shrink-0 whitespace-nowrap rounded-full px-3.5 text-xs font-semibold transition ${pickStyle === id ? 'bg-rose-700 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-slate-400'}`}
+                    >
+                      {text} <span className="tabular-nums opacity-60">{styleCount(id)}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className={`grid gap-3 ${bare ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6'}`}>
+                  {[...INVITATION_2D_TEMPLATES.filter((t) => t.id === config.templateId), ...templatesFor(pickStyle).filter((t) => t.id !== config.templateId)]
+                    .slice(0, pickShown)
+                    .map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => patch({ templateId: t.id })}
+                        aria-pressed={config.templateId === t.id}
+                        className={`relative overflow-hidden rounded-xl text-left ring-offset-2 transition ${config.templateId === t.id ? 'ring-[3px] ring-rose-600' : 'ring-1 ring-slate-200 hover:ring-slate-400'}`}
+                      >
+                        <CardFace
+                          templateId={t.id}
+                          groom={config.groomFullName}
+                          bride={config.brideFullName}
+                          date={mainDate}
+                          cover={cover || undefined}
+                          extras={gallery.filter((p) => p.publicUrl !== cover).slice(0, 2).map((p) => p.publicUrl)}
+                          className="pointer-events-none"
+                        />
+                        {!gallery.length && <span className="absolute right-1 top-1 rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-bold text-white">Ảnh minh hoạ</span>}
+                        <span className="block truncate bg-white px-2 py-1.5 text-[11px] font-bold text-slate-800">{t.nameVi}</span>
+                      </button>
+                    ))}
+                  {pickShown < templatesFor(pickStyle).filter((t) => t.id !== config.templateId).length + (isWalkthrough3DTemplate(config.templateId) ? 0 : 1) && (
+                    <button type="button" onClick={() => setPickShown((n) => n + 18)} className="col-span-full min-h-[44px] rounded-xl text-sm font-semibold text-rose-800 ring-1 ring-rose-200 transition hover:bg-rose-50">
+                      Xem thêm mẫu 2D
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className={`grid gap-3 ${bare ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'}`}>
+                {INVITATION_3D_TEMPLATES.map((t) => (
                   <button
                     key={t.id}
                     type="button"
                     onClick={() => patch({ templateId: t.id })}
                     aria-pressed={config.templateId === t.id}
-                    className={`relative overflow-hidden rounded-xl text-left ring-offset-2 transition ${config.templateId === t.id ? 'ring-[3px] ring-rose-600' : 'ring-1 ring-slate-200 hover:ring-slate-400'}`}
+                    className={`relative overflow-hidden rounded-xl text-left ring-offset-2 transition ${config.templateId === t.id ? 'ring-[3px] ring-rose-600' : 'ring-1 ring-amber-300/80 hover:ring-rose-400'}`}
                   >
                     <CardFace
                       templateId={t.id}
                       groom={config.groomFullName}
                       bride={config.brideFullName}
                       date={mainDate}
-                      cover={cover || undefined}
-                      extras={gallery.filter((p) => p.publicUrl !== cover).slice(0, 2).map((p) => p.publicUrl)}
+                      cover={config.coupleCutoutUrl || undefined}
                       className="pointer-events-none"
                     />
-                    {!gallery.length && <span className="absolute right-1 top-1 rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-bold text-white">Ảnh minh hoạ</span>}
                     <span className="block truncate bg-white px-2 py-1.5 text-[11px] font-bold text-slate-800">{t.nameVi}</span>
                   </button>
                 ))}
-              {pickShown < templatesFor(pickStyle).filter((t) => t.id !== config.templateId).length + 1 && (
-                <button type="button" onClick={() => setPickShown((n) => n + 18)} className="col-span-full min-h-[44px] rounded-xl text-sm font-semibold text-rose-800 ring-1 ring-rose-200 transition hover:bg-rose-50">
-                  Xem thêm mẫu
-                </button>
-              )}
-            </div>
+              </div>
+            )}
           </Group>
         );
 
@@ -811,7 +993,7 @@ export function InvitationEditor({
     const toolButton = 'inline-flex min-h-[40px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-3.5 text-xs font-bold text-slate-800 ring-1 ring-slate-200 hover:ring-rose-300';
     return (
       <div className="space-y-4">
-        <InvitationPublish wedding={wedding} onWeddingChange={onWeddingChange} />
+        <InvitationPublish wedding={wedding} templateId={config.templateId} onWeddingChange={onWeddingChange} />
         {share}
         {modeSwitch}
         <div className="sticky top-0 z-20 -mx-4 flex items-center gap-1.5 overflow-x-auto bg-[#FFFDF8]/95 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-2xl sm:px-2">
@@ -915,7 +1097,7 @@ export function InvitationEditor({
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_410px]">
       <div className="min-w-0 space-y-5">
-        <InvitationPublish wedding={wedding} onWeddingChange={onWeddingChange} />
+        <InvitationPublish wedding={wedding} templateId={config.templateId} onWeddingChange={onWeddingChange} />
         {share}
         {modeSwitch}
 

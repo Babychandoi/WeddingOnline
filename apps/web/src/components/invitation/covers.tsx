@@ -31,6 +31,16 @@ interface CoverProps {
   data: CoverData;
   /** Gallery card: tighter, no secondary lines */
   thumb: boolean;
+  /** Eager-load cover photo when rendered above the fold */
+  eager?: boolean;
+}
+
+/** Use h1 only on the full invitation view; gallery/deck thumbnails emit p so hub pages keep a single H1 */
+function CoverHeading({
+  thumb,
+  ...props
+}: React.HTMLAttributes<HTMLHeadingElement> & { thumb: boolean; 'data-a'?: '' }) {
+  return thumb ? <p {...props} /> : <h1 {...props} />;
 }
 
 /** Staggered rise-in when the invitation opens (see .inv-cover-in in InvitationView) */
@@ -45,15 +55,15 @@ const alt = (d: CoverData) => `${d.groom} và ${d.bride}`;
 
 /* ───────────── Song Hỷ: red dome, 囍 medallion, arched portrait ───────────── */
 
-function DomeCover({ theme, data, thumb }: CoverProps) {
+function DomeCover({ theme, data, thumb, eager = false }: CoverProps) {
   const arcId = `inv-arc-${useId().replace(/:/g, '')}`;
   const gold = theme.line;
   const nameStyle: React.CSSProperties = { fontFamily: theme.display, color: theme.onAccent, fontSize: '6.1cqw', lineHeight: 1.12, letterSpacing: '0.05em', width: 'min-content', margin: '0 auto' };
   return (
     <div className="relative flex h-full flex-col" style={{ background: theme.paper }}>
-      <h1 className="sr-only">
+      <CoverHeading thumb={thumb} className="sr-only">
         {data.groom} &amp; {data.bride}
-      </h1>
+      </CoverHeading>
       {/* Dome */}
       <div className="relative z-[1] shrink-0" style={{ height: '46cqw' }}>
         <div className="absolute top-0 h-full" style={{ left: '-12cqw', right: '-12cqw', background: `radial-gradient(90% 120% at 50% 0%, ${theme.accent} 40%, ${theme.ground} 100%)`, borderRadius: '0 0 50% 50% / 0 0 52% 52%' }} />
@@ -85,7 +95,7 @@ function DomeCover({ theme, data, thumb }: CoverProps) {
         </svg>
         <div className="relative h-full" {...rise(2)}>
           <div className="absolute rounded-t-full" style={{ inset: '-1.6cqw', border: `0.3cqw solid ${gold}`, borderBottom: 'none' }} />
-          <PhotoOr src={data.cover} alt={alt(data)} theme={theme} small={thumb} eager={!thumb} className="block h-full w-full rounded-t-full" position="50% 30%" />
+          <PhotoOr src={data.cover} alt={alt(data)} theme={theme} small={thumb} eager={!thumb || Boolean(eager)} className="block h-full w-full rounded-t-full" position="50% 30%" />
         </div>
       </div>
 
@@ -150,13 +160,13 @@ function MedallionCover({ theme, data, thumb }: CoverProps) {
       <div className="relative rounded-full" {...rise(1, { width: thumb ? '56cqw' : '62cqw', height: thumb ? '56cqw' : '62cqw', padding: '2cqw', border: `0.4cqw solid ${gold}`, boxShadow: `0 0 0 1.4cqw ${theme.paper}, 0 0 0 1.6cqw ${gold}99, 0 2cqw 8cqw rgba(0,0,0,0.5)` })}>
         <PhotoOr src={data.cover} alt={alt(data)} theme={theme} small={thumb} eager={!thumb} className="block h-full w-full rounded-full" position="50% 35%" />
       </div>
-      <h1 className="uppercase" {...rise(2, { fontFamily: theme.display, fontWeight: 600, fontSize: '6.6cqw', lineHeight: 1.15, letterSpacing: '0.08em', color: theme.ink, marginTop: thumb ? 0 : '1cqw' })}>
+      <CoverHeading thumb={thumb} className="uppercase" {...rise(2, { fontFamily: theme.display, fontWeight: 600, fontSize: '6.6cqw', lineHeight: 1.15, letterSpacing: '0.08em', color: theme.ink, marginTop: thumb ? 0 : '1cqw' })}>
         <span className="block whitespace-nowrap">{data.groom}</span>
         <span className="block normal-case" style={{ fontFamily: theme.script, fontSize: '8cqw', lineHeight: 0.9, color: gold, letterSpacing: 0, fontWeight: 400 }}>
           &amp;
         </span>
         <span className="block whitespace-nowrap">{data.bride}</span>
-      </h1>
+      </CoverHeading>
       <div {...rise(3)}>
         <div className="flex items-center justify-center" style={{ gap: '3cqw', fontFamily: theme.display, color: gold, fontSize: '4.4cqw', letterSpacing: '0.22em' }}>
           <span style={{ width: '10cqw', height: '0.25cqw', background: gold }} />
@@ -190,14 +200,14 @@ function ArchFloralCover({ theme, data, thumb }: CoverProps) {
         <PhotoOr src={data.cover} alt={alt(data)} theme={theme} small={thumb} eager={!thumb} className="relative block h-full w-full rounded-t-full rounded-b-[1.2cqw]" position="50% 30%" />
         {floral && (
           <>
-            <img src={floral} alt="" aria-hidden="true" className="pointer-events-none absolute max-w-none" style={{ width: '58cqw', left: '-30cqw', top: '6%', transform: 'rotate(-28deg) scaleX(-1)' }} />
-            <img src={floral} alt="" aria-hidden="true" className="pointer-events-none absolute max-w-none" style={{ width: '52cqw', right: '-27cqw', bottom: '-6cqw', transform: 'rotate(-12deg)' }} />
+            <img src={floral} alt="" aria-hidden="true" width={760} height={437} loading="lazy" decoding="async" className="pointer-events-none absolute max-w-none" style={{ width: '58cqw', left: '-30cqw', top: '6%', transform: 'rotate(-28deg) scaleX(-1)' }} />
+            <img src={floral} alt="" aria-hidden="true" width={760} height={437} loading="lazy" decoding="async" className="pointer-events-none absolute max-w-none" style={{ width: '52cqw', right: '-27cqw', bottom: '-6cqw', transform: 'rotate(-12deg)' }} />
           </>
         )}
       </div>
-      <h1 className="[text-wrap:balance]" {...rise(2, { fontFamily: theme.script, fontSize: '12.5cqw', lineHeight: 1.05, color: theme.accentText ?? theme.accent, padding: thumb ? '4cqw 6cqw 0' : '6cqw 6cqw 0' })}>
+      <CoverHeading thumb={thumb} className="[text-wrap:balance]" {...rise(2, { fontFamily: theme.script, fontSize: '12.5cqw', lineHeight: 1.05, color: theme.accentText ?? theme.accent, padding: thumb ? '4cqw 6cqw 0' : '6cqw 6cqw 0' })}>
         {data.groom} <span style={{ fontSize: '0.6em' }}>&amp;</span> {data.bride}
-      </h1>
+      </CoverHeading>
       <div {...rise(3, { padding: thumb ? '2cqw 0 7cqw' : '3cqw 0 10cqw' })}>
         <p className="tabular-nums uppercase" style={{ fontFamily: theme.display, fontSize: '4.6cqw', letterSpacing: '0.3em', color: theme.ink }}>
           {pad2(p.day)} · {pad2(p.month)} · {p.year}
@@ -225,13 +235,13 @@ function EditorialCover({ theme, data, thumb }: CoverProps) {
           {pad2(p.day)}.{pad2(p.month)}.{String(p.year).slice(2)}
         </span>
       </div>
-      <h1 className="shrink-0 text-center" {...rise(1, { fontFamily: theme.display, fontWeight: 400, fontSize: '12.6cqw', lineHeight: 1.02, letterSpacing: '-0.01em', padding: thumb ? '7cqw 0 6cqw' : '11cqw 0 9cqw' })}>
+      <CoverHeading thumb={thumb} className="shrink-0 text-center" {...rise(1, { fontFamily: theme.display, fontWeight: 400, fontSize: '12.6cqw', lineHeight: 1.02, letterSpacing: '-0.01em', padding: thumb ? '7cqw 0 6cqw' : '11cqw 0 9cqw' })}>
         <span className="block whitespace-nowrap">{data.groom}</span>
         <span className="block italic" style={{ fontFamily: theme.script, fontSize: '0.42em', lineHeight: 1.5, color: theme.inkSoft }}>
           và
         </span>
         <span className="block whitespace-nowrap">{data.bride}</span>
-      </h1>
+      </CoverHeading>
       <div className="relative min-h-0 flex-1" {...rise(2)}>
         <PhotoOr src={data.cover} alt={alt(data)} theme={theme} small={thumb} eager={!thumb} className="absolute inset-0 h-full w-full" position={theme.layout.coverPosition ?? '50% 50%'} />
       </div>
@@ -272,14 +282,14 @@ function OvalWashCover({ theme, data, thumb }: CoverProps) {
         />
         {floral && (
           <>
-            <img src={floral} alt="" aria-hidden="true" className="pointer-events-none absolute max-w-none" style={{ width: '58cqw', left: '-24cqw', bottom: '-7cqw', transform: 'rotate(-14deg)' }} />
-            <img src={floral} alt="" aria-hidden="true" className="pointer-events-none absolute max-w-none" style={{ width: '34cqw', right: '-19cqw', top: '52%', transform: 'rotate(118deg)' }} />
+            <img src={floral} alt="" aria-hidden="true" width={760} height={437} loading="lazy" decoding="async" className="pointer-events-none absolute max-w-none" style={{ width: '58cqw', left: '-24cqw', bottom: '-7cqw', transform: 'rotate(-14deg)' }} />
+            <img src={floral} alt="" aria-hidden="true" width={760} height={437} loading="lazy" decoding="async" className="pointer-events-none absolute max-w-none" style={{ width: '34cqw', right: '-19cqw', top: '52%', transform: 'rotate(118deg)' }} />
           </>
         )}
       </div>
-      <h1 className="[text-wrap:balance]" {...rise(2, { fontFamily: theme.script, fontSize: '11.4cqw', lineHeight: 1.1, color: theme.ink, padding: thumb ? '4cqw 6cqw 0' : '6cqw 6cqw 0' })}>
+      <CoverHeading thumb={thumb} className="[text-wrap:balance]" {...rise(2, { fontFamily: theme.script, fontSize: '11.4cqw', lineHeight: 1.1, color: theme.ink, padding: thumb ? '4cqw 6cqw 0' : '6cqw 6cqw 0' })}>
         {data.groom} <span style={{ color: theme.accentText ?? theme.accent }}>&amp;</span> {data.bride}
-      </h1>
+      </CoverHeading>
       <div {...rise(3, { padding: thumb ? '1cqw 0 7cqw' : '2cqw 0 10cqw' })}>
         <p className="tabular-nums uppercase" style={{ fontFamily: theme.display, fontWeight: 500, fontSize: '4.4cqw', letterSpacing: '0.32em' }}>
           {pad2(p.day)} · {pad2(p.month)} · {p.year}
@@ -320,9 +330,9 @@ function PosterCover({ theme, data, thumb }: CoverProps) {
       </div>
       <div className="absolute inset-x-0 bottom-0" style={{ padding: thumb ? '0 7cqw 8cqw' : '0 7cqw 12cqw' }}>
         <p {...rise(1, { fontFamily: theme.script, fontSize: '9cqw', lineHeight: 1.1 })}>{theme.layout.kicker}</p>
-        <h1 className="uppercase [text-wrap:balance]" {...rise(2, { fontFamily: theme.display, fontWeight: 300, fontSize: '6.4cqw', letterSpacing: '0.2em', lineHeight: 1.35, marginTop: '2cqw' })}>
+        <CoverHeading thumb={thumb} className="uppercase [text-wrap:balance]" {...rise(2, { fontFamily: theme.display, fontWeight: 300, fontSize: '6.4cqw', letterSpacing: '0.2em', lineHeight: 1.35, marginTop: '2cqw' })}>
           {data.groom} &amp; {data.bride}
-        </h1>
+        </CoverHeading>
         <div className="flex items-center justify-center tabular-nums" {...rise(3, { gap: '3.4cqw', fontFamily: theme.display, fontSize: '4.4cqw', letterSpacing: '0.18em', marginTop: '4cqw' })}>
           <span>{pad2(p.day)}</span>
           <span style={{ width: '1px', height: '5cqw', background: WHITE }} />
@@ -367,13 +377,13 @@ function NoirCover({ theme, data, thumb }: CoverProps) {
         </p>
       </div>
       <div className="absolute inset-x-0 bottom-0" style={{ padding: thumb ? '0 8cqw 11cqw' : '0 8cqw 15cqw' }}>
-        <h1 {...rise(1, { fontFamily: theme.script, fontSize: '12.4cqw', lineHeight: 1.05, color: '#f3e6c4' })}>
+        <CoverHeading thumb={thumb} {...rise(1, { fontFamily: theme.script, fontSize: '12.4cqw', lineHeight: 1.05, color: '#f3e6c4' })}>
           <span className="block whitespace-nowrap">{data.groom}</span>
           <span className="block" style={{ fontSize: '0.55em', color: gold }}>
             &amp;
           </span>
           <span className="block whitespace-nowrap">{data.bride}</span>
-        </h1>
+        </CoverHeading>
         <div className="flex items-center justify-center tabular-nums uppercase" {...rise(2, { gap: '3cqw', fontFamily: theme.display, fontWeight: 500, fontSize: '4cqw', letterSpacing: '0.34em', color: gold, marginTop: '4cqw' })}>
           <span style={{ width: '8cqw', height: '1px', background: gold }} />
           {pad2(p.day)} · {pad2(p.month)} · {p.year}
@@ -419,7 +429,7 @@ function MagazineCover({ theme, data, thumb }: CoverProps) {
         )}
       </div>
       <div className="absolute inset-x-0 bottom-0" style={{ padding: thumb ? '0 6cqw 6cqw' : '0 6cqw 9cqw' }}>
-        <h1 className="uppercase" {...rise(2, { fontFamily: theme.display, fontWeight: 900, fontSize: '9.8cqw', lineHeight: 0.94, letterSpacing: '-0.02em' })}>
+        <CoverHeading thumb={thumb} className="uppercase" {...rise(2, { fontFamily: theme.display, fontWeight: 900, fontSize: '9.8cqw', lineHeight: 0.94, letterSpacing: '-0.02em' })}>
           <span className="block whitespace-nowrap">{data.groom}</span>
           <span className="block whitespace-nowrap">
             <span className="italic" style={{ color: red, fontWeight: 400 }}>
@@ -427,7 +437,7 @@ function MagazineCover({ theme, data, thumb }: CoverProps) {
             </span>
             {data.bride}
           </span>
-        </h1>
+        </CoverHeading>
         <div className="flex items-end justify-between" {...rise(3, { marginTop: '3.4cqw', borderTop: '0.4cqw solid #fff', paddingTop: '2cqw' })}>
           <p className="font-bold uppercase tabular-nums" style={{ fontFamily: 'var(--inv-body)', fontSize: '2.8cqw', letterSpacing: '0.12em', lineHeight: 1.4 }}>
             {p.weekday}
@@ -469,9 +479,9 @@ function PosterScriptCover({ theme, data, thumb }: CoverProps) {
         </p>
       </div>
       <div className="absolute inset-x-0 bottom-0" style={{ padding: thumb ? '0 7cqw 8cqw' : '0 7cqw 12cqw' }}>
-        <h1 className="uppercase [text-wrap:balance]" {...rise(2, { fontFamily: theme.display, fontWeight: 300, fontSize: '5.6cqw', letterSpacing: '0.24em', lineHeight: 1.4 })}>
+        <CoverHeading thumb={thumb} className="uppercase [text-wrap:balance]" {...rise(2, { fontFamily: theme.display, fontWeight: 300, fontSize: '5.6cqw', letterSpacing: '0.24em', lineHeight: 1.4 })}>
           {data.groom} &amp; {data.bride}
-        </h1>
+        </CoverHeading>
         <p className="tabular-nums" {...rise(3, { fontFamily: theme.display, fontWeight: 300, fontSize: '9.4cqw', letterSpacing: '0.08em', lineHeight: 1.2, marginTop: '1.6cqw' })}>
           {pad2(p.day)}.{pad2(p.month)}.{p.year}
         </p>
@@ -501,13 +511,13 @@ function VintageCover({ theme, data, thumb }: CoverProps) {
         <div className="absolute rounded-[50%]" style={{ inset: '-1.4cqw', border: `0.25cqw solid ${theme.accent}` }} />
         <PhotoOr src={data.cover} alt={alt(data)} theme={theme} small={thumb} eager={!thumb} className="block h-full w-full rounded-[50%]" position="50% 30%" />
       </div>
-      <h1 className="uppercase" {...rise(2, { fontFamily: theme.display, fontSize: '5.4cqw', letterSpacing: '0.22em', lineHeight: 1.25, marginTop: thumb ? '5cqw' : '8cqw' })}>
+      <CoverHeading thumb={thumb} className="uppercase" {...rise(2, { fontFamily: theme.display, fontSize: '5.4cqw', letterSpacing: '0.22em', lineHeight: 1.25, marginTop: thumb ? '5cqw' : '8cqw' })}>
         <span className="block whitespace-nowrap">{data.groom}</span>
         <span className="block normal-case" style={{ fontFamily: theme.script, fontWeight: 700, fontSize: '1.7em', lineHeight: 0.9, letterSpacing: 0, color: theme.accentText ?? theme.accent }}>
           &amp;
         </span>
         <span className="block whitespace-nowrap">{data.bride}</span>
-      </h1>
+      </CoverHeading>
       <p className="italic" {...rise(3, { fontFamily: theme.display, fontSize: '3.5cqw', marginTop: '3cqw', paddingBottom: thumb ? '9cqw' : '13cqw', color: theme.inkSoft })}>
         {p.weekday}, ngày {p.day} tháng {p.month} năm {p.year}
       </p>
@@ -554,9 +564,9 @@ function PolaroidCover({ theme, data, thumb }: CoverProps) {
           <path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z" fill={theme.line} />
         </svg>
       </div>
-      <h1 className="[text-wrap:balance]" {...rise(2, { fontFamily: theme.script, fontWeight: 700, fontSize: '9.6cqw', lineHeight: 1.15, color: theme.ink, padding: '0 6cqw' })}>
+      <CoverHeading thumb={thumb} className="[text-wrap:balance]" {...rise(2, { fontFamily: theme.script, fontWeight: 700, fontSize: '9.6cqw', lineHeight: 1.15, color: theme.ink, padding: '0 6cqw' })}>
         {data.groom} <span style={{ color: theme.accent }}>♥</span> {data.bride}
-      </h1>
+      </CoverHeading>
       <p className="inline-flex items-center rounded-full font-semibold tabular-nums" {...rise(3, { background: theme.accent, color: theme.onAccent, fontSize: '3.2cqw', padding: '1.4cqw 4.4cqw', margin: thumb ? '2.6cqw 0 7cqw' : '3.4cqw 0 10cqw' })}>
         {p.weekday} · {pad2(p.day)}.{pad2(p.month)}.{p.year}
       </p>
@@ -591,12 +601,12 @@ function EnvelopeCover({ theme, data, thumb }: CoverProps) {
           <Seal theme={theme} monogram={`${data.groom.trim().split(/\s+/).pop()?.charAt(0) ?? ''}${data.bride.trim().split(/\s+/).pop()?.charAt(0) ?? ''}`} />
         </div>
       </div>
-      <h1 {...rise(2, { fontFamily: theme.display, fontSize: '10.6cqw', lineHeight: 1.08, color: theme.accentText ?? theme.ink, marginTop: thumb ? '4cqw' : '7cqw' })}>
+      <CoverHeading thumb={thumb} {...rise(2, { fontFamily: theme.display, fontSize: '10.6cqw', lineHeight: 1.08, color: theme.accentText ?? theme.ink, marginTop: thumb ? '4cqw' : '7cqw' })}>
         <span className="block whitespace-nowrap">{data.groom}</span>
         <span className="block whitespace-nowrap">
           <span style={{ fontFamily: theme.script, fontSize: '0.8em', color: theme.inkSoft }}>&amp;</span> {data.bride}
         </span>
-      </h1>
+      </CoverHeading>
       <div {...rise(3, { padding: thumb ? '3cqw 0 7cqw' : '5cqw 0 10cqw', width: '100%' })}>
         <DateRow theme={theme} date={data.date} />
         {!thumb && (
@@ -628,9 +638,9 @@ function FrameInsetCover({ theme, data, thumb }: CoverProps) {
       </div>
       <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-center text-center" style={{ height: `${foot}cqw`, paddingTop: '10cqw', paddingInline: '6cqw' }}>
         <p {...rise(1, { fontFamily: theme.script, fontSize: '6.6cqw', color: theme.accentText ?? theme.accent, lineHeight: 1.2 })}>{theme.layout.kicker}</p>
-        <h1 className={`[text-wrap:balance] ${theme.namesUpper ? 'uppercase' : ''}`} {...rise(2, { fontFamily: theme.namesIn === 'script' ? theme.script : theme.display, fontWeight: theme.namesIn === 'script' ? 400 : theme.namesWeight ?? 500, fontSize: theme.namesIn === 'script' ? '10.4cqw' : '8.2cqw', lineHeight: 1.08 })}>
+        <CoverHeading thumb={thumb} className={`[text-wrap:balance] ${theme.namesUpper ? 'uppercase' : ''}`} {...rise(2, { fontFamily: theme.namesIn === 'script' ? theme.script : theme.display, fontWeight: theme.namesIn === 'script' ? 400 : theme.namesWeight ?? 500, fontSize: theme.namesIn === 'script' ? '10.4cqw' : '8.2cqw', lineHeight: 1.08 })}>
           {data.groom} <span style={{ color: theme.accentText ?? theme.accent }}>&amp;</span> {data.bride}
-        </h1>
+        </CoverHeading>
         <p className="uppercase tabular-nums" {...rise(3, { fontSize: '2.8cqw', letterSpacing: '0.3em', color: theme.inkSoft, marginTop: '2.6cqw' })}>
           {p.weekday} · {p.year}
           {data.city && !thumb ? ` · ${data.city}` : ''}
@@ -654,12 +664,12 @@ function SplitCover({ theme, data, thumb }: CoverProps) {
         </p>
       </div>
       <div className="grid shrink-0 grid-cols-[1fr_auto] items-end" style={{ gap: '4cqw', padding: thumb ? '5cqw 7cqw 7cqw' : '7cqw 7cqw 10cqw', borderTop: `1.2cqw solid ${theme.accent}` }}>
-        <h1 className={theme.namesUpper ? 'uppercase' : ''} {...rise(1, { fontFamily: theme.namesIn === 'script' ? theme.script : theme.display, fontWeight: theme.namesIn === 'script' ? 400 : theme.namesWeight ?? 500, fontSize: theme.namesIn === 'script' ? '10.6cqw' : '8.4cqw', lineHeight: 1.02 })}>
+        <CoverHeading thumb={thumb} className={theme.namesUpper ? 'uppercase' : ''} {...rise(1, { fontFamily: theme.namesIn === 'script' ? theme.script : theme.display, fontWeight: theme.namesIn === 'script' ? 400 : theme.namesWeight ?? 500, fontSize: theme.namesIn === 'script' ? '10.6cqw' : '8.4cqw', lineHeight: 1.02 })}>
           <span className="block whitespace-nowrap">{data.groom}</span>
           <span className="block whitespace-nowrap">
             <span style={{ color: theme.accentText ?? theme.accent }}>&amp;</span> {data.bride}
           </span>
-        </h1>
+        </CoverHeading>
         <div className="text-right" {...rise(2, { fontFamily: theme.display })}>
           <p className="tabular-nums" style={{ fontSize: '15cqw', lineHeight: 0.84, color: theme.accentText ?? theme.accent }}>
             {pad2(p.day)}
@@ -697,9 +707,9 @@ function BigDateCover({ theme, data, thumb }: CoverProps) {
         <p className="tabular-nums" style={{ fontFamily: theme.display, fontSize: '4cqw', letterSpacing: '0.6em', paddingLeft: '0.6em' }}>
           {p.year}
         </p>
-        <h1 className="[text-wrap:balance]" style={{ fontFamily: theme.namesIn === 'script' ? theme.script : theme.display, fontSize: theme.namesIn === 'script' ? '9.6cqw' : '7cqw', lineHeight: 1.15, marginTop: '2.4cqw', color: theme.accentText ?? theme.accent, padding: '0 6cqw', textTransform: theme.namesUpper ? 'uppercase' : undefined }}>
+        <CoverHeading thumb={thumb} className="[text-wrap:balance]" style={{ fontFamily: theme.namesIn === 'script' ? theme.script : theme.display, fontSize: theme.namesIn === 'script' ? '9.6cqw' : '7cqw', lineHeight: 1.15, marginTop: '2.4cqw', color: theme.accentText ?? theme.accent, padding: '0 6cqw', textTransform: theme.namesUpper ? 'uppercase' : undefined }}>
           {data.groom} &amp; {data.bride}
-        </h1>
+        </CoverHeading>
         {!thumb && (
           <p className="uppercase" style={{ fontSize: '2.6cqw', letterSpacing: '0.3em', color: theme.inkSoft, marginTop: '2cqw' }}>
             {p.weekday}
@@ -720,9 +730,9 @@ function CollageCover({ theme, data, thumb }: CoverProps) {
     <div className="relative flex h-full flex-col" style={{ background: theme.paper, paddingInline: '5cqw' }}>
       <div className="shrink-0 text-center" style={{ padding: thumb ? '7cqw 0 4cqw' : '10cqw 0 6cqw' }}>
         <p {...rise(0, { fontFamily: theme.script, fontSize: '7.6cqw', lineHeight: 1.15, color: theme.accentText ?? theme.accent })}>{theme.layout.kicker}</p>
-        <h1 className="uppercase [text-wrap:balance]" {...rise(1, { fontFamily: theme.display, fontSize: '5.6cqw', letterSpacing: '0.16em', lineHeight: 1.3, marginTop: '1.4cqw' })}>
+        <CoverHeading thumb={thumb} className="uppercase [text-wrap:balance]" {...rise(1, { fontFamily: theme.display, fontSize: '5.6cqw', letterSpacing: '0.16em', lineHeight: 1.3, marginTop: '1.4cqw' })}>
           {data.groom} &amp; {data.bride}
-        </h1>
+        </CoverHeading>
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-[1.35fr_1fr]" {...rise(2, { gap })}>
         <PhotoOr src={data.cover} alt={alt(data)} theme={theme} small={thumb} eager={!thumb} className="h-full w-full" position={theme.layout.coverPosition ?? '50% 35%'} />
@@ -772,9 +782,9 @@ function VerticalCover({ theme, data, thumb }: CoverProps) {
         <p className="uppercase" style={{ fontFamily: theme.display, fontSize: '11.5cqw', letterSpacing: '0.3em', paddingLeft: '0.3em', lineHeight: 1 }}>
           Wedding
         </p>
-        <h1 className="uppercase" style={{ fontSize: '3.2cqw', letterSpacing: '0.28em', marginTop: '2.4cqw' }}>
+        <CoverHeading thumb={thumb} className="uppercase" style={{ fontSize: '3.2cqw', letterSpacing: '0.28em', marginTop: '2.4cqw' }}>
           {data.groom} · {data.bride}
-        </h1>
+        </CoverHeading>
       </div>
     </div>
   );
@@ -818,9 +828,9 @@ function StampCover({ theme, data, thumb }: CoverProps) {
             </svg>
           </div>
         </div>
-        <h1 className="[text-wrap:balance]" {...rise(2, { fontFamily: theme.script, fontSize: '10cqw', lineHeight: 1.1, color: theme.accentText ?? theme.accent, padding: '0 6cqw', marginTop: thumb ? '3cqw' : '5cqw' })}>
+        <CoverHeading thumb={thumb} className="[text-wrap:balance]" {...rise(2, { fontFamily: theme.script, fontSize: '10cqw', lineHeight: 1.1, color: theme.accentText ?? theme.accent, padding: '0 6cqw', marginTop: thumb ? '3cqw' : '5cqw' })}>
           {data.groom} &amp; {data.bride}
-        </h1>
+        </CoverHeading>
         <p className="uppercase tabular-nums" {...rise(3, { fontSize: '2.8cqw', letterSpacing: '0.3em', marginTop: '1.4cqw', paddingBottom: thumb ? '6cqw' : '9cqw' })}>
           {p.weekday} · {pad2(p.day)}.{pad2(p.month)}.{p.year}
         </p>
@@ -839,13 +849,13 @@ function CinemaCover({ theme, data, thumb }: CoverProps) {
       <p className="uppercase" {...rise(0, { fontSize: '2.4cqw', letterSpacing: '0.5em', opacity: 0.7, paddingTop: thumb ? '7cqw' : '10cqw' })}>
         {theme.layout.kicker}
       </p>
-      <h1 className="uppercase" {...rise(1, { fontFamily: theme.display, fontWeight: theme.namesWeight ?? 600, fontSize: '8.6cqw', letterSpacing: '0.1em', lineHeight: 1.08, padding: '3cqw 5cqw 0' })}>
+      <CoverHeading thumb={thumb} className="uppercase" {...rise(1, { fontFamily: theme.display, fontWeight: theme.namesWeight ?? 600, fontSize: '8.6cqw', letterSpacing: '0.1em', lineHeight: 1.08, padding: '3cqw 5cqw 0' })}>
         <span className="block whitespace-nowrap">{data.groom}</span>
         <span className="block" style={{ fontSize: '0.5em', letterSpacing: '0.4em', color: theme.accent, margin: '0.6cqw 0' }}>
           và
         </span>
         <span className="block whitespace-nowrap">{data.bride}</span>
-      </h1>
+      </CoverHeading>
       <div className="relative min-h-0 flex-1" {...rise(2, { margin: '5cqw 0' })}>
         <PhotoOr src={data.cover} alt={alt(data)} theme={theme} small={thumb} eager={!thumb} zoom={!thumb} className="absolute inset-0 h-full w-full" position={theme.layout.coverPosition ?? '50% 40%'} />
         <div className="absolute inset-0" style={{ boxShadow: 'inset 0 0 8cqw rgba(0,0,0,0.75)' }} />
@@ -887,9 +897,9 @@ function NewspaperCover({ theme, data, thumb }: CoverProps) {
       <p className="shrink-0 text-center" {...rise(0, { fontFamily: theme.display, fontWeight: 900, fontSize: '13.6cqw', lineHeight: 1.05, letterSpacing: '-0.02em', borderBottom: `0.9cqw double ${theme.ink}`, padding: '1cqw 0 1.6cqw' })}>
         {theme.layout.kicker}
       </p>
-      <h1 className="shrink-0 [text-wrap:balance]" {...rise(1, { fontFamily: theme.display, fontWeight: 700, fontSize: '6.8cqw', lineHeight: 1.05, marginTop: '3cqw' })}>
+      <CoverHeading thumb={thumb} className="shrink-0 [text-wrap:balance]" {...rise(1, { fontFamily: theme.display, fontWeight: 700, fontSize: '6.8cqw', lineHeight: 1.05, marginTop: '3cqw' })}>
         {data.groom} &amp; {data.bride} chính thức về chung một nhà
-      </h1>
+      </CoverHeading>
       <div className="relative mt-[3cqw] min-h-0 flex-1" {...rise(2)}>
         <PhotoOr src={data.cover} alt={alt(data)} theme={theme} small={thumb} eager={!thumb} className="absolute inset-0 h-full w-full" position={theme.layout.coverPosition ?? '50% 35%'} style={{ filter: 'grayscale(1) contrast(1.08)' }} />
       </div>
@@ -924,12 +934,12 @@ function CircleCover({ theme, data, thumb }: CoverProps) {
         <p className="uppercase" style={{ fontSize: '2.6cqw', letterSpacing: '0.42em', color: theme.accentText ?? theme.accent }}>
           {theme.layout.kicker}
         </p>
-        <h1 className={theme.namesUpper ? 'uppercase' : ''} style={{ fontFamily: theme.namesIn === 'script' ? theme.script : theme.display, fontWeight: theme.namesIn === 'script' ? 400 : theme.namesWeight ?? 500, fontSize: theme.namesIn === 'script' ? '12cqw' : '10.4cqw', lineHeight: 1.0, marginTop: '2cqw' }}>
+        <CoverHeading thumb={thumb} className={theme.namesUpper ? 'uppercase' : ''} style={{ fontFamily: theme.namesIn === 'script' ? theme.script : theme.display, fontWeight: theme.namesIn === 'script' ? 400 : theme.namesWeight ?? 500, fontSize: theme.namesIn === 'script' ? '12cqw' : '10.4cqw', lineHeight: 1.0, marginTop: '2cqw' }}>
           <span className="block whitespace-nowrap">{data.groom}</span>
           <span className="block whitespace-nowrap">
             <span style={{ color: theme.accentText ?? theme.accent }}>&amp;</span> {data.bride}
           </span>
-        </h1>
+        </CoverHeading>
         <div className="flex items-center" style={{ gap: '3cqw', marginTop: '3.4cqw' }}>
           <span className="tabular-nums" style={{ fontFamily: theme.display, fontSize: '4.6cqw', letterSpacing: '0.08em' }}>
             {pad2(p.day)}.{pad2(p.month)}.{p.year}
@@ -951,9 +961,9 @@ function TripleArchCover({ theme, data, thumb }: CoverProps) {
   return (
     <div className="relative flex h-full flex-col items-center text-center" style={{ background: `linear-gradient(${theme.paper}, ${softPanel(theme)})` }}>
       <p {...rise(0, { fontFamily: theme.script, fontSize: '8.4cqw', lineHeight: 1.2, color: theme.accentText ?? theme.accent, paddingTop: thumb ? '7cqw' : '10cqw' })}>{theme.layout.kicker}</p>
-      <h1 className="uppercase [text-wrap:balance]" {...rise(1, { fontFamily: theme.display, fontSize: '5.4cqw', letterSpacing: '0.2em', lineHeight: 1.3, marginTop: '1cqw', padding: '0 6cqw' })}>
+      <CoverHeading thumb={thumb} className="uppercase [text-wrap:balance]" {...rise(1, { fontFamily: theme.display, fontSize: '5.4cqw', letterSpacing: '0.2em', lineHeight: 1.3, marginTop: '1cqw', padding: '0 6cqw' })}>
         {data.groom} &amp; {data.bride}
-      </h1>
+      </CoverHeading>
       <div className="flex min-h-0 w-full flex-1 items-end" {...rise(2, { gap: '2.4cqw', padding: '6cqw 6cqw 0' })}>
         <div className="h-[76%] flex-1">
           <PhotoOr src={data.extras[0] ?? data.cover} alt="" theme={theme} small eager={!thumb} className={`${arch} h-full`} />
@@ -1009,9 +1019,9 @@ function BoardingCover({ theme, data, thumb }: CoverProps) {
             </p>
           </div>
         </div>
-        <h1 className="sr-only">
+        <CoverHeading thumb={thumb} className="sr-only">
           {data.groom} &amp; {data.bride}
-        </h1>
+        </CoverHeading>
         <div className="grid shrink-0 grid-cols-4 text-left" style={{ gap: '2cqw', padding: '3.4cqw 5cqw 0' }}>
           {[
             ['Ngày', `${pad2(p.day)}/${pad2(p.month)}`],
@@ -1088,9 +1098,9 @@ function CalendarCover({ theme, data, thumb }: CoverProps) {
             ),
           )}
         </div>
-        <h1 className="[text-wrap:balance]" {...rise(3, { fontFamily: theme.namesIn === 'script' ? theme.script : theme.display, fontSize: theme.namesIn === 'script' ? '8cqw' : '5.8cqw', lineHeight: 1.15, marginTop: '2.4cqw', textTransform: theme.namesUpper ? 'uppercase' : undefined })}>
+        <CoverHeading thumb={thumb} className="[text-wrap:balance]" {...rise(3, { fontFamily: theme.namesIn === 'script' ? theme.script : theme.display, fontSize: theme.namesIn === 'script' ? '8cqw' : '5.8cqw', lineHeight: 1.15, marginTop: '2.4cqw', textTransform: theme.namesUpper ? 'uppercase' : undefined })}>
           {data.groom} &amp; {data.bride}
-        </h1>
+        </CoverHeading>
       </div>
     </div>
   );
@@ -1115,9 +1125,9 @@ function RedPosterCover({ theme, data, thumb }: CoverProps) {
           <SongHy color="#ffffff" />
         </div>
       </div>
-      <h1 className="sr-only">
+      <CoverHeading thumb={thumb} className="sr-only">
         {data.groom} &amp; {data.bride}
-      </h1>
+      </CoverHeading>
       <p className="tabular-nums" {...rise(2, { fontFamily: theme.display, fontSize: '5.6cqw', letterSpacing: '0.24em', marginTop: '5cqw' })}>
         {pad2(p.day)} . {pad2(p.month)} . {p.year}
       </p>
@@ -1141,19 +1151,19 @@ function BotanicalCover({ theme, data, thumb }: CoverProps) {
         <PhotoOr src={data.cover} alt={alt(data)} theme={theme} small={thumb} eager={!thumb} className="relative block h-full w-full" position={theme.layout.coverPosition ?? '50% 35%'} />
         {floral && (
           <>
-            <img src={floral} alt="" aria-hidden="true" className="pointer-events-none absolute max-w-none" style={{ width: '52cqw', left: '-27cqw', top: '-12cqw', transform: 'rotate(-28deg)' }} />
-            <img src={floral} alt="" aria-hidden="true" className="pointer-events-none absolute max-w-none" style={{ width: '48cqw', right: '-25cqw', bottom: '-12cqw', transform: 'rotate(152deg)' }} />
-            <img src={floral} alt="" aria-hidden="true" className="pointer-events-none absolute max-w-none" style={{ width: '28cqw', right: '-15cqw', top: '-8cqw', transform: 'rotate(58deg) scaleX(-1)' }} />
+            <img src={floral} alt="" aria-hidden="true" width={760} height={437} loading="lazy" decoding="async" className="pointer-events-none absolute max-w-none" style={{ width: '52cqw', left: '-27cqw', top: '-12cqw', transform: 'rotate(-28deg)' }} />
+            <img src={floral} alt="" aria-hidden="true" width={760} height={437} loading="lazy" decoding="async" className="pointer-events-none absolute max-w-none" style={{ width: '48cqw', right: '-25cqw', bottom: '-12cqw', transform: 'rotate(152deg)' }} />
+            <img src={floral} alt="" aria-hidden="true" width={760} height={437} loading="lazy" decoding="async" className="pointer-events-none absolute max-w-none" style={{ width: '28cqw', right: '-15cqw', top: '-8cqw', transform: 'rotate(58deg) scaleX(-1)' }} />
           </>
         )}
       </div>
-      <h1 className="uppercase" {...rise(2, { fontFamily: theme.display, fontSize: '5.8cqw', letterSpacing: '0.2em', lineHeight: 1.3, marginTop: thumb ? '6cqw' : '9cqw' })}>
+      <CoverHeading thumb={thumb} className="uppercase" {...rise(2, { fontFamily: theme.display, fontSize: '5.8cqw', letterSpacing: '0.2em', lineHeight: 1.3, marginTop: thumb ? '6cqw' : '9cqw' })}>
         <span className="block whitespace-nowrap">{data.groom}</span>
         <span className="block normal-case" style={{ fontFamily: theme.script, fontSize: '1.5em', lineHeight: 0.9, letterSpacing: 0, color: theme.accentText ?? theme.accent }}>
           &amp;
         </span>
         <span className="block whitespace-nowrap">{data.bride}</span>
-      </h1>
+      </CoverHeading>
       <p className="tabular-nums uppercase" {...rise(3, { fontSize: '3.2cqw', letterSpacing: '0.32em', marginTop: '3cqw', paddingBottom: thumb ? '8cqw' : '11cqw' })}>
         {pad2(p.day)} · {pad2(p.month)} · {p.year}
       </p>
@@ -1194,7 +1204,7 @@ const COVERS: Record<CoverKind, (p: CoverProps) => React.ReactElement> = {
  * The cover. In the invitation it fills the first screen (between 1.5 and 1.86 times its width
  * tall); as a thumbnail it fills whatever box it is given.
  */
-export function InvitationCover({ theme, data, thumb = false, animate = false }: { theme: InviteTheme; data: CoverData; thumb?: boolean; animate?: boolean }) {
+export function InvitationCover({ theme, data, thumb = false, animate = false, eager = false }: { theme: InviteTheme; data: CoverData; thumb?: boolean; animate?: boolean; eager?: boolean }) {
   const Cover = COVERS[theme.layout.cover];
   return (
     <div className={`relative w-full [container-type:inline-size] ${thumb ? 'h-full' : ''}`}>
@@ -1202,7 +1212,7 @@ export function InvitationCover({ theme, data, thumb = false, animate = false }:
         className={`relative w-full overflow-hidden ${animate ? 'inv-cover-in' : ''}`}
         style={{ height: thumb ? '100%' : 'max(150cqw, min(100svh, 186cqw))', color: theme.ink }}
       >
-        <Cover theme={theme} data={data} thumb={thumb} />
+        <Cover theme={theme} data={data} thumb={thumb} eager={eager} />
       </header>
     </div>
   );

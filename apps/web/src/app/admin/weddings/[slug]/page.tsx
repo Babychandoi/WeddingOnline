@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { dbRepo, type WeddingMemberRecord } from '@dco/database';
-import { INVITATION_PLANS, STARTER_TEMPLATES, TIER_CATALOG, invitationAccess } from '@dco/shared';
+import { INVITATION_3D_PLANS, INVITATION_PLANS, STARTER_TEMPLATES, TIER_CATALOG, invitationAccess } from '@dco/shared';
 import { ArrowLeft, ExternalLink, HeartHandshake, Mail, MessageSquareHeart } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -347,7 +347,13 @@ export default async function AdminWeddingDetailPage({ params }: { params: { slu
                       {o.orderCode}
                     </td>
                     <td className={tableStyles.td}>
-                      {o.kind === 'INVITATION' ? <Pill tone="emerald">Thiệp · {INVITATION_PLANS.find((p) => p.id === o.invitationPlan)?.nameVi ?? 'gói thiệp'}</Pill> : <TierBadge tier={o.targetTier} />}
+                      {o.kind === 'INVITATION_3D' ? (
+                        <Pill tone="amber">Thiệp 3D · {INVITATION_3D_PLANS.find((p) => p.id === o.invitationPlan)?.nameVi ?? 'gói thiệp 3D'}</Pill>
+                      ) : o.kind === 'INVITATION' ? (
+                        <Pill tone="emerald">Thiệp 2D · {INVITATION_PLANS.find((p) => p.id === o.invitationPlan)?.nameVi ?? 'gói thiệp'}</Pill>
+                      ) : (
+                        <TierBadge tier={o.targetTier} />
+                      )}
                     </td>
                     <td className={cx(tableStyles.td, 'whitespace-nowrap text-right tabular-nums text-slate-900')}>
                       {o.status === 'PAID' && o.amountVnd === 0 ? 'Voucher 100%' : formatVnd(o.amountVnd)}

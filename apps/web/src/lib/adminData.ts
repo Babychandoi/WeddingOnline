@@ -1,5 +1,5 @@
 import { dbRepo, type AdminUserRecord, type SaasOrderRecord, type WeddingRecord } from '@dco/database';
-import { INVITATION_PLANS, type AuthProvider, type WeddingTier } from '@dco/shared';
+import { INVITATION_3D_PLANS, INVITATION_PLANS, type AuthProvider, type WeddingTier } from '@dco/shared';
 import {
   calendarDaysFrom,
   describeDayOffset,
@@ -129,7 +129,11 @@ export function toOrderRows({ orders, weddings, users }: AdminDataset): OrderRow
       weddingSlug: wedding?.slug ?? '',
       tier: o.targetTier,
       invitationPlanLabel:
-        o.kind === 'INVITATION' ? `Thiệp · ${INVITATION_PLANS.find((p) => p.id === o.invitationPlan)?.nameVi ?? 'gói thiệp'}` : null,
+        o.kind === 'INVITATION_3D'
+          ? `Thiệp 3D · ${INVITATION_3D_PLANS.find((p) => p.id === o.invitationPlan)?.nameVi ?? 'gói thiệp 3D'}`
+          : o.kind === 'INVITATION'
+            ? `Thiệp 2D · ${INVITATION_PLANS.find((p) => p.id === o.invitationPlan)?.nameVi ?? 'gói thiệp'}`
+            : null,
       amountVnd: o.amountVnd,
       amountLabel: viaVoucher ? 'Voucher 100%' : formatVnd(o.amountVnd),
       viaVoucher,

@@ -12,8 +12,11 @@ import {
   type SceneLayoutDocument,
   type TemplateId,
   type WeddingTier,
+  invitationAccess,
   invitationPlanEnd,
+  invitation3dPlanEnd,
   isInvitationPlanId,
+  isInvitation3dPlanId,
 } from '@dco/shared';
 import { prismaRepo } from './prismaRepo';
 import { createSeedSnapshot, type LocalDatabaseSnapshot } from './seedData';
@@ -607,7 +610,7 @@ const localJsonRepo = {
                                 if (!intent) return { duplicate: false };
 
                                 const wedding = db.weddings.find((w) => w.id === intent.weddingId);
-                                if (!wedding || (wedding.tier !== 'HAPPINESS' && wedding.tier !== 'VIP_FULFILLMENT' && !(wedding.invitationPaidUntil && Date.parse(wedding.invitationPaidUntil) > Date.now()))) {
+                                if (!wedding || (wedding.tier !== 'HAPPINESS' && wedding.tier !== 'VIP_FULFILLMENT' && !invitationAccess(wedding).published)) {
                                   return { duplicate: false };
                                 }
 
@@ -660,7 +663,7 @@ const localJsonRepo = {
                                     targetTier: WeddingTier;
                                     amountVnd: number;
                                     orderCode: string;
-                                    kind?: 'HALL' | 'INVITATION';
+                                    kind?: 'HALL' | 'INVITATION' | 'INVITATION_3D';
                                     invitationPlan?: string | null;
                                   }): Promise < SaasOrderRecord > {
                                     return getStore().mutate((db) => {
@@ -709,8 +712,12 @@ const localJsonRepo = {
 
                                         const wedding = db.weddings.find((w) => w.id === order.weddingId);
                                         if (wedding && order.kind === 'INVITATION' && isInvitationPlanId(order.invitationPlan)) {
-                                          // An invitation plan publishes (or extends) the invitation; the hall is untouched
+                                          // An invitation plan publishes (or extends) the 2D invitation; the hall is untouched
                                           wedding.invitationPaidUntil = invitationPlanEnd(order.invitationPlan, wedding.invitationPaidUntil ?? null, new Date(nowIso));
+                                          wedding.updatedAt = nowIso;
+                                        } else if (wedding && order.kind === 'INVITATION_3D' && isInvitation3dPlanId(order.invitationPlan)) {
+                                          // A 3D plan publishes (or extends) 3D walkthrough invitations
+                                          wedding.invitation3dPaidUntil = invitation3dPlanEnd(order.invitationPlan, wedding.invitation3dPaidUntil ?? null, new Date(nowIso));
                                           wedding.updatedAt = nowIso;
                                         } else if (wedding) {
                                           wedding.tier = order.targetTier;

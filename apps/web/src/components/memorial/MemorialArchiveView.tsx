@@ -124,7 +124,7 @@ export const MemorialArchiveView: React.FC<MemorialArchiveViewProps> = ({
             />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {galleryPhotos.map((p) => (
+              {galleryPhotos.map((p, idx) => (
                 <button
                   key={p.id}
                   type="button"
@@ -134,6 +134,10 @@ export const MemorialArchiveView: React.FC<MemorialArchiveViewProps> = ({
                   <img
                     src={p.publicUrl}
                     alt={p.caption || 'Ảnh cưới'}
+                    width={640}
+                    height={400}
+                    loading={idx === 0 ? 'eager' : 'lazy'}
+                    decoding="async"
                     className="h-56 w-full object-cover transition group-hover:scale-105"
                   />
                   {p.caption && <p className="p-3 text-xs font-medium text-slate-700">{p.caption}</p>}
@@ -155,7 +159,15 @@ export const MemorialArchiveView: React.FC<MemorialArchiveViewProps> = ({
                   onClick={() => setLightbox(p)}
                   className="overflow-hidden rounded-2xl border border-rose-200 bg-white p-2 text-left shadow-sm"
                 >
-                  <img src={p.publicUrl} alt={p.caption || 'Photobooth'} className="h-56 w-full rounded-xl object-cover" />
+                  <img
+                    src={p.publicUrl}
+                    alt={p.caption || 'Photobooth'}
+                    width={640}
+                    height={400}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-56 w-full rounded-xl object-cover"
+                  />
                   {p.caption && <p className="mt-2 px-1 text-xs font-semibold text-slate-700">{p.caption}</p>}
                 </button>
               ))}

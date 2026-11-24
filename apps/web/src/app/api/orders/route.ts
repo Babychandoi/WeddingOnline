@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbRepo, toPublicWedding } from '@dco/database';
-import { INVITATION_PLANS, TIER_CATALOG, buildVietQrDataUrl, generatePlanOrderCode, isInvitationPlanId, type WeddingTier } from '@dco/shared';
+import {
+  INVITATION_3D_PLANS,
+  INVITATION_PLANS,
+  TIER_CATALOG,
+  buildVietQrDataUrl,
+  generatePlanOrderCode,
+  isInvitation3dPlanId,
+  isInvitationPlanId,
+  type WeddingTier,
+} from '@dco/shared';
 import { getPlatformBankAccount } from '@/lib/platformSettings';
 import { publishRealtimeEvent } from '@/lib/realtimeClient';
 import { getSessionFromRequest } from '@/lib/session';
@@ -14,8 +23,8 @@ export async function POST(req: NextRequest) {
     slug?: string;
     targetTier?: WeddingTier;
     voucherCode?: string;
-    /** INVITATION = buy an online invitation plan instead of a 3D hall package */
-    kind?: 'HALL' | 'INVITATION';
+    /** INVITATION = 2D online invitation plan, INVITATION_3D = 3D walkthrough invitation plan */
+    kind?: 'HALL' | 'INVITATION' | 'INVITATION_3D';
     invitationPlan?: string;
   };
 
@@ -30,12 +39,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 
-  // ── Online invitation plan: its own price, no studio voucher, the hall is untouched ──
-  if (body.kind === 'INVITATION') {
-    if (!isInvitationPlanId(body.invitationPlan)) {
+  // ── 2D or 3D Online invitation plan: its own price, no studio voucher, the hall is untouched ──
+  if (body.kind === 'INVITATION' || body.kind === 'INVITATION_3D') {
+    const is3d = body.kind === 'INVITATION_3D';
+    const plan = is3d
+      ? isInvitation3dPlanId(body.invitationPlan)
+        ? INVITATION_3D_PLANS.find((p) => p.id === body.invitationPlan)!
+        : null
+      : isInvitationPlanId(body.invitationPlan)
+        ? INVITATION_PLANS.find((p) => p.id === body.invitationPlan)!
+        : null;
+    if (!plan) {
       return NextResponse.json({ error: 'UNKNOWN_PLAN', message: 'Gói thiệp không hợp lệ.' }, { status: 400 });
     }
-    const plan = INVITATION_PLANS.find((p) => p.id === body.invitationPlan)!;
     const bank = await getPlatformBankAccount();
     if (!bank) {
       return NextResponse.json({ error: 'PLATFORM_BANK_NOT_CONFIGURED', message: 'Hệ thống chưa cấu hình tài khoản nhận thanh toán. Vui lòng liên hệ quản trị viên.' }, { status: 503 });
@@ -45,7 +61,7 @@ export async function POST(req: NextRequest) {
       weddingId: wedding.id,
       buyerId: auth.user.id,
       targetTier: wedding.tier,
-      kind: 'INVITATION',
+      kind: is3d ? 'INVITATION_3D' : 'INVITATION',
       invitationPlan: plan.id,
       amountVnd: plan.priceVnd,
       orderCode,

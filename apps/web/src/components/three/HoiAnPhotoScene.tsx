@@ -366,9 +366,9 @@ const SHEEN = new THREE.ShaderMaterial({
   depthWrite: false,
   blending: THREE.AdditiveBlending,
   uniforms: { warm: { value: new THREE.Color('#ec8d39') }, cool: { value: new THREE.Color('#5790c9') } },
-  vertexShader: `varying vec2 patch; void main(){ patch = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  vertexShader: `varying vec2 vUvPatch; void main(){ vUvPatch = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: `
-    varying vec2 patch;
+    varying vec2 vUvPatch;
     uniform vec3 warm;
     uniform vec3 cool;
     float lightPatch(vec2 p, vec2 center, vec2 spread) {
@@ -376,9 +376,9 @@ const SHEEN = new THREE.ShaderMaterial({
       return exp(-dot(delta, delta));
     }
     void main() {
-      float ripple = sin(patch.y * 1017.0 + patch.x * 176.0) * sin(patch.x * 151.0 + patch.y * 1789.0);
-      float west = lightPatch(patch, vec2(.18, .33), vec2(.155, .12)) + .43 * lightPatch(patch, vec2(.19, .59), vec2(.12, .22));
-      float east = lightPatch(patch, vec2(.82, .35), vec2(.175, .12)) + .59 * lightPatch(patch, vec2(.72, .64), vec2(.26, .07));
+      float ripple = sin(vUvPatch.y * 1017.0 + vUvPatch.x * 176.0) * sin(vUvPatch.x * 151.0 + vUvPatch.y * 1789.0);
+      float west = lightPatch(vUvPatch, vec2(.18, .33), vec2(.155, .12)) + .43 * lightPatch(vUvPatch, vec2(.19, .59), vec2(.12, .22));
+      float east = lightPatch(vUvPatch, vec2(.82, .35), vec2(.175, .12)) + .59 * lightPatch(vUvPatch, vec2(.72, .64), vec2(.26, .07));
       vec3 color = (warm * west + cool * east) * (0.75 + ripple * .25);
       gl_FragColor = vec4(color, .35);
       #include <tonemapping_fragment>

@@ -117,7 +117,12 @@ export function FannedInvitationDeck({
               </span>
 
               <div className="relative overflow-hidden rounded-[12px] border-2 border-white bg-white shadow-[0_22px_44px_-18px_rgba(45,18,18,0.58)] ring-1 ring-black/5">
-                <CardFace templateId={card.id} groom={SAMPLE_COUPLE.groomName} bride={SAMPLE_COUPLE.brideName} />
+                <CardFace
+                  templateId={card.id}
+                  groom={SAMPLE_COUPLE.groomName}
+                  bride={SAMPLE_COUPLE.brideName}
+                  eager={compact && idx === 0}
+                />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center bg-gradient-to-t from-black/65 via-black/25 to-transparent py-2.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                   <span className="rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-bold text-rose-900 shadow">
                     Mở thiệp →

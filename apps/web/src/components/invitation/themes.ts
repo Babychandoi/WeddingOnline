@@ -490,7 +490,7 @@ const FONT_SETS = {
   'prata-ephesis': { display: f('--f-prata', SERIF), script: f('--f-ephesis', SCRIPT), body: f('--f-spectral', SERIF), namesIn: 'display', namesUpper: false, namesWeight: 400 },
 } satisfies Record<string, FontSet>;
 
-type Style = 'truyen-thong' | 'lang-man' | 'hien-dai' | 'toi-gian' | 'sang-trong' | 'co-dien' | 'thien-nhien' | 'de-thuong';
+type Style = 'thiep-3d' | 'truyen-thong' | 'lang-man' | 'hien-dai' | 'toi-gian' | 'sang-trong' | 'co-dien' | 'thien-nhien' | 'de-thuong';
 interface Spec {
   palette: keyof typeof PALETTES;
   fonts: keyof typeof FONT_SETS;
@@ -619,6 +619,17 @@ const CATALOGUE: Record<Exclude<InvitationTemplateId, LegacyId>, Spec> = {
   'lich-cuoi': { palette: 'ivory', fonts: 'prata-josefin', ornament: 'hairline', style: 'toi-gian', layout: { cover: 'calendar', heading: 'caps', events: 'editorial', album: 'grid2', interlude: 'full', closing: 'plain', kicker: "Save the date" } },
   'i-love-you': { palette: 'wine', fonts: 'viaoda-alex', ornament: 'rose-line', style: 'lang-man', layout: { cover: 'vertical', heading: 'ornament', events: 'panel', album: 'tall3', interlude: 'rounded', closing: 'photo', kicker: "Save the date" } },
   'cam-dat': { palette: 'terracotta', fonts: 'yeseva-alex', ornament: 'rose-line', style: 'hien-dai', layout: { cover: 'vertical', heading: 'ornament', events: 'columns', album: 'masonry', interlude: 'rounded', closing: 'photo', kicker: "Save the date" } },
+  // 10 interactive 3D scroll-walk templates
+  '3d-oai-huong': { palette: 'lavender', fonts: 'cormorant-moon', ornament: 'watercolor', style: 'thiep-3d', layout: { cover: 'oval-wash', heading: 'script', events: 'columns', album: 'polaroid', interlude: 'rounded', closing: 'photo', kicker: "Trân trọng kính mời", floral: `${S}/floral-267.webp` } },
+  '3d-mua-dong-tuyet': { palette: 'midnight', fonts: 'cormorant-pinyon', ornament: 'clouds', style: 'thiep-3d', layout: { cover: 'medallion', heading: 'ornament', events: 'panel', album: 'tall3', interlude: 'full', closing: 'photo', kicker: "Trân trọng kính mời" } },
+  '3d-mua-thu': { palette: 'terracotta', fonts: 'josefin-brush', ornament: 'rose-line', style: 'thiep-3d', layout: { cover: 'poster', heading: 'script', events: 'columns', album: 'masonry', interlude: 'full', closing: 'photo', kicker: "Trân trọng kính mời" } },
+  '3d-ho-sen-hoa-dang': { palette: 'midnight', fonts: 'viaoda-imperial', ornament: 'lotus', style: 'thiep-3d', layout: { cover: 'dome', heading: 'ornament', events: 'panel', album: 'tall3', interlude: 'framed', closing: 'photo', kicker: "Trân trọng báo tin" } },
+  '3d-rung-thong': { palette: 'olive', fonts: 'josefin-brush', ornament: 'eucalyptus', style: 'thiep-3d', layout: { cover: 'split', heading: 'script', events: 'columns', album: 'masonry', interlude: 'full', closing: 'photo', kicker: "Trân trọng kính mời" } },
+  '3d-dem-trang': { palette: 'midnight', fonts: 'taviraj-ephesis', ornament: 'clouds', style: 'thiep-3d', layout: { cover: 'medallion', heading: 'ornament', events: 'panel', album: 'tall3', interlude: 'full', closing: 'photo', kicker: "Trân trọng kính mời" } },
+  '3d-tren-may': { palette: 'rose-gold', fonts: 'cormorant-vibes', ornament: 'watercolor', style: 'thiep-3d', layout: { cover: 'arch-floral', heading: 'script', events: 'columns', album: 'mosaic', interlude: 'rounded', closing: 'photo', kicker: "Trân trọng kính mời" } },
+  '3d-vuon-hoa-dao': { palette: 'hy-red', fonts: 'viaoda-imperial', ornament: 'song-hy', style: 'thiep-3d', layout: { cover: 'dome', heading: 'band', events: 'panel', album: 'tall3', interlude: 'framed', closing: 'photo', kicker: "Trân trọng báo tin" } },
+  '3d-co-truyen': { palette: 'wine', fonts: 'viaoda-imperial', ornament: 'song-hy', style: 'thiep-3d', layout: { cover: 'red-poster', heading: 'band', events: 'panel', album: 'tall3', interlude: 'framed', closing: 'photo', kicker: "Trân trọng báo tin" } },
+  '3d-rap-cuoi': { palette: 'blush', fonts: 'cormorant-vibes', ornament: 'watercolor', style: 'thiep-3d', layout: { cover: 'frame-inset', heading: 'script', events: 'columns', album: 'masonry', interlude: 'rounded', closing: 'photo', kicker: "Trân trọng kính mời" } },
 };
 
 export const INVITE_THEMES: Record<InvitationTemplateId, InviteTheme> = {

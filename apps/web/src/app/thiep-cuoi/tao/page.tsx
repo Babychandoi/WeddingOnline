@@ -10,7 +10,7 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Check, ImagePlus, Loader2, Mail, Star, UserRound, X } from 'lucide-react';
-import { INVITATION_STYLE_LABELS, INVITATION_TEMPLATES, isInvitationTemplateId, type InvitationTemplateId, type InvitationTemplateStyle } from '@dco/shared';
+import { INVITATION_2D_STYLE_LABELS, INVITATION_2D_TEMPLATES, isInvitationTemplateId, isWalkthrough3DTemplate, type Invitation2DTemplateStyle, type InvitationTemplateId } from '@dco/shared';
 import { OAuthModal } from '@/components/hall/OAuthModal';
 import { CardFace } from '@/components/invitation/CardFace';
 import { styleCount, templatesFor, type StyleFilter } from '@/components/invitation/templateOrder';
@@ -26,7 +26,7 @@ interface PickedPhoto {
   url: string;
 }
 
-const STYLE_CHIPS: Array<[StyleFilter, string]> = [['all', 'Tất cả'], ...(Object.entries(INVITATION_STYLE_LABELS) as Array<[InvitationTemplateStyle, string]>)];
+const STYLE_CHIPS: Array<[StyleFilter, string]> = [['all', 'Tất cả'], ...(Object.entries(INVITATION_2D_STYLE_LABELS) as Array<[Invitation2DTemplateStyle, string]>)];
 const PICK_PAGE = 16;
 
 /** "Minh Quân" + "Thu Hà" → "quan-ha" (no diacritics, đ → d) */
@@ -51,7 +51,14 @@ function CreateInvitation() {
   const [weddingDate, setWeddingDate] = useState(() => new Date(Date.now() + 45 * 86_400_000).toISOString().slice(0, 10));
   const [city, setCity] = useState('');
   const initial = query.get('mau');
-  const [templateId, setTemplateId] = useState<InvitationTemplateId>(isInvitationTemplateId(initial) ? initial : 'song-hy-do');
+  useEffect(() => {
+    if (isWalkthrough3DTemplate(initial)) {
+      router.replace(`/thiep-cuoi-3d/tao?mau=${encodeURIComponent(initial)}`);
+    }
+  }, [initial, router]);
+  const [templateId, setTemplateId] = useState<InvitationTemplateId>(
+    isInvitationTemplateId(initial) && !isWalkthrough3DTemplate(initial) ? initial : 'song-hy-do',
+  );
   const [pickStyle, setPickStyle] = useState<StyleFilter>('all');
   const [pickShown, setPickShown] = useState(PICK_PAGE);
   const [slug, setSlug] = useState('');
@@ -210,9 +217,12 @@ function CreateInvitation() {
 
         <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-start">
           <form onSubmit={submit} className="min-w-0 rounded-3xl border border-amber-200 bg-white p-5 shadow-sm sm:p-8">
-            <h1 className="font-serif text-3xl font-bold leading-tight text-rose-950 sm:text-4xl">Tạo thiệp cưới online</h1>
+            <h1 className="font-serif text-3xl font-bold leading-tight text-rose-950 sm:text-4xl">Tạo thiệp cưới online 2D</h1>
             <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-slate-600">
-              Dành cho đám cưới tổ chức ngoài đời: gửi thiệp qua Zalo, Facebook, khách mở ra xem giờ, địa điểm, chỉ đường, xác nhận tham dự và gửi lời chúc. Không cần sảnh 3D. Thiết kế và xem trước miễn phí, mọi thứ tự lưu nháp; khi ưng ý mới chọn gói để phát hành (từ 150.000đ/tháng).
+              Dành cho 100 mẫu thiệp cưới 2D: gửi thiệp qua Zalo, Facebook, khách mở ra xem giờ, địa điểm, chỉ đường, xác nhận tham dự và gửi lời chúc. Thiết kế và xem trước miễn phí; khi ưng ý mới chọn gói phát hành (từ 150.000đ/tháng).{' '}
+              <Link href="/thiep-cuoi-3d/tao" className="font-bold text-rose-700 underline underline-offset-4">
+                Tạo Thiệp Cưới 3D (từ 290k) →
+              </Link>
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -304,7 +314,7 @@ function CreateInvitation() {
               </div>
               {(() => {
                 // The chosen template always stays first, whatever the filter
-                const chosen = INVITATION_TEMPLATES.find((t) => t.id === templateId);
+                const chosen = INVITATION_2D_TEMPLATES.find((t) => t.id === templateId);
                 const list = templatesFor(pickStyle).filter((t) => t.id !== templateId);
                 const ordered = chosen ? [chosen, ...list] : list;
                 return (

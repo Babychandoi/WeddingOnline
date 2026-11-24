@@ -16,9 +16,11 @@ const AUTOPLAY_MS = 4400;
 export function OrbitalVenueGallery({
   venues,
   heading = 'Dạo Vòng Không Gian Cưới 3D',
+  headingTag = 'h3',
 }: {
   venues: VenueTheme[];
   heading?: string;
+  headingTag?: 'h2' | 'h3';
 }) {
   const shown = venues.slice(0, 10);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -139,7 +141,7 @@ export function OrbitalVenueGallery({
               }`}
             >
               <Link
-                href={`/khong-gian/${v.id}`}
+                href={`/khong-gian/${v.id.replace(/_/g, '-')}`}
                 onClick={(e) => {
                   if (!isCenter) {
                     e.preventDefault();
@@ -155,9 +157,13 @@ export function OrbitalVenueGallery({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`/venues/${v.id}.webp`}
-                    alt={v.nameVi}
+                    alt={`Sảnh cưới 3D ${v.nameVi} — ${v.place}`}
+                    width={640}
+                    height={400}
                     draggable={false}
-                    loading="lazy"
+                    loading={isCenter ? 'eager' : 'lazy'}
+                    fetchPriority={isCenter ? 'high' : undefined}
+                    decoding="async"
                     className={`h-full w-full object-cover transition duration-500 ${
                       isCenter ? 'group-hover:scale-105' : 'brightness-90 saturate-90'
                     }`}
@@ -179,11 +185,9 @@ export function OrbitalVenueGallery({
                   maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.48), transparent 85%)',
                 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`/venues/${v.id}.webp`}
-                  alt=""
-                  className="h-full w-full -scale-y-100 object-cover blur-[1.5px]"
+                <div
+                  className="h-full w-full -scale-y-100 bg-cover bg-center blur-[1.5px]"
+                  style={{ backgroundImage: `url(/venues/${v.id}.webp)` }}
                 />
               </div>
             </div>
@@ -193,17 +197,19 @@ export function OrbitalVenueGallery({
 
       {/* Word-by-word kinetic venue title & subtitle (Monolith style) */}
       <div key={active.id} className="mt-2 text-center">
-        <h3 className="flex flex-wrap items-center justify-center gap-x-2 font-serif text-2xl font-bold text-slate-900 sm:text-4xl">
-          {titleWords.map((word, wi) => (
+        {React.createElement(
+          headingTag,
+          { className: 'flex flex-wrap items-center justify-center gap-x-2 font-serif text-2xl font-bold text-slate-900 sm:text-4xl' },
+          titleWords.map((word, wi) => (
             <span
               key={`${active.id}-${wi}`}
-              className="inline-block animate-[inv-rise_420ms_cubic-bezier(0.16,1,0.3,1)_both] motion-reduce:animate-none"
+              className="inline-block animate-[inv-rise_420ms_cubic-bezier(0.16,1,0.36,1)_both] motion-reduce:animate-none"
               style={{ animationDelay: `${wi * 45}ms` }}
             >
               {word}
             </span>
-          ))}
-        </h3>
+          )),
+        )}
         <p className="mt-1 text-xs font-bold uppercase tracking-[0.22em] text-rose-700/85">
           {active.place}
         </p>
@@ -331,8 +337,11 @@ export function CharacterWaveCarousel({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`/assets/people/${p.id}.webp`}
-                alt={p.label ?? p.id}
-                loading="lazy"
+                alt={p.label ? `Nhân vật 3D ${p.label}` : 'Nhân vật 3D khách mời'}
+                width={160}
+                height={160}
+                loading={idx < 4 ? 'eager' : 'lazy'}
+                decoding="async"
                 className={`aspect-square w-full object-cover object-top transition-all duration-300 ${
                   inSpotlight ? 'grayscale-0 brightness-100 saturate-110' : 'grayscale-[75%] opacity-80'
                 }`}

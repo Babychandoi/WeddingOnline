@@ -159,12 +159,48 @@ export default function CreateWeddingPage() {
 
   if (!authChecked) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FFFDF8] p-4">
-        <div className="flex items-center gap-2.5 rounded-2xl border border-amber-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm">
-          <Loader2 className="h-4 w-4 animate-spin text-rose-600" />
-          Đang tải trình tạo Sảnh Cưới...
+      <main className="flex min-h-screen items-center justify-center bg-[#FFFDF8] p-4">
+        <div className="max-w-2xl rounded-3xl border border-amber-200 bg-white p-7 shadow-sm sm:p-9">
+          <h1 className="font-serif text-2xl font-bold text-slate-900 sm:text-3xl">
+            Khởi Tạo Sảnh Cưới 3D Trực Tuyến
+          </h1>
+          <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
+            Tạo không gian tiệc cưới 3D riêng cho ngày trọng đại chỉ với 3 bước: chọn 1 trong 101 bối cảnh Việt Nam &amp;
+            quốc tế (Lễ Gia Tiên, Rạp Lá Dừa Miền Tây, Phố Cổ Hội An, Biển Phú Quốc, Đà Lạt…), đặt đường dẫn ngắn dễ
+            nhớ và kích hoạt gói phù hợp. Khách mời ở xa chỉ cần bấm đường dẫn trên trình duyệt điện thoại là vào dự
+            tiệc trong 5 giây mà không cần cài ứng dụng.
+          </p>
+          <div className="mt-4 grid gap-3 text-xs text-slate-700 sm:grid-cols-3">
+            <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-3.5">
+              <p className="font-bold text-slate-900">1. Dùng Thử 24h (Miễn phí)</p>
+              <p className="mt-1 text-slate-600">Trải nghiệm kéo thả bàn tiệc 60×60 Grid-Snap, dạo sảnh và gửi link thử cho bạn bè.</p>
+            </div>
+            <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-3.5">
+              <p className="font-bold text-slate-900">2. Gói Hạnh Phúc (399.000đ)</p>
+              <p className="mt-1 text-slate-600">Bao gồm sẵn Thiệp Cưới Online, hộp mừng VietQR 0% phí ẩn số tiền và Trang Kỷ Niệm 2D.</p>
+            </div>
+            <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-3.5">
+              <p className="font-bold text-rose-950">3. Viên Mãn VIP (1.199.000đ)</p>
+              <p className="mt-1 text-slate-600">Đầy đủ Voice Chat theo từng bàn tiệc LiveKit, Mic MC sân khấu, Auto-NPC và Sổ Kỷ Niệm A4 PDF.</p>
+            </div>
+          </div>
+          <p className="mt-4 text-xs leading-relaxed text-slate-600">
+            Thanh toán gói được xác nhận tự động qua VietQR / SePay trong vài giây hoặc kích hoạt tức thì bằng mã ưu đãi
+            từ Studio đối tác. Sau lễ cưới 7 ngày, toàn bộ ảnh cưới, ảnh Photobooth và Sổ Lưu Bút được tự động chuyển
+            sang Trang Kỷ Niệm 2D siêu nhẹ để lưu giữ mãi mãi cho gia đình.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex items-center gap-2.5 rounded-2xl border border-amber-200 bg-amber-50/60 px-5 py-2.5 text-sm font-medium text-slate-700">
+              <Loader2 className="h-4 w-4 animate-spin text-rose-600" />
+              Đang tải trình tạo Sảnh Cưới...
+            </div>
+            <div className="flex gap-3 text-xs font-semibold text-rose-700">
+              <Link href="/khong-gian" className="hover:underline">Xem 101 không gian</Link>
+              <Link href="/thiep-cuoi/tao" className="hover:underline">Chỉ tạo thiệp cưới →</Link>
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
     );
   }
 

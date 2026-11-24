@@ -462,7 +462,10 @@ export function EditorialStoryChapters({
             key={activePhoto.id}
             src={sized(activePhoto.url, true)}
             alt={activePhoto.caption || 'Kỷ niệm tình yêu'}
+            width={640}
+            height={400}
             loading="lazy"
+            decoding="async"
             className="block aspect-[16/10] w-full object-cover animate-[inv-rise_500ms_ease_both] motion-reduce:animate-none"
             style={{ filter: theme.layout.photoFilter }}
           />

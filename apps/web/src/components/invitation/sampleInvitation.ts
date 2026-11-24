@@ -1,6 +1,7 @@
-import { defaultInvitationConfig, type InvitationConfig, type InvitationTemplateId } from '@dco/shared';
+import { defaultInvitationConfig, isWalkthrough3DTemplate, type InvitationConfig, type InvitationTemplateId } from '@dco/shared';
 import type { InvitationWish } from '@/app/api/invitations/[slug]/wishes/route';
 import type { InvitationPhoto } from './InvitationView';
+import { WALKTHROUGH_3D_THEMES } from './walkthrough3d/themes3d';
 
 /*
  * Sample content for the template gallery. The couple and families are fictional and every
@@ -10,9 +11,11 @@ export const SAMPLE_COUPLE = { groomName: 'Minh Quân', brideName: 'Thu Hà', we
 
 export function sampleInvitation(templateId: InvitationTemplateId): InvitationConfig {
   const base = defaultInvitationConfig(SAMPLE_COUPLE);
+  const track = isWalkthrough3DTemplate(templateId) ? WALKTHROUGH_3D_THEMES[templateId].defaultMusic : base.music.track;
   return {
     ...base,
     templateId,
+    music: { ...base.music, track },
     groomFullName: 'Minh Quân',
     brideFullName: 'Thu Hà',
     groomFamily: { father: 'Nguyễn Văn Hùng', mother: 'Trần Thị Mai', address: 'Phường Phú Hội, TP. Huế' },
@@ -27,6 +30,46 @@ export function sampleInvitation(templateId: InvitationTemplateId): InvitationCo
       { id: 's2', when: '14.02.2021', title: 'Chính thức hẹn hò', text: 'Một bó hoa cúc hoạ mi, một ly cà phê muối ở Huế và một câu hỏi run run.' },
       { id: 's3', when: '01.06.2026', title: 'Lời cầu hôn', text: 'Trên bãi biển Mỹ Khê lúc bình minh, cô ấy nói đồng ý trước khi anh kịp quỳ xuống.' },
     ],
+    memories: isWalkthrough3DTemplate(templateId)
+      ? [
+          {
+            photoUrl: SAMPLE_PHOTOS[templateId].photos[0]?.url ?? '',
+            year: '2023',
+            title: 'Phố Hội lên đèn',
+            story: 'Lần đầu hai đứa đi chơi xa cùng nhau. Em mặc áo dài giữa phố đèn lồng rực rỡ, anh cứ đứng ngắm mãi không muốn về.',
+          },
+          {
+            photoUrl: SAMPLE_PHOTOS[templateId].photos[1]?.url ?? '',
+            year: '2023',
+            title: 'Chiều bên nhau bình yên',
+            story: 'Một buổi chiều nắng nhẹ, chỉ có hai đứa và tiếng cười giòn tan, nhận ra ở cạnh nhau là đủ trọn vẹn.',
+          },
+          {
+            photoUrl: SAMPLE_PHOTOS[templateId].photos[2]?.url ?? '',
+            year: '2024',
+            title: 'Chuyến đi mùa thu',
+            story: 'Đi lạc giữa những con đường nhỏ rồi vô tình tìm thấy quán cà phê nhìn ra mặt hồ lấp lánh ánh hoàng hôn.',
+          },
+          {
+            photoUrl: SAMPLE_PHOTOS[templateId].photos[3]?.url ?? '',
+            year: '2025',
+            title: 'Lời hứa trước biển',
+            story: 'Anh vụng về giấu hộp nhẫn trong túi áo suốt cả buổi tối, chỉ để đợi khoảnh khắc chỉ có hai đứa dưới ánh đèn.',
+          },
+          {
+            photoUrl: SAMPLE_PHOTOS[templateId].photos[4]?.url ?? '',
+            year: '2026',
+            title: 'Lễ dạm ngõ hai nhà',
+            story: 'Ngày hai gia đình chính thức gặp mặt, tách trà nóng và những cái nắm tay thật chặt mở ra chương mới của cuộc đời.',
+          },
+          {
+            photoUrl: SAMPLE_PHOTOS[templateId].photos[5]?.url ?? '',
+            year: '2026',
+            title: 'Về chung một nhà',
+            story: 'Cảm ơn tất cả những năm tháng đã qua và hẹn gặp những người thương yêu nhất trong ngày trọng đại của chúng mình.',
+          },
+        ]
+      : [],
     rsvpDeadline: '2026-12-10T00:00:00.000Z',
     dressCode: 'Tông màu pastel nhẹ nhàng',
     quote: 'Thuận vợ thuận chồng, tát biển Đông cũng cạn.',
@@ -270,6 +313,17 @@ const SETS: Record<InvitationTemplateId, string[]> = {
   'lich-cuoi': ['studio-white', 'blossom-wall', 'bridge-tower', 'veil-laugh', 'tower-couple', 'old-wall-aodai', 'studio-sitting', 'motorbike'],
   'i-love-you': ['bride-dark-window', 'studio-sitting', 'dance-lights', 'window-bouquet', 'pearl-setting', 'white-blossoms', 'chandelier', 'rings-peony', 'chandelier-p'],
   'cam-dat': ['red-parasol', 'kimono-garden', 'golden-veil', 'kimono-kiss', 'golden-hands', 'torii-gate', 'terracotta-table', 'boutonniere'],
+  // 10 interactive 3D walkthrough themes
+  '3d-oai-huong': ['tower-couple', 'veil-laugh', 'greenhouse-twirl', 'field-arch', 'white-blossoms', 'rings-peony', 'garden-balloons'],
+  '3d-mua-dong-tuyet': ['chandelier-p', 'veil-kiss', 'aisle-lights', 'studio-white-suit', 'candle-table', 'gold-rings', 'night-dance'],
+  '3d-mua-thu': ['autumn-veil', 'bridge-autumn', 'golden-veil', 'terracotta-table', 'golden-hands', 'rustic-lights', 'dark-bouquet-bride'],
+  '3d-ho-sen-hoa-dang': ['nhat-binh-lanterns', 'lotus-pond', 'hoi-an-lake', 'lantern-street', 'nhat-binh', 'lotus-field', 'ao-dai-red'],
+  '3d-rung-thong': ['dalat-hill', 'forest-embrace', 'misty-hills', 'park-walk', 'bouquet-grass', 'greenhouse-ceremony', 'daisy-field'],
+  '3d-dem-trang': ['night-aisle', 'proposal-night', 'night-lake', 'string-lights', 'tree-lights', 'bokeh', 'dance-lights'],
+  '3d-tren-may': ['studio-white', 'veil-embrace-2', 'white-blossoms', 'window-bouquet', 'bouquet-veil', 'rings-peony', 'studio-sitting'],
+  '3d-vuon-hoa-dao': ['blossom-wall', 'aodai-arch-pastel', 'ao-dai-gate', 'ao-dai-arch', 'old-wall-aodai', 'hoi-an-bridge', 'lantern-street'],
+  '3d-co-truyen': ['red-couple-p', 'song-hy-tea', 'ao-dai-red', 'procession', 'groom-ao-dai', 'hue-door', 'red-studio-hy'],
+  '3d-rap-cuoi': ['aodai-arch-pastel', 'garden-balloons', 'veil-laugh', 'studio-sitting', 'blossom-wall', 'white-bouquet', 'cake-toppers'],
 };
 
 const url = (name: string) => `/invitation-samples/${name}.webp`;

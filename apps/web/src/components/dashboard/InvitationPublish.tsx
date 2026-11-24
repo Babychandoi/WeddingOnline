@@ -2,11 +2,19 @@
 
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Eye, Loader2, Rocket, X } from 'lucide-react';
-import { INVITATION_PLANS, invitationAccess, type InvitationPlanId } from '@dco/shared';
+import {
+  INVITATION_3D_PLANS,
+  INVITATION_PLANS,
+  invitationAccess,
+  isWalkthrough3DTemplate,
+  type InvitationPlanId,
+  type InvitationTemplateId,
+} from '@dco/shared';
 import type { PublicWeddingDTO } from '@dco/database';
 
 const vnd = (n: number) => `${n.toLocaleString('vi-VN')}đ`;
-const vnDay = (iso: string) => new Date(iso).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' });
+const vnDay = (iso: string) =>
+  new Date(iso).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' });
 
 interface PendingOrder {
   orderCode: string;
@@ -18,17 +26,22 @@ interface PendingOrder {
 }
 
 /**
- * Draft / published status of the invitation, the "see it as guests do" preview, and buying a
- * plan to publish (or renew) it. Everything else in the editor works the same before paying.
+ * Draft / published status of the invitation, preview link, and buying a
+ * 2D or 3D plan to publish (or renew) it.
  */
 export function InvitationPublish({
   wedding,
+  templateId,
   onWeddingChange,
 }: {
   wedding: PublicWeddingDTO;
+  templateId: InvitationTemplateId;
   onWeddingChange: (w: PublicWeddingDTO) => void;
 }) {
-  const access = invitationAccess(wedding);
+  const is3d = isWalkthrough3DTemplate(templateId);
+  const access = invitationAccess(wedding, { templateId });
+  const plans = is3d ? INVITATION_3D_PLANS : INVITATION_PLANS;
+
   const [open, setOpen] = useState(false);
   const [plan, setPlan] = useState<InvitationPlanId>('3m');
   const [order, setOrder] = useState<PendingOrder | null>(null);
@@ -36,13 +49,11 @@ export function InvitationPublish({
   const [error, setError] = useState('');
   const [paid, setPaid] = useState(false);
 
-  // Arriving from "Phát hành thiệp" on the preview page
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('phat-hanh') === '1' && !access.published) setOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Wait for SePay to confirm the transfer, then refresh the wedding
   useEffect(() => {
     if (!order || paid) return;
     const t = setInterval(async () => {
@@ -62,12 +73,23 @@ export function InvitationPublish({
     const r = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug: wedding.slug, kind: 'INVITATION', invitationPlan: plan }),
+      body: JSON.stringify({
+        slug: wedding.slug,
+        kind: is3d ? 'INVITATION_3D' : 'INVITATION',
+        invitationPlan: plan,
+      }),
     }).catch(() => null);
     const d = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
     if (!r?.ok) return setError(d.message ?? 'Chưa tạo được đơn, bạn thử lại nhé.');
-    setOrder({ orderCode: d.order.orderCode, amountVnd: d.order.amountVnd, qrDataUrl: d.qrDataUrl, bankBin: d.bankBin, accountNumber: d.accountNumber, accountName: d.accountName });
+    setOrder({
+      orderCode: d.order.orderCode,
+      amountVnd: d.order.amountVnd,
+      qrDataUrl: d.qrDataUrl,
+      bankBin: d.bankBin,
+      accountNumber: d.accountNumber,
+      accountName: d.accountName,
+    });
   };
 
   const close = () => {
@@ -83,19 +105,30 @@ export function InvitationPublish({
     </a>
   );
 
-  const tone = access.published ? 'border-emerald-200 bg-emerald-50' : access.expired ? 'border-rose-200 bg-rose-50' : 'border-amber-200 bg-amber-50';
+  const tone = access.published
+    ? 'border-emerald-200 bg-emerald-50'
+    : access.needs3dUpgrade || access.expired
+      ? 'border-rose-200 bg-rose-50'
+      : 'border-amber-200 bg-amber-50';
+  const kindLabel = is3d ? 'Thiệp 3D' : 'Thiệp 2D';
   const title = access.published
     ? access.source === 'hall'
-      ? 'Thiệp đã phát hành · kèm gói sảnh cưới 3D'
+      ? `${kindLabel} đã phát hành · kèm gói sảnh cưới 3D`
       : access.lifetime
-        ? 'Thiệp đã phát hành · trọn đời'
-        : `Thiệp đã phát hành · đến ${vnDay(access.until!)}`
-    : access.expired
-      ? 'Thiệp đã hết hạn · khách đang thấy “thiệp tạm ngưng”'
-      : 'Bản nháp · khách chưa mở được thiệp';
+        ? `${kindLabel} đã phát hành · trọn đời`
+        : `${kindLabel} đã phát hành · đến ${vnDay(access.until!)}`
+    : access.needs3dUpgrade
+      ? 'Đang chọn mẫu Thiệp 3D · cần nâng cấp lên gói Thiệp Cưới 3D'
+      : access.expired
+        ? `${kindLabel} đã hết hạn · khách đang thấy “thiệp tạm ngưng”`
+        : `Bản nháp (${kindLabel}) · khách chưa mở được thiệp`;
   const note = access.published
     ? 'Mọi thay đổi khách thấy ngay.'
-    : 'Thiết kế thoải mái, mọi thứ tự lưu nháp. Khi ưng ý, bấm Phát hành để gửi thiệp cho khách.';
+    : access.needs3dUpgrade
+      ? 'Gói Thiệp 2D hiện tại chỉ mở được 100 mẫu 2D. Mua gói Thiệp 3D (từ 290k) để phát hành mẫu 3D hoặc chuyển lại về mẫu 2D.'
+      : 'Thiết kế thoải mái, mọi thứ tự lưu nháp. Khi ưng ý, bấm Phát hành để gửi thiệp cho khách.';
+
+  const chosenPrice = plans.find((p) => p.id === plan)!.priceVnd;
 
   return (
     <>
@@ -108,19 +141,36 @@ export function InvitationPublish({
           {preview}
           {!(access.published && (access.source === 'hall' || access.lifetime)) && (
             <button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-rose-700 px-4 text-sm font-bold text-white hover:bg-rose-600">
-              <Rocket className="h-4 w-4" /> {access.published || access.expired ? 'Gia hạn' : 'Phát hành thiệp'}
+              <Rocket className="h-4 w-4" />{' '}
+              {access.needs3dUpgrade
+                ? 'Mua gói Thiệp 3D'
+                : access.published || access.expired
+                  ? `Gia hạn ${kindLabel}`
+                  : `Phát hành ${kindLabel}`}
             </button>
           )}
         </div>
       </div>
 
       {open && (
-        <div role="dialog" aria-modal="true" aria-label="Phát hành thiệp cưới" className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-4">
+        <div role="dialog" aria-modal="true" aria-label={`Phát hành ${kindLabel}`} className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-4">
           <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-3xl sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-black text-slate-900">{paid ? 'Thiệp đã được phát hành' : access.published || access.expired ? 'Gia hạn thiệp cưới' : 'Phát hành thiệp cưới'}</h3>
-                {!paid && <p className="mt-0.5 text-xs text-slate-500">Thiệp của bạn giữ nguyên; khách mở được trong thời gian của gói. Gia hạn thì cộng thêm vào thời gian còn lại.</p>}
+                <h3 className="text-lg font-black text-slate-900">
+                  {paid
+                    ? `${kindLabel} đã được phát hành`
+                    : access.published || access.expired
+                      ? `Gia hạn ${kindLabel}`
+                      : `Phát hành ${kindLabel}`}
+                </h3>
+                {!paid && (
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {is3d
+                      ? 'Gói Thiệp 3D mở khóa toàn bộ 10 không gian 3D & 100 mẫu 2D. Gia hạn tự cộng dồn thời gian.'
+                      : 'Gói Thiệp 2D áp dụng cho 100 mẫu thiệp 2D. Gia hạn thì cộng thêm vào thời gian còn lại.'}
+                  </p>
+                )}
               </div>
               <button type="button" onClick={close} aria-label="Đóng" className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-500 hover:bg-slate-100">
                 <X className="h-5 w-5" />
@@ -135,8 +185,8 @@ export function InvitationPublish({
               </div>
             ) : !order ? (
               <>
-                <div role="radiogroup" aria-label="Chọn gói thiệp" className="mt-5 space-y-2">
-                  {INVITATION_PLANS.map((p) => {
+                <div role="radiogroup" aria-label={`Chọn gói ${kindLabel}`} className="mt-5 space-y-2">
+                  {plans.map((p) => {
                     const perMonth = p.months ? Math.round(p.priceVnd / p.months / 1000) * 1000 : null;
                     return (
                       <button
@@ -158,7 +208,7 @@ export function InvitationPublish({
                 </div>
                 {error && <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800" role="alert">{error}</p>}
                 <button type="button" disabled={busy} onClick={() => void startOrder()} className="mt-5 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-rose-700 text-base font-bold text-white hover:bg-rose-600 disabled:opacity-60">
-                  {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Rocket className="h-5 w-5" />} Thanh toán {vnd(INVITATION_PLANS.find((p) => p.id === plan)!.priceVnd)}
+                  {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Rocket className="h-5 w-5" />} Thanh toán {vnd(chosenPrice)}
                 </button>
               </>
             ) : (

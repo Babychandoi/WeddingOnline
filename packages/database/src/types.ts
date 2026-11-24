@@ -60,8 +60,10 @@ export interface WeddingRecord {
   invitationConfig?: unknown;
   /** Online invitation for an offline wedding: no 3D hall, no trial expiry */
   invitationOnly?: boolean;
-  /** End of the paid invitation period, ISO; null = never bought */
+  /** End of the paid 2D invitation period, ISO; null = never bought */
   invitationPaidUntil?: string | null;
+  /** End of the paid 3D invitation period, ISO; null = never bought */
+  invitation3dPaidUntil?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -170,8 +172,8 @@ export interface SaasOrderRecord {
   weddingId: string;
   buyerId: string;
   targetTier: WeddingTier;
-  /** HALL = 3D hall package, INVITATION = online invitation plan */
-  kind?: 'HALL' | 'INVITATION';
+  /** HALL = 3D hall package, INVITATION = 2D invitation plan, INVITATION_3D = 3D walkthrough plan */
+  kind?: 'HALL' | 'INVITATION' | 'INVITATION_3D';
   invitationPlan?: string | null;
   amountVnd: number;
   orderCode: string;
@@ -254,6 +256,7 @@ export interface PublicWeddingDTO {
   ceremonyConfig: CeremonyConfig | null;
   invitationOnly: boolean;
   invitationPaidUntil: string | null;
+  invitation3dPaidUntil: string | null;
 }
 
 export function toPublicWedding(w: WeddingRecord): PublicWeddingDTO {
@@ -275,6 +278,7 @@ export function toPublicWedding(w: WeddingRecord): PublicWeddingDTO {
     videoIsLive: w.videoIsLive,
     invitationOnly: Boolean(w.invitationOnly),
     invitationPaidUntil: w.invitationPaidUntil ?? null,
+    invitation3dPaidUntil: w.invitation3dPaidUntil ?? null,
     hasBankConfig: Boolean(w.bankBin && w.bankAccountNo),
     bankAccountName: w.bankAccountName,
     ceremonyConfig: w.ceremonyConfig,

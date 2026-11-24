@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import type { VenueTheme } from '@dco/shared';
+import { venueSlug } from '@/lib/seo';
 
 /** Rendered still of a venue (scripts/render-venue-thumbnails.mjs writes these) */
 export function venueThumbnail(id: string): string {
@@ -11,7 +12,7 @@ export function venueThumbnail(id: string): string {
 export function VenueCard({ venue, priority = false }: { venue: VenueTheme; priority?: boolean }) {
   return (
     <Link
-      href={`/khong-gian/${venue.id}`}
+      href={`/khong-gian/${venueSlug(venue.id)}`}
       className="group flex flex-col overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-offset-4"
     >
       <div className="relative aspect-[16/10] overflow-hidden" style={{ backgroundColor: venue.colors.s }}>

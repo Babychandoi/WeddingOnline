@@ -120,6 +120,7 @@ export interface DockNavItem {
   label: string;
   href: string;
   external?: boolean;
+  active?: boolean;
 }
 
 export function WeddingTopDock({ items }: { items: DockNavItem[] }) {
@@ -156,8 +157,9 @@ function DockLink({ item, mouseX }: { item: DockNavItem; mouseX: number | null }
     }
   }
 
-  const cls =
-    'inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition-[color,background-color] hover:bg-rose-50/90 hover:text-rose-700';
+  const cls = item.active
+    ? 'inline-flex items-center rounded-full bg-rose-50 px-3.5 py-1.5 text-xs font-bold text-rose-700 ring-1 ring-rose-200/70 transition-[color,background-color]'
+    : 'inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition-[color,background-color] hover:bg-rose-50/90 hover:text-rose-700';
 
   const style: React.CSSProperties = {
     transform: `translateY(${-lift}px) scale(${scale})`,
@@ -166,13 +168,13 @@ function DockLink({ item, mouseX }: { item: DockNavItem; mouseX: number | null }
 
   if (item.href.startsWith('#')) {
     return (
-      <a ref={elRef} href={item.href} className={cls} style={style}>
+      <a ref={elRef} href={item.href} aria-current={item.active ? 'page' : undefined} className={cls} style={style}>
         {item.label}
       </a>
     );
   }
   return (
-    <Link ref={elRef} href={item.href} className={cls} style={style}>
+    <Link ref={elRef} href={item.href} aria-current={item.active ? 'page' : undefined} className={cls} style={style}>
       {item.label}
     </Link>
   );

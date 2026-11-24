@@ -2,7 +2,6 @@ import Link from 'next/link';
 import {
   ArrowRight,
   BookHeart,
-  Building2,
   Camera,
   Check,
   Crown,
@@ -12,15 +11,20 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import { INVITATION_TEMPLATES, TIER_CATALOG, VENUE_THEMES, getVenueTheme, type WeddingTier } from '@dco/shared';
+import { INVITATION_2D_TEMPLATES, INVITATION_3D_TEMPLATES, TIER_CATALOG, VENUE_THEMES, getVenueTheme, type WeddingTier } from '@dco/shared';
 import { VenueCard } from '@/components/venues/VenueCard';
-import { getAdminSession } from '@/lib/adminPage';
+import { AdminStudioBanner } from '@/components/home/AdminStudioSlot';
+import { SiteFooter, SiteHeader } from '@/components/layout/SiteChrome';
 import { WeddingHeroAtmosphere } from '@/components/threeui/WeddingHeroAtmosphere';
-import { LiquidMetalButton, SparkBadgePill, WeddingTopDock } from '@/components/threeui/LiquidMetalButton';
+import { LiquidMetalButton, SparkBadgePill } from '@/components/threeui/LiquidMetalButton';
 import { OrbitalVenueGallery } from '@/components/threeui/OrbitalVenueGallery';
 import { FannedInvitationDeck } from '@/components/motion/ShowcaseMotion';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { WebMcpTools } from '@/components/seo/WebMcpTools';
+import { PUBLISHED_GUIDES } from '@/lib/guides';
+import { canonicalUrl } from '@/lib/seo';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 /** Vietnamese spaces featured on the landing page; the full catalogue lives at /khong-gian */
 const FEATURED_VENUES = [
@@ -67,49 +71,33 @@ const CAPABILITIES = [
 
 const DISPLAY_TIERS: WeddingTier[] = ['TRIAL_24H', 'HAPPINESS', 'VIP_FULFILLMENT'];
 
-export default async function HomePage() {
-  const isAdmin = Boolean(await getAdminSession());
+export default function HomePage() {
+  const softwareAppJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'DamCuoiOnline.vn — Thiệp Cưới Online & Sảnh Cưới 3D',
+    applicationCategory: 'LifestyleApplication',
+    operatingSystem: 'Web, iOS, Android',
+    inLanguage: 'vi',
+    url: canonicalUrl('/'),
+    image: canonicalUrl('/opengraph-image'),
+    description:
+      'Nền tảng tạo 100 mẫu thiệp cưới online lật sách 3D và 101 không gian sảnh cưới 3D trực tuyến, hỗ trợ Voice Chat LiveKit, Auto-NPC, Photobooth và mừng cưới VietQR 0% phí.',
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'VND',
+      lowPrice: '0',
+      highPrice: String(TIER_CATALOG.VIP_FULFILLMENT.priceVnd),
+      offerCount: '8',
+      availability: 'https://schema.org/InStock',
+    },
+  };
+
   return (
     <div className="min-h-screen bg-[#FFFDF8] text-slate-900">
-      {/* Top Navigation */}
-      <header className="sticky top-0 z-30 border-b border-amber-200/70 bg-[#FFFDF8]/90 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5 sm:px-6">
-          <Link href="/" className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-300 bg-rose-700 text-amber-200 shadow-sm">
-              <svg viewBox="0 0 36 36" className="h-5 w-5" fill="currentColor" aria-hidden="true">
-                <path d="M9 7h4v5h3v3h-3v4h4v3h-4v7H9v-7H6v-3h3v-4H6v-3h3V7zm14 0h4v5h3v3h-3v4h3v3h-3v7h-4v-7h-4v-3h4v-4h-3v-3h3V7z" />
-              </svg>
-            </span>
-            <span className="font-serif text-xl font-bold tracking-tight text-rose-800">
-              DamCuoiOnline.vn
-            </span>
-          </Link>
-
-          <WeddingTopDock
-            items={[
-              { label: 'Thiệp Cưới', href: '/thiep-cuoi' },
-              { label: 'Không Gian 3D', href: '#khong-gian' },
-              { label: 'Bảng Gói', href: '#goi-dich-vu' },
-              ...(isAdmin ? [{ label: 'Đối Tác Studio', href: '/partner' }] : []),
-            ]}
-          />
-
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/plaza"
-              className="hidden rounded-full border border-rose-200 bg-white px-4 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-50 sm:inline-block"
-            >
-              Quảng Trường 24/7
-            </Link>
-            <Link
-              href="/create"
-              className="rounded-full bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rose-500"
-            >
-              Tạo Sảnh Cưới
-            </Link>
-          </div>
-        </nav>
-      </header>
+      <JsonLd data={softwareAppJsonLd} />
+      <WebMcpTools />
+      <SiteHeader />
 
       {/* Editorial Hero with ThreeUI Constellation & Silk Atmosphere */}
       <div className="relative overflow-hidden">
@@ -249,24 +237,23 @@ export default async function HomePage() {
         <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="max-w-xl">
             <h2 className="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">
-              {INVITATION_TEMPLATES.length} Mẫu Thiệp Cưới Online
+              {INVITATION_2D_TEMPLATES.length} Mẫu Thiệp 2D &amp; {INVITATION_3D_TEMPLATES.length} Bộ Thiệp Cưới 3D
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
-              Mua riêng, không cần sảnh 3D: thiết kế và xem trước miễn phí, phát hành từ 150.000đ/tháng.
-              Phong bì ghi tên từng khách, ngày âm lịch, chỉ đường, xác nhận tham dự và sổ lời chúc.
+              Mua riêng không cần sảnh 3D: dòng <strong>Thiệp 2D</strong> gọn nhẹ từ 150.000đ/tháng và dòng <strong>Thiệp Cưới 3D Dạo Bước</strong> chuyển cảnh camera toàn màn hình từ 290.000đ/tháng. Thiết kế và xem trước miễn phí.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
-                href="/thiep-cuoi/tao"
+                href="/thiep-cuoi"
                 className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-rose-700 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-rose-800"
               >
-                Thiết kế thiệp <ArrowRight className="h-4 w-4" />
+                Xem {INVITATION_2D_TEMPLATES.length} mẫu 2D <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
-                href="/thiep-cuoi"
-                className="inline-flex min-h-[44px] items-center rounded-full border border-rose-200 bg-white px-5 text-sm font-bold text-rose-700 transition hover:bg-rose-50"
+                href="/thiep-cuoi-3d"
+                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-5 text-sm font-bold text-amber-950 transition hover:bg-amber-100"
               >
-                Xem {INVITATION_TEMPLATES.length} mẫu thiệp
+                <Sparkles className="h-4 w-4 text-rose-700" /> Xem {INVITATION_3D_TEMPLATES.length} bộ 3D
               </Link>
             </div>
           </div>
@@ -287,23 +274,7 @@ export default async function HomePage() {
               Hệ thống cân bằng giữa không khí gần gũi cho ông bà, bạn bè ở xa và tính riêng tư, minh
               bạch tuyệt đối về tài chính cho cặp đôi.
             </p>
-            {isAdmin && (
-              <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs leading-relaxed text-amber-950">
-                <strong className="flex items-center gap-1.5 text-sm font-bold text-rose-800">
-                  <Building2 className="h-4 w-4" /> Dành cho Studio Ảnh Cưới &amp; Xưởng In Thiệp
-                </strong>
-                <p className="mt-1.5 text-amber-900/90">
-                  Tích hợp sẵn cổng đối tác B2B2C giúp tạo mã ưu đãi 35% hoặc voucher trả trước 100%
-                  kích hoạt ngay cho khách đặt gói chụp ảnh.
-                </p>
-                <Link
-                  href="/partner"
-                  className="mt-2.5 inline-flex items-center gap-1 font-bold text-rose-700 hover:underline"
-                >
-                  Mở Cổng Đối Tác Studio <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            )}
+            <AdminStudioBanner />
           </div>
 
           <div className="divide-y divide-amber-200/70 rounded-3xl border border-amber-200 bg-white px-6 shadow-sm">
@@ -415,29 +386,47 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-amber-200/70 bg-[#FFFDF8] py-8">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 text-xs text-slate-500 sm:px-6">
-          <span className="font-semibold text-slate-700">
-            DamCuoiOnline.vn — Nền Tảng Sảnh Cưới 3D &amp; Kỷ Niệm Vĩnh Viễn
-          </span>
-          <div className="flex flex-wrap gap-4">
-            <Link href="/plaza" className="hover:text-rose-700 hover:underline">
-              Quảng Trường 24/7
-            </Link>
-            <Link href="/create" className="hover:text-rose-700 hover:underline">
-              Tạo Sảnh Mới
-            </Link>
-            {isAdmin && (
-              <Link href="/partner" className="hover:text-rose-700 hover:underline">
-                Đối Tác Studio
-              </Link>
-            )}
-            <Link href="/w/minh-va-linh" className="hover:text-rose-700 hover:underline">
-              Demo Tiệc VIP
-            </Link>
+      {/* Cẩm nang cưới số (SXO / GEO internal link hub) */}
+      <section aria-label="Cẩm nang cưới số" className="mx-auto max-w-6xl px-5 py-14 sm:px-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="font-serif text-3xl font-bold text-slate-900 sm:text-4xl">
+              Cẩm Nang Thiệp Cưới Online &amp; Cưới 3D
+            </h2>
+            <p className="mt-1.5 text-sm text-slate-600">
+              Hướng dẫn chi tiết cách thiết kế thiệp gửi Zalo, bật hộp mừng VietQR ẩn số tiền và so sánh chi phí thực tế.
+            </p>
           </div>
+          <Link
+            href="/huong-dan"
+            className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-white px-4 py-2 text-xs font-bold text-rose-700 shadow-sm transition hover:bg-rose-50"
+          >
+            Xem tất cả cẩm nang <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
-      </footer>
+        <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {PUBLISHED_GUIDES.map((g) => (
+            <Link
+              key={g.slug}
+              href={g.href}
+              className="group flex flex-col justify-between rounded-2xl border border-amber-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-md"
+            >
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700">{g.category}</span>
+                <h3 className="mt-2 font-serif text-lg font-bold leading-snug text-slate-900 group-hover:text-rose-800">
+                  {g.shortTitle}
+                </h3>
+                <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-slate-600">{g.description}</p>
+              </div>
+              <span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-rose-700">
+                Đọc ngay <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <SiteFooter />
     </div>
   );
 }

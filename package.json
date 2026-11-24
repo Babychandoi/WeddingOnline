@@ -15,6 +15,7 @@
     "assets:glb": "node scripts/generate-glb-assets.mjs",
     "assets:venues": "node scripts/render-venue-thumbnails.mjs",
     "check:golive": "node scripts/check-go-live.mjs",
+    "seo:indexnow": "node scripts/submit-indexnow.mjs",
     "secrets:rotate": "node scripts/rotate-secrets.mjs",
     "docker:up": "docker compose --env-file .env -f infra/docker-compose.dev.yml up -d --build",
     "docker:down": "docker compose --env-file .env -f infra/docker-compose.dev.yml down",

@@ -934,7 +934,7 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
               <CharacterWaveCarousel people={shownPeople} selectedId={personId} onSelect={setPersonId} />
             </div>
             <div role="radiogroup" aria-label="Nhân vật" className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {shownPeople.map((p) => (
+              {shownPeople.map((p, pIdx) => (
                 <button
                   key={p.id}
                   type="button"
@@ -945,7 +945,15 @@ export const HallExperience: React.FC<HallExperienceProps> = ({
                   className={`overflow-hidden rounded-2xl border-2 bg-gradient-to-b from-white to-[#f6ece6] text-left transition ${personId === p.id ? 'border-rose-600 shadow-md ring-2 ring-rose-200' : 'border-transparent hover:border-rose-200'}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`/assets/people/${p.id}.webp`} alt="" loading="lazy" className="aspect-square w-full object-cover object-top" />
+                  <img
+                    src={`/assets/people/${p.id}.webp`}
+                    alt={p.label ? `Nhân vật 3D ${p.label}` : 'Nhân vật 3D khách mời'}
+                    width={160}
+                    height={160}
+                    loading={pIdx < 4 ? 'eager' : 'lazy'}
+                    decoding="async"
+                    className="aspect-square w-full object-cover object-top"
+                  />
                   <span className="block truncate px-1.5 py-1 text-center text-[11px] font-semibold text-slate-700">{p.label}</span>
                 </button>
               ))}

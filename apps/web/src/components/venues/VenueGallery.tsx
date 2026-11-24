@@ -7,9 +7,12 @@ import { OpalFilterTabs, ScrySearchInput } from '@/components/motion/ShowcaseMot
 import { OrbitalVenueGallery } from '@/components/threeui/OrbitalVenueGallery';
 import { VenueCard } from './VenueCard';
 
+const INITIAL_BATCH = 24;
+
 export function VenueGallery({ venues }: { venues: VenueTheme[] }) {
   const [region, setRegion] = useState<'ALL' | VenueRegion>('ALL');
   const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
 
   const counts = useMemo(() => {
     const c = new Map<VenueRegion, number>();
@@ -40,6 +43,7 @@ export function VenueGallery({ venues }: { venues: VenueTheme[] }) {
         <OrbitalVenueGallery
           venues={shown.slice(0, 10)}
           heading={region === 'ALL' ? 'Dạo Vòng 101 Không Gian Cưới 3D' : 'Không Gian Nổi Bật Trong Khu Vực'}
+          headingTag="h2"
         />
       )}
 
@@ -49,11 +53,17 @@ export function VenueGallery({ venues }: { venues: VenueTheme[] }) {
             ariaLabel="Lọc theo vùng không gian cưới"
             value={region}
             options={tabOptions}
-            onChange={(next) => setRegion(next as 'ALL' | VenueRegion)}
+            onChange={(next) => {
+              setRegion(next as 'ALL' | VenueRegion);
+              setVisibleCount(INITIAL_BATCH);
+            }}
           />
           <ScrySearchInput
             value={query}
-            onChange={setQuery}
+            onChange={(val) => {
+              setQuery(val);
+              setVisibleCount(INITIAL_BATCH);
+            }}
             placeholder="Tìm theo tên, quốc gia…"
             ariaLabel="Tìm không gian cưới"
           />
@@ -67,11 +77,25 @@ export function VenueGallery({ venues }: { venues: VenueTheme[] }) {
             </button>
           </p>
         ) : (
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {shown.map((venue, i) => (
-              <VenueCard key={venue.id} venue={venue} priority={i < 4} />
-            ))}
-          </div>
+          <>
+            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {shown.slice(0, visibleCount).map((venue, i) => (
+                <VenueCard key={venue.id} venue={venue} priority={i < 4} />
+              ))}
+            </div>
+            {visibleCount < shown.length && (
+              <div className="mt-10 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((n) => n + INITIAL_BATCH)}
+                  className="inline-flex min-h-[52px] items-center rounded-full border border-rose-900/20 bg-white px-7 text-sm font-bold text-rose-900 shadow-sm transition hover:bg-rose-50 hover:border-rose-900/50"
+                >
+                  Xem thêm không gian{' '}
+                  <span className="ml-1.5 tabular-nums opacity-60">({shown.length - visibleCount})</span>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

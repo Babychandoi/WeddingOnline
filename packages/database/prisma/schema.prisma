@@ -104,8 +104,10 @@ model Wedding {
   invitationConfig   Json?
   /// Invitation only: an online invitation for an offline wedding, no 3D hall, never expires
   invitationOnly     Boolean       @default(false)
-  /// End of the paid invitation period (published until then); 2999-12-31 = lifetime
-  invitationPaidUntil DateTime?
+  /// End of the paid 2D invitation period (published until then); 2999-12-31 = lifetime
+  invitationPaidUntil   DateTime?
+  /// End of the paid 3D walkthrough invitation period; 2999-12-31 = lifetime
+  invitation3dPaidUntil DateTime?
 
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt

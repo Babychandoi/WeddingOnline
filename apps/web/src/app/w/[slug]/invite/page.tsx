@@ -9,18 +9,35 @@ import { OwnerEditBar } from '@/components/invitation/OwnerEditBar';
 import { BANK_NAMES } from '@/components/invitation/themes';
 import { venueThumbnail } from '@/components/venues/VenueCard';
 import type { InvitationWish } from '@/app/api/invitations/[slug]/wishes/route';
+import { canonicalUrl, isPublicDemoSlug } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const wedding = await dbRepo.getWeddingBySlug(params.slug);
-  if (!wedding) return { title: 'Không tìm thấy thiệp cưới' };
+  if (!wedding) return { title: 'Không tìm thấy thiệp cưới', robots: { index: false, follow: false } };
   const config = resolveInvitationConfig(wedding.invitationConfig, wedding);
   const names = `${config.groomFullName} & ${config.brideFullName}`;
+  const url = canonicalUrl(`/w/${wedding.slug}/invite`);
+  const title = `Thiệp cưới ${names}`;
+  const description = `${config.headline}. Mời bạn mở thiệp, xác nhận tham dự và gửi lời chúc tới ${names}.`;
   return {
-    title: `Thiệp cưới ${names}`,
-    description: `${config.headline}. Mời bạn mở thiệp, xác nhận tham dự và gửi lời chúc tới ${names}.`,
-    openGraph: { title: `Thiệp cưới ${names}`, description: config.headline, images: [{ url: `/w/${wedding.slug}/opengraph-image` }] },
+    title,
+    description,
+    alternates: { canonical: url },
+    robots: isPublicDemoSlug(wedding.slug) ? { index: true, follow: true } : { index: false, follow: false },
+    openGraph: {
+      title,
+      description: config.headline,
+      url,
+      images: [{ url: `/w/${wedding.slug}/opengraph-image`, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description: config.headline,
+      images: [`/w/${wedding.slug}/opengraph-image`],
+    },
   };
 }
 
@@ -28,8 +45,9 @@ export default async function InvitationPage({ params, searchParams }: { params:
   const wedding = await dbRepo.getWeddingBySlug(params.slug);
   if (!wedding) notFound();
 
-  // Drafts and lapsed plans are hidden from guests; the couple still sees their invitation as a preview
-  const access = invitationAccess(wedding);
+  // Drafts, lapsed plans, and 2D-plan-on-3D-template are hidden from guests; couple sees preview
+  const config = resolveInvitationConfig(wedding.invitationConfig, wedding);
+  const access = invitationAccess(wedding, { templateId: config.templateId });
   let isHost = false;
   if (!access.published) {
     const auth = await getSessionFromRequest();
@@ -38,8 +56,7 @@ export default async function InvitationPage({ params, searchParams }: { params:
       isHost = wedding.ownerId === auth.user.id || Boolean(member && ['OWNER', 'BRIDE', 'GROOM'].includes(member.role));
     }
     if (!isHost) {
-      const config = resolveInvitationConfig(wedding.invitationConfig, wedding);
-      return <NotPublished names={`${config.groomFullName} & ${config.brideFullName}`} expired={access.expired} />;
+      return <NotPublished names={`${config.groomFullName} & ${config.brideFullName}`} expired={access.expired} needs3dUpgrade={access.needs3dUpgrade} />;
     }
   }
 
@@ -49,7 +66,6 @@ export default async function InvitationPage({ params, searchParams }: { params:
     dbRepo.getPrivateGiftLedger(wedding.id),
     dbRepo.getSceneByWeddingId(wedding.id),
   ]);
-  const config = resolveInvitationConfig(wedding.invitationConfig, wedding);
   const guestName = typeof searchParams.khach === 'string' ? searchParams.khach.trim().slice(0, 60) : null;
 
   // Public wall: names and wishes only — never gift amounts
@@ -71,9 +87,15 @@ export default async function InvitationPage({ params, searchParams }: { params:
     <OwnerEditBar slug={wedding.slug} />
     {!access.published && (
       <div className="fixed inset-x-0 top-0 z-[70] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-400 px-4 py-2 text-center text-sm font-bold text-amber-950 shadow">
-        <span>{access.expired ? 'Thiệp đã hết hạn: khách đang thấy “tạm ngưng”.' : 'Bản xem trước: khách chưa mở được thiệp này.'}</span>
+        <span>
+          {access.needs3dUpgrade
+            ? 'Mẫu Thiệp 3D cần gói Thiệp 3D riêng (từ 290k): khách chưa mở được.'
+            : access.expired
+              ? 'Thiệp đã hết hạn: khách đang thấy “tạm ngưng”.'
+              : 'Bản xem trước: khách chưa mở được thiệp này.'}
+        </span>
         <Link href={`/dashboard/${wedding.slug}?tab=thiep&phat-hanh=1`} className="rounded-full bg-amber-950 px-3 py-1 text-amber-50 hover:bg-amber-900">
-          {access.expired ? 'Gia hạn thiệp' : 'Phát hành thiệp'}
+          {access.needs3dUpgrade ? 'Nâng cấp gói 3D' : access.expired ? 'Gia hạn thiệp' : 'Phát hành thiệp'}
         </Link>
       </div>
     )}
@@ -100,16 +122,18 @@ export default async function InvitationPage({ params, searchParams }: { params:
 }
 
 /** What guests see before the invitation is published, or after its plan has run out */
-function NotPublished({ names, expired }: { names: string; expired: boolean }) {
+function NotPublished({ names, expired, needs3dUpgrade = false }: { names: string; expired: boolean; needs3dUpgrade?: boolean }) {
   return (
     <main className="grid min-h-screen place-items-center bg-[#f6efe8] px-6 py-16 text-center text-[#3b2a2a]">
       <div className="max-w-md">
         <p className="text-[13px] uppercase tracking-[0.3em] text-[#9a7b6f]">Thiệp cưới</p>
         <h1 className="mt-4 font-serif text-4xl leading-tight [text-wrap:balance]">{names}</h1>
         <p className="mx-auto mt-6 max-w-[34ch] text-[17px] leading-relaxed text-[#6b5550] [text-wrap:pretty]">
-          {expired
-            ? 'Thiệp đang tạm ngưng. Cô dâu chú rể sẽ mở lại thiệp sớm, bạn quay lại sau nhé.'
-            : 'Cô dâu chú rể đang hoàn thiện thiệp cưới. Bạn quay lại sau ít phút nhé.'}
+          {needs3dUpgrade
+            ? 'Thiệp cưới 3D đang chờ cô dâu chú rể nâng cấp gói Thiệp 3D. Bạn quay lại sau ít phút nhé.'
+            : expired
+              ? 'Thiệp đang tạm ngưng. Cô dâu chú rể sẽ mở lại thiệp sớm, bạn quay lại sau nhé.'
+              : 'Cô dâu chú rể đang hoàn thiện thiệp cưới. Bạn quay lại sau ít phút nhé.'}
         </p>
         <p className="mt-10 text-[13px] text-[#9a7b6f]">
           Thiệp cưới online · <Link href="/thiep-cuoi" className="underline underline-offset-4">DamCuoiOnline</Link>

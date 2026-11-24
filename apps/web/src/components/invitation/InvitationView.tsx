@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Sparkles, X } from 'lucide-react';
-import type { InvitationConfig, InvitationTemplateId } from '@dco/shared';
+import { formatLunarVi, invitationMapLink, isWalkthrough3DTemplate, type InvitationConfig, type InvitationTemplateId } from '@dco/shared';
 import type { InvitationWish } from '@/app/api/invitations/[slug]/wishes/route';
 import { INVITATION_FONT_VARS } from './fonts';
 import { GiftBox, RsvpForm, WishesSection, formSkinCss, primaryButton } from './InvitationForms';
@@ -29,6 +29,9 @@ import {
   LucernaLanternOpener,
   WovenEditorialBanner,
 } from '@/components/motion/InvitationRituals';
+import { WalkthroughInvitationHero } from './walkthrough3d/WalkthroughInvitationHero';
+import { formatWalkthroughDate } from './walkthrough3d/themes3d';
+import type { WalkthroughEventBoardItem } from './walkthrough3d/WalkthroughScene3D';
 
 export interface InvitationPhoto {
   id: string;
@@ -261,7 +264,7 @@ function Envelope({ theme, guestName, photo, monogram, couple, date, onOpen }: {
                 style={{ background: theme.paper, transform: opening ? 'translateY(-60%)' : 'translateY(0)' }}
               >
                 <div className="flex h-full flex-col items-center justify-start p-[4%]">
-                  {photo && <img src={sized(photo, true)} alt="" className="block h-[52%] w-full object-cover" style={{ filter: theme.layout.photoFilter }} />}
+                  {photo && <img src={sized(photo, true)} alt="" width={420} height={560} className="block h-[52%] w-full object-cover" style={{ filter: theme.layout.photoFilter }} />}
                   <span className="mt-[6%] text-[clamp(1.6rem,7vw,2.3rem)] leading-none" style={{ color: theme.accentText ?? theme.accent, fontFamily: theme.script }}>
                     {monogram}
                   </span>
@@ -470,7 +473,7 @@ function Lightbox({ photos, index, onClose, onMove }: { photos: InvitationPhoto[
   const p = photos[index];
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4" role="dialog" aria-modal="true" aria-label="Xem ảnh cưới">
-      <img src={p.url} alt={p.caption ?? 'Ảnh cưới'} className="max-h-[86vh] max-w-full rounded-[4px] object-contain" />
+      <img src={p.url} alt={p.caption ?? 'Ảnh cưới'} width={900} height={1200} className="max-h-[86vh] max-w-full rounded-[4px] object-contain" />
       <button type="button" onClick={onClose} aria-label="Đóng" className="absolute right-4 top-4 grid h-12 w-12 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25">
         <X className="h-6 w-6" />
       </button>
@@ -528,6 +531,7 @@ function HeartButton({ theme }: { theme: InviteTheme }) {
 
 export function InvitationView(props: InvitationViewProps) {
   const { config, slug, demo = false, embedded = false, onEditPart } = props;
+  const is3D = isWalkthrough3DTemplate(config.templateId);
   const theme = INVITE_THEMES[config.templateId as InvitationTemplateId] ?? INVITE_THEMES['song-hy-do'];
   const groom = config.groomFullName || props.groomName;
   const bride = config.brideFullName || props.brideName;
@@ -570,12 +574,12 @@ export function InvitationView(props: InvitationViewProps) {
     // to scrolls of any element and read whichever offset moved
     const check = () => {
       const y = Math.max(window.scrollY, document.documentElement.scrollTop, document.body.scrollTop);
-      setPastCover(y > window.innerHeight * 0.55);
+      setPastCover(y > window.innerHeight * (is3D ? 0.85 : 0.55));
     };
     check();
     document.addEventListener('scroll', check, { passive: true, capture: true });
     return () => document.removeEventListener('scroll', check, { capture: true });
-  }, [embedded]);
+  }, [embedded, is3D]);
   useEffect(() => () => music.current?.dispose(), []);
 
   const startMusic = useCallback(async () => {
@@ -669,7 +673,7 @@ export function InvitationView(props: InvitationViewProps) {
         }}
       />
 
-      {!embedded && (
+      {!embedded && !is3D && (
         <InvitationAmbientCanvas
           ornament={theme.ornament}
           ground={theme.ground}
@@ -693,102 +697,163 @@ export function InvitationView(props: InvitationViewProps) {
           }}
         />
       )}
-      {opened && !embedded && <Petals colors={theme.petals} />}
+      {opened && !embedded && !is3D && <Petals colors={theme.petals} />}
+
+      {is3D && isWalkthrough3DTemplate(config.templateId) && (
+        <WalkthroughInvitationHero
+          themeId={config.templateId}
+          groom={groom}
+          bride={bride}
+          dateIso={mainDate}
+          guestName={guest}
+          greetingTemplate={config.walkthroughGreeting}
+          welcomeSubtitle={config.headline ? `${config.headline.toLowerCase()} của` : undefined}
+          coupleCutoutUrl={config.coupleCutoutUrl}
+          photos={props.photos}
+          memories={config.memories}
+          events={
+            sections.events
+              ? events.slice(0, 3).map((ev): WalkthroughEventBoardItem => {
+                const t = Date.parse(ev.startsAt);
+                const d = new Date((Number.isFinite(t) ? t : Date.now()) + 7 * 3600 * 1000);
+                const hh = String(d.getUTCHours()).padStart(2, '0');
+                const mm = String(d.getUTCMinutes()).padStart(2, '0');
+                const isParty = ev.kind === 'TIEC_CUOI' || ev.kind === 'TIEC_NHA_GAI' || ev.kind === 'TIEC_NHA_TRAI';
+                return {
+                  id: ev.id,
+                  kicker: isParty ? 'Thông tin tiệc' : 'Thông tin buổi lễ',
+                  title: ev.title,
+                  stationLabel: isParty ? 'Thông tin tiệc' : ev.title,
+                  timeText: `${hh}:${mm}`,
+                  solarDateText: formatWalkthroughDate(ev.startsAt),
+                  lunarDateText: formatLunarVi(ev.startsAt) ?? '',
+                  venueName: ev.venueName,
+                  address: ev.address,
+                  note: ev.note,
+                  dressCode: config.dressCode,
+                  mapUrl: invitationMapLink(ev),
+                };
+              })
+              : []
+          }
+          hallUrl={sections.hall ? props.hallUrl : null}
+          showEvents={sections.events && events.length > 0}
+          showRsvp={sections.rsvp}
+          showGift={sections.gift && (props.gift.enabled || demo)}
+          playing={playing}
+          musicEnabled={config.music.mode !== 'OFF' && !embedded}
+          onToggleMusic={toggleMusic}
+          demo={demo}
+          editorMode={embedded && Boolean(onEditPart)}
+          onOpenPhoto={(idx) => setLightbox(idx)}
+          onEditSpot={
+            onEditPart
+              ? (part) => {
+                const anchor = document.getElementById('chi-tiet-thiep') ?? document.body;
+                onEditPart(part, anchor);
+              }
+              : undefined
+          }
+        />
+      )}
 
       <main
+        id="chi-tiet-thiep"
         className={`relative z-[2] mx-auto max-w-[560px] overflow-hidden ${embedded ? '' : 'sm:rounded-[var(--inv-r)] sm:shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6)]'}`}
         style={{ background: theme.paper }}
       >
         <Grain paper={theme.paper} strength={theme.grain} />
         <CardFrame theme={theme} />
         <div className="relative">
-          {/* ── Cover ── */}
-          <EditSpot part="cover" onEdit={onEditPart}>
-            <InvitationCover theme={theme} data={coverData} animate={opened && !embedded} />
-          </EditSpot>
+          {/* ── Cover (2D templates only; 3D walkthrough renders its full 3-zone 3D stage above) ── */}
+          {!is3D && (
+            <EditSpot part="cover" onEdit={onEditPart}>
+              <InvitationCover theme={theme} data={coverData} animate={opened && !embedded} />
+            </EditSpot>
+          )}
 
           {/* ── Families + invitation wording ── */}
           {sections.family && (
             <EditSpot part="family" onEdit={onEditPart}>
-            <Section id="gia-dinh" t={T('Trân trọng báo tin', 'Our families')} theme={theme} tight>
-              {familyFilled && (
-                <div className="mx-auto grid max-w-[460px] grid-cols-[1fr_1px_1fr] gap-x-4 text-[15px] leading-relaxed min-[420px]:gap-x-6">
-                  {[
-                    { title: 'Nhà Trai', f: config.groomFamily },
-                    null,
-                    { title: 'Nhà Gái', f: config.brideFamily },
-                  ].map((side) =>
-                    side === null ? (
-                      <span key="rule" className="block" style={{ background: theme.line }} aria-hidden="true" />
-                    ) : (
-                      <div key={side.title} className="min-w-0">
-                        <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-[0.24em]" style={{ color: accent, fontFamily: theme.display }}>
-                          {side.title}
-                        </h3>
-                        {(side.f.father || side.f.mother) && (
-                          <p className="text-[13px]" style={{ color: theme.inkSoft }}>
-                            {[side.f.father && 'Ông', side.f.mother && 'Bà'].filter(Boolean).join(' ')}
-                          </p>
-                        )}
-                        {side.f.father && <p className="font-semibold leading-snug">{side.f.father}</p>}
-                        {side.f.mother && <p className="font-semibold leading-snug">{side.f.mother}</p>}
-                        {side.f.address && (
-                          <p className="mt-1.5 text-[13.5px] leading-snug [text-wrap:balance]" style={{ color: theme.inkSoft }}>
-                            {keepAbbr(side.f.address)}
-                          </p>
-                        )}
-                      </div>
-                    ),
-                  )}
-                </div>
-              )}
-              <p className={`${familyFilled ? 'mt-11' : ''} text-[13px] uppercase leading-relaxed tracking-[0.24em] [text-wrap:balance]`} style={{ color: theme.inkSoft, fontFamily: theme.display }}>
-                {config.headline || 'Trân trọng báo tin lễ thành hôn'} của con chúng tôi
-              </p>
-              <p className={`mt-4 [text-wrap:balance] ${theme.namesUpper ? 'uppercase' : ''}`} style={{ ...namesStyle, color: coupleBaseColor }}>
-                <span
-                  className="inv-shimmer-text"
-                  style={
-                    {
-                      '--inv-shimmer-base': coupleBaseColor,
-                      '--inv-shimmer-glint': shimmerGlint,
-                    } as React.CSSProperties
-                  }
-                >
-                  <Name>{groom}</Name>
-                  <span className="mx-2 inline-block text-[0.55em]" style={{ fontFamily: theme.script }}>
-                    &amp;
-                  </span>
-                  <Name>{bride}</Name>
-                </span>
-              </p>
-              <FoilTiltCard
-                accent={theme.accent}
-                line={theme.line}
-                disabled={embedded || Boolean(onEditPart)}
-                className="mx-auto mt-10 max-w-[420px] rounded-[calc(var(--inv-r)+4px)]"
-              >
-                <div className="rounded-[calc(var(--inv-r)+4px)] px-5 py-7" style={{ background: theme.panel === theme.paper ? 'transparent' : `${theme.panel}`, color: theme.layout.events === 'panel' && theme.panelInk ? theme.panelInk : theme.ink, border: `1px solid ${theme.line}66` }}>
-                  <p className="text-[14px] uppercase tracking-[0.26em]" style={{ fontFamily: theme.display, opacity: 0.85 }}>
-                    Trân trọng kính mời
-                  </p>
-                  <p className="mt-2 text-[clamp(2rem,9vw,2.6rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.script, color: guestBaseColor }}>
-                    <span
-                      className="inv-shimmer-text"
-                      style={
-                        {
-                          '--inv-shimmer-base': guestBaseColor,
-                          '--inv-shimmer-glint': shimmerGlint,
-                        } as React.CSSProperties
-                      }
-                    >
-                      {guest || 'Quý khách'}
+              <Section id="gia-dinh" t={T('Trân trọng báo tin', 'Our families')} theme={theme} tight>
+                {familyFilled && (
+                  <div className="mx-auto grid max-w-[460px] grid-cols-[1fr_1px_1fr] gap-x-4 text-[15px] leading-relaxed min-[420px]:gap-x-6">
+                    {[
+                      { title: 'Nhà Trai', f: config.groomFamily },
+                      null,
+                      { title: 'Nhà Gái', f: config.brideFamily },
+                    ].map((side) =>
+                      side === null ? (
+                        <span key="rule" className="block" style={{ background: theme.line }} aria-hidden="true" />
+                      ) : (
+                        <div key={side.title} className="min-w-0">
+                          <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-[0.24em]" style={{ color: accent, fontFamily: theme.display }}>
+                            {side.title}
+                          </h3>
+                          {(side.f.father || side.f.mother) && (
+                            <p className="text-[13px]" style={{ color: theme.inkSoft }}>
+                              {[side.f.father && 'Ông', side.f.mother && 'Bà'].filter(Boolean).join(' ')}
+                            </p>
+                          )}
+                          {side.f.father && <p className="font-semibold leading-snug">{side.f.father}</p>}
+                          {side.f.mother && <p className="font-semibold leading-snug">{side.f.mother}</p>}
+                          {side.f.address && (
+                            <p className="mt-1.5 text-[13.5px] leading-snug [text-wrap:balance]" style={{ color: theme.inkSoft }}>
+                              {keepAbbr(side.f.address)}
+                            </p>
+                          )}
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
+                <p className={`${familyFilled ? 'mt-11' : ''} text-[13px] uppercase leading-relaxed tracking-[0.24em] [text-wrap:balance]`} style={{ color: theme.inkSoft, fontFamily: theme.display }}>
+                  {config.headline || 'Trân trọng báo tin lễ thành hôn'} của con chúng tôi
+                </p>
+                <p className={`mt-4 [text-wrap:balance] ${theme.namesUpper ? 'uppercase' : ''}`} style={{ ...namesStyle, color: coupleBaseColor }}>
+                  <span
+                    className="inv-shimmer-text"
+                    style={
+                      {
+                        '--inv-shimmer-base': coupleBaseColor,
+                        '--inv-shimmer-glint': shimmerGlint,
+                      } as React.CSSProperties
+                    }
+                  >
+                    <Name>{groom}</Name>
+                    <span className="mx-2 inline-block text-[0.55em]" style={{ fontFamily: theme.script }}>
+                      &amp;
                     </span>
-                  </p>
-                  {config.message && <p className="mx-auto mt-4 max-w-[36ch] text-[16px] leading-relaxed [text-wrap:pretty]">{config.message}</p>}
-                </div>
-              </FoilTiltCard>
-            </Section>
+                    <Name>{bride}</Name>
+                  </span>
+                </p>
+                <FoilTiltCard
+                  accent={theme.accent}
+                  line={theme.line}
+                  disabled={embedded || Boolean(onEditPart)}
+                  className="mx-auto mt-10 max-w-[420px] rounded-[calc(var(--inv-r)+4px)]"
+                >
+                  <div className="rounded-[calc(var(--inv-r)+4px)] px-5 py-7" style={{ background: theme.panel === theme.paper ? 'transparent' : `${theme.panel}`, color: theme.layout.events === 'panel' && theme.panelInk ? theme.panelInk : theme.ink, border: `1px solid ${theme.line}66` }}>
+                    <p className="text-[14px] uppercase tracking-[0.26em]" style={{ fontFamily: theme.display, opacity: 0.85 }}>
+                      Trân trọng kính mời
+                    </p>
+                    <p className="mt-2 text-[clamp(2rem,9vw,2.6rem)] leading-tight [text-wrap:balance]" style={{ fontFamily: theme.script, color: guestBaseColor }}>
+                      <span
+                        className="inv-shimmer-text"
+                        style={
+                          {
+                            '--inv-shimmer-base': guestBaseColor,
+                            '--inv-shimmer-glint': shimmerGlint,
+                          } as React.CSSProperties
+                        }
+                      >
+                        {guest || 'Quý khách'}
+                      </span>
+                    </p>
+                    {config.message && <p className="mx-auto mt-4 max-w-[36ch] text-[16px] leading-relaxed [text-wrap:pretty]">{config.message}</p>}
+                  </div>
+                </FoilTiltCard>
+              </Section>
             </EditSpot>
           )}
 
@@ -806,7 +871,7 @@ export function InvitationView(props: InvitationViewProps) {
                 </>
               ) : (
                 <>
-                  <Interlude theme={theme} src={interludeSrc} alt={`${groom} và ${bride}`} quote={config.quote} />
+                  <Interlude theme={theme} src={interludeSrc} alt={`${groom} và ${bride}`} quote={config.quote} eager={is3D} />
                   {(!interludeSrc || theme.layout.interlude === 'none') && config.quote && (
                     <p className="mx-auto max-w-[36ch] px-8 py-6 text-center text-[17px] italic leading-relaxed [text-wrap:balance]" style={{ color: theme.inkSoft }}>
                       “{config.quote}”
@@ -823,26 +888,26 @@ export function InvitationView(props: InvitationViewProps) {
           {sections.events && events.length === 0 && <EditPlaceholder part="events" text="Thêm lễ cưới: giờ, địa điểm" onEdit={onEditPart} />}
           {sections.events && events.length > 0 && (
             <EditSpot part="events" onEdit={onEditPart}>
-            <Section id="su-kien" t={T('Thông tin lễ cưới', 'When & where')} theme={theme}>
-              <EventsBlock theme={theme} events={events} couple={`${groom} & ${bride}`} message={config.message} />
-              {config.dressCode && (
-                <p className="mt-10 text-[15px]" style={{ color: theme.inkSoft }}>
-                  Trang phục gợi ý: <span style={{ color: theme.ink }}>{config.dressCode}</span>
-                </p>
-              )}
-            </Section>
+              <Section id="su-kien" t={T('Thông tin lễ cưới', 'When & where')} theme={theme}>
+                <EventsBlock theme={theme} events={events} couple={`${groom} & ${bride}`} message={config.message} />
+                {config.dressCode && (
+                  <p className="mt-10 text-[15px]" style={{ color: theme.inkSoft }}>
+                    Trang phục gợi ý: <span style={{ color: theme.ink }}>{config.dressCode}</span>
+                  </p>
+                )}
+              </Section>
             </EditSpot>
           )}
 
           {/* ── Calendar + countdown ── */}
           {sections.countdown && (
             <EditSpot part="countdown" onEdit={onEditPart}>
-            <Section id="dem-nguoc" t={T('Ngày chung đôi', 'Save the date')} theme={theme} tight>
-              <MonthCalendar theme={theme} iso={mainDate} />
-              <div className="mt-8">
-                <Countdown target={mainDate} theme={theme} />
-              </div>
-            </Section>
+              <Section id="dem-nguoc" t={T('Ngày chung đôi', 'Save the date')} theme={theme} tight>
+                <MonthCalendar theme={theme} iso={mainDate} />
+                <div className="mt-8">
+                  <Countdown target={mainDate} theme={theme} />
+                </div>
+              </Section>
             </EditSpot>
           )}
 
@@ -850,31 +915,31 @@ export function InvitationView(props: InvitationViewProps) {
           {sections.story && config.story.length === 0 && <EditPlaceholder part="story" text="Thêm chuyện tình yêu (không bắt buộc)" onEdit={onEditPart} />}
           {sections.story && config.story.length > 0 && (
             <EditSpot part="story" onEdit={onEditPart}>
-            <Section id="chuyen-tinh" t={T('Chuyện của chúng mình', 'Our story')} theme={theme}>
-              {!onEditPart && !embedded ? (
-                <EditorialStoryChapters story={config.story} photos={props.photos} theme={theme} />
-              ) : (
-                <ol className="relative mx-auto max-w-[420px] text-left">
-                  <span className="absolute bottom-2 left-[7px] top-2 w-px" style={{ background: theme.line }} aria-hidden="true" />
-                  {config.story.map((s) => (
-                    <li key={s.id} className="relative pb-9 pl-9 last:pb-0">
-                      <span className="absolute left-0 top-1.5 h-[15px] w-[15px] rounded-full border-2" style={{ borderColor: theme.accent, background: theme.paper }} aria-hidden="true" />
-                      {s.when && (
-                        <p className="text-[13px] uppercase tracking-[0.2em]" style={{ color: accent }}>
-                          {s.when}
-                        </p>
-                      )}
-                      {s.title && (
-                        <h3 className="mt-0.5 text-[20px] leading-snug" style={{ fontFamily: theme.display, fontWeight: theme.namesWeight === 400 ? 400 : 600 }}>
-                          {s.title}
-                        </h3>
-                      )}
-                      {s.text && <p className="mt-1.5 text-[15.5px] leading-relaxed [text-wrap:pretty]" style={{ color: theme.inkSoft }}>{s.text}</p>}
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </Section>
+              <Section id="chuyen-tinh" t={T('Chuyện của chúng mình', 'Our story')} theme={theme}>
+                {!onEditPart && !embedded ? (
+                  <EditorialStoryChapters story={config.story} photos={props.photos} theme={theme} />
+                ) : (
+                  <ol className="relative mx-auto max-w-[420px] text-left">
+                    <span className="absolute bottom-2 left-[7px] top-2 w-px" style={{ background: theme.line }} aria-hidden="true" />
+                    {config.story.map((s) => (
+                      <li key={s.id} className="relative pb-9 pl-9 last:pb-0">
+                        <span className="absolute left-0 top-1.5 h-[15px] w-[15px] rounded-full border-2" style={{ borderColor: theme.accent, background: theme.paper }} aria-hidden="true" />
+                        {s.when && (
+                          <p className="text-[13px] uppercase tracking-[0.2em]" style={{ color: accent }}>
+                            {s.when}
+                          </p>
+                        )}
+                        {s.title && (
+                          <h3 className="mt-0.5 text-[20px] leading-snug" style={{ fontFamily: theme.display, fontWeight: theme.namesWeight === 400 ? 400 : 600 }}>
+                            {s.title}
+                          </h3>
+                        )}
+                        {s.text && <p className="mt-1.5 text-[15.5px] leading-relaxed [text-wrap:pretty]" style={{ color: theme.inkSoft }}>{s.text}</p>}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </Section>
             </EditSpot>
           )}
 
@@ -882,47 +947,47 @@ export function InvitationView(props: InvitationViewProps) {
           {sections.album && props.photos.length === 0 && <EditPlaceholder part="album" text="Thêm ảnh cưới vào album" onEdit={onEditPart} />}
           {sections.album && props.photos.length > 0 && (
             <EditSpot part="album" onEdit={onEditPart}>
-            <Section id="album" t={T('Album ảnh cưới', 'Gallery')} theme={theme}>
-              {!onEditPart && props.photos.length >= 2 && (
-                <div className="mb-5 flex justify-center">
-                  <div className="inline-flex rounded-full p-1 text-[11px] font-bold" style={{ border: `1px solid ${theme.line}` }}>
-                    <button
-                      type="button"
-                      onClick={() => setAlbumMode('grid')}
-                      className="rounded-full px-3 py-1 transition"
-                      style={albumMode === 'grid' ? { background: theme.accent, color: theme.onAccent } : { opacity: 0.78 }}
-                    >
-                      Lưới ảnh
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAlbumMode('book')}
-                      className="rounded-full px-3 py-1 transition"
-                      style={albumMode === 'book' ? { background: theme.accent, color: theme.onAccent } : { opacity: 0.78 }}
-                    >
-                      📖 Lật sách 3D
-                    </button>
+              <Section id="album" t={T('Album ảnh cưới', 'Gallery')} theme={theme}>
+                {!onEditPart && props.photos.length >= 2 && (
+                  <div className="mb-5 flex justify-center">
+                    <div className="inline-flex rounded-full p-1 text-[11px] font-bold" style={{ border: `1px solid ${theme.line}` }}>
+                      <button
+                        type="button"
+                        onClick={() => setAlbumMode('grid')}
+                        className="rounded-full px-3 py-1 transition"
+                        style={albumMode === 'grid' ? { background: theme.accent, color: theme.onAccent } : { opacity: 0.78 }}
+                      >
+                        Lưới ảnh
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAlbumMode('book')}
+                        className="rounded-full px-3 py-1 transition"
+                        style={albumMode === 'book' ? { background: theme.accent, color: theme.onAccent } : { opacity: 0.78 }}
+                      >
+                        📖 Lật sách 3D
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
-              {albumMode === 'book' && !onEditPart && props.photos.length >= 2 ? (
-                <WeddingSketchbookAlbum
-                  title={`Album ${groom} & ${bride}`}
-                  coupleLabel={`${groom} & ${bride}`}
-                  dateLabel={vnDate(mainDate)}
-                  photos={props.photos.map((p) => ({ id: p.id, url: sized(p.url, true), caption: p.caption }))}
-                  wishes={props.initialWishes.map((w) => ({ id: w.id, authorName: w.name, message: w.message }))}
-                  accentColor={theme.accent}
-                  onAccentColor={theme.onAccent}
-                  onInspectPhoto={(bp) => {
-                    const idx = props.photos.findIndex((p) => p.id === bp.id);
-                    if (idx >= 0) setLightbox(idx);
-                  }}
-                />
-              ) : (
-                <Album theme={theme} photos={props.photos} onOpen={setLightbox} />
-              )}
-            </Section>
+                )}
+                {albumMode === 'book' && !onEditPart && props.photos.length >= 2 ? (
+                  <WeddingSketchbookAlbum
+                    title={`Album ${groom} & ${bride}`}
+                    coupleLabel={`${groom} & ${bride}`}
+                    dateLabel={vnDate(mainDate)}
+                    photos={props.photos.map((p) => ({ id: p.id, url: sized(p.url, true), caption: p.caption }))}
+                    wishes={props.initialWishes.map((w) => ({ id: w.id, authorName: w.name, message: w.message }))}
+                    accentColor={theme.accent}
+                    onAccentColor={theme.onAccent}
+                    onInspectPhoto={(bp) => {
+                      const idx = props.photos.findIndex((p) => p.id === bp.id);
+                      if (idx >= 0) setLightbox(idx);
+                    }}
+                  />
+                ) : (
+                  <Album theme={theme} photos={props.photos} onOpen={setLightbox} />
+                )}
+              </Section>
             </EditSpot>
           )}
 
@@ -937,7 +1002,7 @@ export function InvitationView(props: InvitationViewProps) {
                   className="rounded-[var(--inv-r)]"
                 >
                   <div className="overflow-hidden rounded-[var(--inv-r)]" style={{ border: `1px solid ${theme.line}` }}>
-                    <img src={props.venueThumb} alt="Sảnh cưới 3D của cô dâu chú rể" loading="lazy" className="block aspect-[16/10] w-full object-cover" />
+                    <img src={props.venueThumb} alt="Sảnh cưới 3D của cô dâu chú rể" width={640} height={400} loading="lazy" className="block aspect-[16/10] w-full object-cover" />
                   </div>
                 </FoilTiltCard>
               )}
@@ -952,36 +1017,36 @@ export function InvitationView(props: InvitationViewProps) {
 
           {sections.rsvp && (
             <EditSpot part="replies" onEdit={onEditPart}>
-            <Section id="xac-nhan" t={T('Xác nhận tham dự', 'RSVP')} theme={theme}>
-              <RsvpForm slug={slug} demo={demo} guestName={guest} deadline={config.rsvpDeadline ? vnDate(config.rsvpDeadline) : ''} />
-            </Section>
+              <Section id="xac-nhan" t={T('Xác nhận tham dự', 'RSVP')} theme={theme}>
+                <RsvpForm slug={slug} demo={demo} guestName={guest} deadline={config.rsvpDeadline ? vnDate(config.rsvpDeadline) : ''} />
+              </Section>
             </EditSpot>
           )}
 
           {sections.wishes && (
             <EditSpot part="replies" onEdit={onEditPart}>
-            <Section id="loi-chuc" t={T('Gửi lời chúc', 'Wishes')} theme={theme}>
-              <WishesSection
-                slug={slug}
-                demo={demo}
-                guestName={guest}
-                initial={props.initialWishes}
-                coupleName={`${groom} & ${bride}`}
-                showHeart3D={!embedded && !onEditPart}
-                themeColors={{ accent: theme.accent, line: theme.line, paper: theme.paper, ink: theme.ink }}
-              />
-            </Section>
+              <Section id="loi-chuc" t={T('Gửi lời chúc', 'Wishes')} theme={theme}>
+                <WishesSection
+                  slug={slug}
+                  demo={demo}
+                  guestName={guest}
+                  initial={props.initialWishes}
+                  coupleName={`${groom} & ${bride}`}
+                  showHeart3D={!embedded && !onEditPart}
+                  themeColors={{ accent: theme.accent, line: theme.line, paper: theme.paper, ink: theme.ink }}
+                />
+              </Section>
             </EditSpot>
           )}
 
           {sections.gift && (props.gift.enabled || demo) && (
             <EditSpot part="gift" onEdit={onEditPart}>
-            <Section id="mung-cuoi" t={T('Hộp mừng cưới', 'Gift')} theme={theme}>
-              <p className="mx-auto mb-6 max-w-[38ch] text-[16px] leading-relaxed [text-wrap:pretty]">
-                Sự hiện diện của bạn là món quà quý nhất. Nếu ở xa không đến được, bạn có thể gửi lời mừng qua mã QR dưới đây.
-              </p>
-              <GiftBox slug={slug} demo={demo} guestName={guest} bankName={props.gift.bankName} />
-            </Section>
+              <Section id="mung-cuoi" t={T('Hộp mừng cưới', 'Gift')} theme={theme}>
+                <p className="mx-auto mb-6 max-w-[38ch] text-[16px] leading-relaxed [text-wrap:pretty]">
+                  Sự hiện diện của bạn là món quà quý nhất. Nếu ở xa không đến được, bạn có thể gửi lời mừng qua mã QR dưới đây.
+                </p>
+                <GiftBox slug={slug} demo={demo} guestName={guest} bankName={props.gift.bankName} />
+              </Section>
             </EditSpot>
           )}
 
@@ -1001,31 +1066,31 @@ export function InvitationView(props: InvitationViewProps) {
 
           {/* ── Thank you ── */}
           <EditSpot part="closing" onEdit={onEditPart}>
-          {theme.layout.closing === 'photo' && closingSrc && <ClosingPhoto theme={theme} src={closingSrc} thanks={config.thankYou} couple={`${groom} & ${bride}`} />}
-          <footer className={`px-6 pt-10 text-center sm:px-10 ${embedded ? 'pb-14' : 'pb-24 sm:pb-20'}`}>
-            {!(theme.layout.closing === 'photo' && closingSrc) && (
-              <>
-                <Ornament kind={theme.ornament} theme={theme} variant="divider" />
-                {config.thankYou && <p className="mx-auto mt-6 max-w-[36ch] text-[16px] leading-relaxed [text-wrap:pretty]">{config.thankYou}</p>}
-                <p className="mt-5 text-[clamp(2rem,9vw,2.8rem)] leading-tight" style={{ fontFamily: theme.script, color: accent }}>
-                  {groom} &amp; {bride}
-                </p>
-              </>
-            )}
-            {!embedded && (
-              <ShareSplayButton
-                title={`Thiệp cưới ${groom} & ${bride}`}
-                accent={theme.accent}
-                onAccent={theme.onAccent}
-                paper={theme.paper}
-                line={theme.line}
-                ink={theme.ink}
-              />
-            )}
-            <p className="mt-10 text-[13px]" style={{ color: theme.inkSoft }}>
-              Thiệp cưới online · <a href="/thiep-cuoi" className="underline underline-offset-4">DamCuoiOnline</a>
-            </p>
-          </footer>
+            {theme.layout.closing === 'photo' && closingSrc && <ClosingPhoto theme={theme} src={closingSrc} thanks={config.thankYou} couple={`${groom} & ${bride}`} />}
+            <footer className={`px-6 pt-10 text-center sm:px-10 ${embedded ? 'pb-14' : 'pb-24 sm:pb-20'}`}>
+              {!(theme.layout.closing === 'photo' && closingSrc) && (
+                <>
+                  <Ornament kind={theme.ornament} theme={theme} variant="divider" />
+                  {config.thankYou && <p className="mx-auto mt-6 max-w-[36ch] text-[16px] leading-relaxed [text-wrap:pretty]">{config.thankYou}</p>}
+                  <p className="mt-5 text-[clamp(2rem,9vw,2.8rem)] leading-tight" style={{ fontFamily: theme.script, color: accent }}>
+                    {groom} &amp; {bride}
+                  </p>
+                </>
+              )}
+              {!embedded && (
+                <ShareSplayButton
+                  title={`Thiệp cưới ${groom} & ${bride}`}
+                  accent={theme.accent}
+                  onAccent={theme.onAccent}
+                  paper={theme.paper}
+                  line={theme.line}
+                  ink={theme.ink}
+                />
+              )}
+              <p className="mt-10 text-[13px]" style={{ color: theme.inkSoft }}>
+                Thiệp cưới online · <a href="/thiep-cuoi" className="underline underline-offset-4">DamCuoiOnline</a>
+              </p>
+            </footer>
           </EditSpot>
         </div>
       </main>
@@ -1041,7 +1106,7 @@ export function InvitationView(props: InvitationViewProps) {
         />
       )}
       {!embedded && opened && pastCover && <HeartButton theme={theme} />}
-      {!embedded && opened && config.music.mode !== 'OFF' && (
+      {!embedded && opened && config.music.mode !== 'OFF' && (!is3D || pastCover) && (
         <VinylMusicButton
           playing={playing}
           pastCover={pastCover}

@@ -160,7 +160,7 @@ export function VenuePreviewClient({
             </Link>
             <div className="pointer-events-auto flex gap-1.5">
               <Link
-                href={`/khong-gian/${prev.id}`}
+                href={`/khong-gian/${prev.id.replace(/_/g, '-')}`}
                 aria-label={`Không gian trước: ${prev.nameVi}`}
                 title={prev.nameVi}
                 className="rounded-full bg-white/90 p-2 text-slate-800 shadow-md backdrop-blur transition hover:bg-white"
@@ -168,7 +168,7 @@ export function VenuePreviewClient({
                 <ChevronLeft className="h-4 w-4" />
               </Link>
               <Link
-                href={`/khong-gian/${next.id}`}
+                href={`/khong-gian/${next.id.replace(/_/g, '-')}`}
                 aria-label={`Không gian tiếp theo: ${next.nameVi}`}
                 title={next.nameVi}
                 className="rounded-full bg-white/90 p-2 text-slate-800 shadow-md backdrop-blur transition hover:bg-white"
@@ -184,7 +184,12 @@ export function VenuePreviewClient({
               <p className="mt-1 text-xs font-medium text-slate-500">
                 {venue.place} · {venue.regionName}
               </p>
-              {reference ? (
+              <p className="mt-2 text-[13px] leading-relaxed text-slate-700">{venue.descriptionVi}</p>
+              <p className="mt-1 text-[11.5px] leading-relaxed text-slate-500">
+                Sảnh cưới 3D trực tuyến trên trình duyệt — hỗ trợ khách mời ở xa dạo sảnh, Voice Chat bàn tiệc LiveKit,
+                Auto-NPC, Photobooth, thiệp cưới online và mừng cưới VietQR minh bạch.
+              </p>
+              {reference && (
                 <>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs font-semibold">
                   <button type="button" onClick={() => setReferenceView(true)} aria-pressed={showingReference} className={`min-h-11 rounded-lg px-2.5 ${showingReference ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'}`}>
@@ -202,8 +207,6 @@ export function VenuePreviewClient({
                 </p>
                 {showingReference && reference.kind === 'relief' && <p className="mt-1 text-xs text-slate-600">{reference.subject} · Dựng nổi từ ảnh chụp</p>}
                 </>
-              ) : (
-                <p className="mt-2.5 text-[13px] leading-relaxed text-slate-700">{venue.descriptionVi}</p>
               )}
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <Link

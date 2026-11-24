@@ -471,7 +471,7 @@ export function Album({ theme, photos, onOpen }: { theme: InviteTheme; photos: I
 
 /* ───────────────────────── Photo interlude ───────────────────────── */
 
-export function Interlude({ theme, src, alt, quote }: { theme: InviteTheme; src: string; alt: string; quote: string }) {
+export function Interlude({ theme, src, alt, quote, eager = false }: { theme: InviteTheme; src: string; alt: string; quote: string; eager?: boolean }) {
   const ref = useReveal<HTMLElement>();
   const kind = theme.layout.interlude;
   if (kind === 'none' || !src) return null;
@@ -485,7 +485,7 @@ export function Interlude({ theme, src, alt, quote }: { theme: InviteTheme; src:
   if (kind === 'full') {
     return (
       <figure ref={ref} className="inv-reveal relative">
-        <Photo src={src} alt={alt} theme={theme} className="block aspect-[4/5] w-full" />
+        <Photo src={src} alt={alt} theme={theme} eager={eager} className="block aspect-[4/5] w-full" />
         {overlayQuote}
       </figure>
     );
@@ -493,7 +493,7 @@ export function Interlude({ theme, src, alt, quote }: { theme: InviteTheme; src:
   if (kind === 'rounded') {
     return (
       <figure ref={ref} className="inv-reveal relative mx-6 overflow-hidden rounded-[22px] sm:mx-10">
-        <Photo src={src} alt={alt} theme={theme} className="block aspect-[4/5] w-full" />
+        <Photo src={src} alt={alt} theme={theme} eager={eager} className="block aspect-[4/5] w-full" />
         {overlayQuote}
       </figure>
     );
@@ -501,7 +501,7 @@ export function Interlude({ theme, src, alt, quote }: { theme: InviteTheme; src:
   return (
     <figure ref={ref} className="inv-reveal px-9 text-center sm:px-14">
       <div className="p-2" style={{ border: `1px solid ${theme.line}` }}>
-        <Photo src={src} alt={alt} theme={theme} className="block aspect-[4/5] w-full" />
+        <Photo src={src} alt={alt} theme={theme} eager={eager} className="block aspect-[4/5] w-full" />
       </div>
       {quote && (
         <figcaption className="mx-auto mt-6 max-w-[32ch] text-[17px] italic leading-relaxed [text-wrap:balance]" style={{ color: theme.inkSoft, fontFamily: theme.display }}>

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { dbRepo, toPublicWedding } from '@dco/database';
 import { STARTER_TEMPLATES } from '@dco/shared';
@@ -5,6 +6,10 @@ import { isHardenedProduction } from '@dco/shared/server';
 import { DashboardClient } from '@/components/dashboard/DashboardClient';
 
 export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'Bảng Quản Trị Tiệc Cưới — DamCuoiOnline.vn',
+  robots: { index: false, follow: false },
+};
 
 export default async function DashboardPage({ params, searchParams }: { params: { slug: string }; searchParams: { tab?: string } }) {
   const wedding = await dbRepo.getWeddingBySlug(params.slug);

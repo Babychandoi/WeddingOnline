@@ -1,9 +1,14 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { dbRepo, toPublicWedding } from '@dco/database';
 import { getSessionFromRequest } from '@/lib/session';
 import { PrintableKeepsake } from '@/components/dashboard/PrintableKeepsake';
 
 export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'In Sổ Kỷ Niệm A4 — DamCuoiOnline.vn',
+  robots: { index: false, follow: false },
+};
 
 const LEDGER_ROLES = new Set(['OWNER', 'BRIDE', 'GROOM']);
 

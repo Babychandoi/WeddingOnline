@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { INVITATION_STYLE_LABELS, type InvitationTemplateStyle } from '@dco/shared';
+import { INVITATION_2D_STYLE_LABELS, type Invitation2DTemplateStyle } from '@dco/shared';
 import { normalizeSearch } from '@/lib/adminFormat';
 import { OpalFilterTabs, ScrySearchInput } from '@/components/motion/ShowcaseMotion';
 import { CardFace } from './CardFace';
@@ -11,7 +11,7 @@ import { styleCount, templatesFor, type StyleFilter } from './templateOrder';
 
 const STYLES: Array<{ id: StyleFilter; label: string }> = [
   { id: 'all', label: 'Tất cả' },
-  ...(Object.entries(INVITATION_STYLE_LABELS) as Array<[InvitationTemplateStyle, string]>).map(([id, label]) => ({ id, label })),
+  ...(Object.entries(INVITATION_2D_STYLE_LABELS) as Array<[Invitation2DTemplateStyle, string]>).map(([id, label]) => ({ id, label })),
 ];
 
 /** Cards per screenful: each one is a full cover with photos, so a hundred at once is too much for a phone */

@@ -46,7 +46,7 @@ export function VenuePicker({ value, onChange }: { value: string; onChange: (id:
               {open ? 'Thu gọn danh sách' : `Đổi không gian (${VENUE_THEMES.length})`}
             </button>
             <a
-              href={`/khong-gian/${selected.id}`}
+              href={`/khong-gian/${selected.id.replace(/_/g, '-')}`}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"

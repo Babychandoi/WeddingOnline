@@ -363,7 +363,7 @@ export function GiftBox({ slug, demo, guestName, bankName }: { slug: string; dem
     }
     return (
       <div className="inv-card px-5 py-7 text-center">
-        <img src={qr.qrDataUrl} alt="Mã VietQR mừng cưới" className="mx-auto h-56 w-56 rounded-[var(--inv-r)] bg-white p-2" />
+        <img src={qr.qrDataUrl} alt="Mã VietQR mừng cưới" width={224} height={224} className="mx-auto h-56 w-56 rounded-[var(--inv-r)] bg-white p-2" />
         <p className="mt-3 text-[14px] text-[color:var(--inv-ink-soft)]">Mở ứng dụng ngân hàng và quét mã. Nội dung chuyển khoản đã có sẵn trong mã.</p>
         <dl className="mx-auto mt-5 max-w-sm space-y-2.5 text-left text-[15px]">
           {bankName && (

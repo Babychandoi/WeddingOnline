@@ -8,7 +8,7 @@ const MAX_SIDE = 2000;
  * canvas as a JPEG of at most 2000 px, which every browser can show. Falls back to the original
  * file if the browser cannot decode it.
  */
-async function shrink(file: File): Promise<Blob> {
+async function shrink(file: File, preserveAlpha = false): Promise<Blob> {
   try {
     const bitmap = await createImageBitmap(file);
     const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
@@ -17,7 +17,8 @@ async function shrink(file: File): Promise<Blob> {
     canvas.height = Math.round(bitmap.height * scale);
     canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close?.();
-    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.86));
+    const mime = preserveAlpha || file.type === 'image/png' || file.type === 'image/webp' ? 'image/webp' : 'image/jpeg';
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, mime, 0.88));
     return blob ?? file;
   } catch {
     return file;
@@ -33,8 +34,15 @@ const ERRORS: Record<string, string> = {
 };
 
 /** Uploads one wedding photo into the couple's album; throws a Vietnamese message on failure */
-export async function uploadWeddingPhoto(slug: string, file: File): Promise<PhotoAssetRecord> {
-  const body = await shrink(file);
+export async function uploadWeddingPhoto(
+  slug: string,
+  file: File,
+  opts?: { preserveAlpha?: boolean },
+): Promise<PhotoAssetRecord> {
+  const preserveAlpha = Boolean(opts?.preserveAlpha);
+  const body = preserveAlpha && file.type === 'image/webp' && file.size < 4.5 * 1024 * 1024
+    ? file
+    : await shrink(file, preserveAlpha);
   const contentType = body.type === 'image/png' || body.type === 'image/webp' ? body.type : 'image/jpeg';
   const presignRes = await fetch('/api/r2/presign', {
     method: 'POST',

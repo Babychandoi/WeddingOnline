@@ -55,8 +55,11 @@ export function Photo({
   return (
     <img
       src={sized(src, small)}
-      alt={alt}
+      alt={alt || 'Ảnh cưới minh họa — DamCuoiOnline.vn'}
+      width={small ? 420 : 900}
+      height={small ? 560 : 1200}
       loading={eager ? 'eager' : 'lazy'}
+      fetchPriority={eager ? 'high' : undefined}
       decoding="async"
       draggable={false}
       data-zoom={zoom ? '' : undefined}

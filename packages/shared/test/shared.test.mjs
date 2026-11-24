@@ -268,9 +268,69 @@ test('Invitation config sanitiser keeps content bounded and links safe', async (
   assert.equal(sanitizeInvitationConfig({}, legacy).music.track, 'hop-nhac');
 });
 
-test('Invitation plans: published only when paid, renewals add on, a paid 3D hall includes it', async () => {
-  const { INVITATION_PLANS, invitationAccess, invitationPlanEnd, INVITATION_LIFETIME_UNTIL } = await import('../dist/index.js');
+test('All 10 3D walkthrough invitation templates & cutout/greeting fields are validated cleanly', async () => {
+  const {
+    WALKTHROUGH_3D_IDS,
+    isInvitationTemplateId,
+    isWalkthrough3DTemplate,
+    defaultInvitationConfig,
+    sanitizeInvitationConfig,
+  } = await import('../dist/index.js');
+  assert.equal(WALKTHROUGH_3D_IDS.length, 10);
+  for (const id of WALKTHROUGH_3D_IDS) {
+    assert.equal(isInvitationTemplateId(id), true, `Expected ${id} in INVITATION_TEMPLATE_IDS`);
+    assert.equal(isWalkthrough3DTemplate(id), true, `Expected ${id} to be 3D walkthrough`);
+  }
+  assert.equal(isWalkthrough3DTemplate('song-hy-do'), false);
+
+  const base = defaultInvitationConfig({ groomName: 'Quang Vinh', brideName: 'Diệu Linh', weddingDate: '2026-12-19T03:00:00.000Z' });
+  const bad = sanitizeInvitationConfig(
+    {
+      templateId: '3d-oai-huong',
+      coupleCutoutUrl: 'javascript:alert(1)',
+      walkthroughGreeting: 'x'.repeat(300),
+    },
+    base,
+  );
+  assert.equal(bad.templateId, '3d-oai-huong');
+  assert.equal(bad.coupleCutoutUrl, '');
+  assert.equal(bad.walkthroughGreeting.length, 140);
+
+  const ok = sanitizeInvitationConfig(
+    {
+      templateId: '3d-co-truyen',
+      coupleCutoutUrl: '/uploads/cutout.webp',
+      walkthroughGreeting: 'Chào {khach}, mời vào dự lễ cùng tụi mình!',
+      memories: [
+        { photoUrl: '/uploads/p1.webp', year: '2023', title: 'Phố Hội lên đèn', story: 'Lần đầu hai đứa đi chơi xa cùng nhau.' },
+        { photoUrl: 'javascript:alert(1)', year: '2024', title: 'Bãi biển', story: 'Chiều hoàng hôn.' },
+      ],
+    },
+    base,
+  );
+  assert.equal(ok.coupleCutoutUrl, '/uploads/cutout.webp');
+  assert.equal(ok.walkthroughGreeting, 'Chào {khach}, mời vào dự lễ cùng tụi mình!');
+  assert.equal(ok.memories.length, 2);
+  assert.equal(ok.memories[0].title, 'Phố Hội lên đèn');
+  assert.equal(ok.memories[1].photoUrl, '');
+});
+
+test('Invitation plans: published only when paid, renewals add on, a paid 3D hall includes it, 2D plan cannot unlock 3D', async () => {
+  const {
+    INVITATION_PLANS,
+    INVITATION_3D_PLANS,
+    INVITATION_2D_TEMPLATES,
+    INVITATION_3D_TEMPLATES,
+    invitationAccess,
+    invitationPlanEnd,
+    invitation3dPlanEnd,
+    INVITATION_LIFETIME_UNTIL,
+  } = await import('../dist/index.js');
+  assert.equal(INVITATION_2D_TEMPLATES.length, 100);
+  assert.equal(INVITATION_3D_TEMPLATES.length, 10);
   assert.deepEqual(INVITATION_PLANS.map((p) => p.priceVnd), [150000, 400000, 750000, 1400000, 3000000]);
+  assert.deepEqual(INVITATION_3D_PLANS.map((p) => p.priceVnd), [290000, 690000, 1190000, 1990000, 3990000]);
+
   const now = Date.parse('2026-11-20T00:00:00Z');
   const draft = { tier: 'TRIAL_24H', status: 'DRAFT', invitationPaidUntil: null };
   assert.equal(invitationAccess(draft, now).published, false);
@@ -282,7 +342,7 @@ test('Invitation plans: published only when paid, renewals add on, a paid 3D hal
   const paid = { ...draft, invitationPaidUntil: end3 };
   assert.deepEqual(
     { ...invitationAccess(paid, now) },
-    { published: true, source: 'plan', until: end3, lifetime: false, expired: false },
+    { published: true, source: 'plan', until: end3, lifetime: false, expired: false, is3D: false, needs3dUpgrade: false },
   );
   // Lapsed plan: hidden and marked expired; a lapsed plan restarts from today
   const lapsed = invitationAccess(paid, Date.parse('2027-03-01T00:00:00Z'));
@@ -290,8 +350,31 @@ test('Invitation plans: published only when paid, renewals add on, a paid 3D hal
   assert.equal(lapsed.expired, true);
   assert.equal(invitationPlanEnd('1m', end3, new Date('2027-03-01T00:00:00Z')), '2027-04-01T00:00:00.000Z');
   assert.equal(invitationPlanEnd('life', end3, new Date(now)), INVITATION_LIFETIME_UNTIL);
+
+  // Anti-bypass: 2D plan active does NOT unlock a 3D walkthrough template
+  const bypassAttempt = {
+    ...paid,
+    invitationConfig: { templateId: '3d-ho-sen-hoa-dang' },
+  };
+  const blocked3d = invitationAccess(bypassAttempt, now);
+  assert.equal(blocked3d.published, false);
+  assert.equal(blocked3d.is3D, true);
+  assert.equal(blocked3d.needs3dUpgrade, true);
+  assert.equal(blocked3d.source, null);
+
+  // Buying a 3D plan unlocks 3D (and also covers 2D)
+  const end3d = invitation3dPlanEnd('3m', null, new Date(now));
+  assert.equal(end3d, '2027-02-20T00:00:00.000Z');
+  const paid3d = { ...bypassAttempt, invitation3dPaidUntil: end3d };
+  const ok3d = invitationAccess(paid3d, now);
+  assert.equal(ok3d.published, true);
+  assert.equal(ok3d.source, 'plan_3d');
+  assert.equal(ok3d.needs3dUpgrade, false);
+  assert.equal(invitationAccess({ tier: 'TRIAL_24H', status: 'DRAFT', invitation3dPaidUntil: end3d }, { is3D: false, now }).published, true);
+
   // A paid hall includes it; the paid tier alone (still DRAFT, not paid yet) does not
   assert.equal(invitationAccess({ tier: 'HAPPINESS', status: 'PUBLISHED_3D' }, now).source, 'hall');
+  assert.equal(invitationAccess({ tier: 'HAPPINESS', status: 'PUBLISHED_3D', invitationConfig: { templateId: '3d-oai-huong' } }, now).published, true);
   assert.equal(invitationAccess({ tier: 'VIP_FULFILLMENT', status: 'DRAFT' }, now).published, false);
   assert.equal(invitationAccess({ tier: 'HAPPINESS', status: 'ARCHIVED_2D_FOREVER' }, now).published, false);
 });

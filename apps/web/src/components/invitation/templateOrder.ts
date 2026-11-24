@@ -1,7 +1,7 @@
-import { INVITATION_TEMPLATES, type InvitationTemplateMeta, type InvitationTemplateStyle } from '@dco/shared';
+import { INVITATION_2D_TEMPLATES, type Invitation2DTemplateStyle, type InvitationTemplateMeta } from '@dco/shared';
 
 /**
- * The order templates are shown in when no style is picked: the 12 originals first, then the
+ * The order 2D templates are shown in when no style is picked: the 12 originals first, then the
  * rest dealt out one style at a time, so every screenful mixes traditional, romantic, modern…
  */
 function interleaved(list: InvitationTemplateMeta[]): InvitationTemplateMeta[] {
@@ -14,9 +14,9 @@ function interleaved(list: InvitationTemplateMeta[]): InvitationTemplateMeta[] {
   return out;
 }
 
-export const TEMPLATES_ORDERED: InvitationTemplateMeta[] = interleaved(INVITATION_TEMPLATES);
+export const TEMPLATES_ORDERED: InvitationTemplateMeta[] = interleaved(INVITATION_2D_TEMPLATES);
 
-export type StyleFilter = InvitationTemplateStyle | 'all';
+export type StyleFilter = Invitation2DTemplateStyle | 'all';
 
 export function templatesFor(style: StyleFilter): InvitationTemplateMeta[] {
   return style === 'all' ? TEMPLATES_ORDERED : TEMPLATES_ORDERED.filter((t) => t.style === style);

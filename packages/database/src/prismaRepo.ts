@@ -26,8 +26,11 @@ import {
   type SceneLayoutDocument,
   type TemplateId,
   type WeddingTier,
+  invitationAccess,
   invitationPlanEnd,
+  invitation3dPlanEnd,
   isInvitationPlanId,
+  isInvitation3dPlanId,
 } from '@dco/shared';
 import { createSeedSnapshot } from './seedData';
 import type {
@@ -103,6 +106,7 @@ function mapWedding(w: PrismaWedding): WeddingRecord {
     invitationConfig: w.invitationConfig ?? null,
     invitationOnly: w.invitationOnly,
     invitationPaidUntil: w.invitationPaidUntil ? w.invitationPaidUntil.toISOString() : null,
+    invitation3dPaidUntil: w.invitation3dPaidUntil ? w.invitation3dPaidUntil.toISOString() : null,
     createdAt: w.createdAt.toISOString(),
     updatedAt: w.updatedAt.toISOString(),
   };
@@ -215,7 +219,7 @@ function mapSaasOrder(o: PrismaSaasOrder): SaasOrderRecord {
     weddingId: o.weddingId,
     buyerId: o.buyerId,
     targetTier: o.targetTier,
-    kind: o.kind === 'INVITATION' ? 'INVITATION' : 'HALL',
+    kind: o.kind === 'INVITATION_3D' ? 'INVITATION_3D' : o.kind === 'INVITATION' ? 'INVITATION' : 'HALL',
     invitationPlan: o.invitationPlan ?? null,
     amountVnd: o.amountVnd,
     orderCode: o.orderCode,
@@ -731,10 +735,16 @@ export const prismaRepo = {
         });
         if (
           !intent ||
-          // paid halls, or a published invitation (paid plan)
+          // paid halls, or a published invitation (2D or 3D plan matched against active template)
           (intent.wedding.tier !== 'HAPPINESS' &&
             intent.wedding.tier !== 'VIP_FULFILLMENT' &&
-            !(intent.wedding.invitationPaidUntil && intent.wedding.invitationPaidUntil.getTime() > Date.now()))
+            !invitationAccess({
+              tier: intent.wedding.tier,
+              status: intent.wedding.status,
+              invitationPaidUntil: intent.wedding.invitationPaidUntil?.toISOString() ?? null,
+              invitation3dPaidUntil: intent.wedding.invitation3dPaidUntil?.toISOString() ?? null,
+              invitationConfig: intent.wedding.invitationConfig,
+            }).published)
         ) {
           return { duplicate: false };
         }
@@ -796,7 +806,7 @@ export const prismaRepo = {
     targetTier: WeddingTier;
     amountVnd: number;
     orderCode: string;
-    kind?: 'HALL' | 'INVITATION';
+    kind?: 'HALL' | 'INVITATION' | 'INVITATION_3D';
     invitationPlan?: string | null;
   }): Promise<SaasOrderRecord> {
     const created = await getPrismaClient().saasOrder.create({
@@ -855,6 +865,27 @@ export const prismaRepo = {
             data: {
               invitationPaidUntil: new Date(
                 invitationPlanEnd(order.invitationPlan, order.wedding.invitationPaidUntil?.toISOString() ?? null, now),
+              ),
+            },
+          });
+          await tx.paymentWebhookLog.create({
+            data: {
+              provider: input.provider,
+              providerTxId: input.providerTxId,
+              saasOrderId: order.id,
+              rawPayload: input.rawPayload as Prisma.InputJsonValue,
+            },
+          });
+          return { duplicate: false, upgraded: true, wedding: mapWedding(paidWedding) };
+        }
+
+        // A 3D walkthrough invitation plan publishes (or extends) 3D invitations
+        if (order.kind === 'INVITATION_3D' && isInvitation3dPlanId(order.invitationPlan)) {
+          const paidWedding = await tx.wedding.update({
+            where: { id: order.weddingId },
+            data: {
+              invitation3dPaidUntil: new Date(
+                invitation3dPlanEnd(order.invitationPlan, order.wedding.invitation3dPaidUntil?.toISOString() ?? null, now),
               ),
             },
           });

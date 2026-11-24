@@ -2,8 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Metric-matched fallback for Cormorant Garamond so mobile serif headings never reflow on font swap */
+@font-face {
+  font-family: 'Cormorant Fallback';
+  src: local('Georgia'), local('Times New Roman');
+  size-adjust: 76%;
+  ascent-override: 108%;
+  descent-override: 30%;
+  line-gap-override: 0%;
+}
+
+html,
 :root {
   color-scheme: light;
+  --font-display: 'Cormorant Garamond', 'Cormorant Fallback', Georgia, serif;
+  --f-cormorant: 'Cormorant Garamond', 'Cormorant Fallback', Georgia, serif;
 }
 
 html,

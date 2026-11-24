@@ -1,0 +1,33 @@
+# DamCuoiOnline.vn
+
+> Vietnamese online wedding invitation platform (100 interactive templates with 3D page-flip albums, personalized guest envelopes, lunar calendar, RSVP, and VietQR SePay gift automation) and 3D virtual wedding hall platform (101 Vietnamese & global browser-based 3D venues with LiveKit table voice chat, Auto-NPC hosts, and permanent 2D memorial archives).
+
+## Core Public Pages
+- [Trang chủ DamCuoiOnline.vn](https://poiplegal.online/): Platform overview, live 3D demos, featured Vietnamese venues, invitation deck, and transparent VND pricing.
+- [100 Mẫu Thiệp Cưới Online 2D](https://poiplegal.online/thiep-cuoi): Complete gallery of 100 2D wedding invitation templates (Traditional Vietnamese Song Hỷ, Botanical Watercolor, Editorial Magazine, Luxury Baroque & Beach), pricing from 150,000 VND/month (free draft & preview).
+- [10 Bộ Thiệp Cưới 3D Dạo Bước Tương Tác](https://poiplegal.online/thiep-cuoi-3d): Interactive fullscreen WebGL 3D wedding invitations with multi-station camera transitions, custom couple standee, Welcome & Memory Easels, and free-walk joystick, pricing from 290,000 VND/month (free draft & preview).
+- [101 Không Gian Sảnh Cưới 3D](https://poiplegal.online/khong-gian): Interactive browser-based 3D wedding venues from Vietnam (Lễ Gia Tiên, Rạp Lá Dừa Miền Tây, Phố Cổ Hội An, Biển Phú Quốc, Đà Lạt) and worldwide.
+- [Quảng Trường Cưới 3D 24/7](https://poiplegal.online/plaza): Free live 3D public wedding plaza open 24/7 for immediate browser exploration without installing an app.
+- [Tạo Thiệp Cưới Online 2D](https://poiplegal.online/thiep-cuoi/tao): Free 2D invitation builder with instant guest link preview.
+- [Tạo Thiệp Cưới 3D](https://poiplegal.online/thiep-cuoi-3d/tao): Free 3D walkthrough invitation builder with couple standee cutout and 6 memory easels.
+- [Tạo Sảnh Cưới 3D](https://poiplegal.online/create): 3D wedding hall setup wizard supporting 24h free trial and paid plans.
+
+## Transparent Pricing (VND)
+- **Thiệp cưới online 2D (100 mẫu)**: Thiết kế & xem trước miễn phí; phát hành từ `150.000đ` (1 tháng) đến `3.000.000đ` (trọn đời).
+- **Thiệp cưới 3D dạo bước (10 bộ chủ đề WebGL)**: Thiết kế & xem trước miễn phí; phát hành từ `290.000đ` (1 tháng) đến `3.990.000đ` (trọn đời).
+- **Mừng cưới VietQR**: Chuyển thẳng 100% về tài khoản cặp đôi (0% phí nền tảng, luôn ẩn số tiền công khai).
+- **Sảnh cưới 3D trực tuyến**: Gói Dùng Thử 24h (`Miễn phí`), Gói Hạnh Phúc (`399.000đ`), Gói Viên Mãn VIP (`1.199.000đ` — bao gồm sẵn thiệp cưới 2D & 3D, LiveKit Voice Chat từng bàn tiệc & MC, Auto-NPC, Photobooth và lưu trữ Kỷ niệm 2D vĩnh viễn).
+
+## Guides & Comparisons (Vietnamese SXO / Knowledge Hub)
+- [Cẩm Nang Thiệp Cưới Online & Đám Cưới 3D](https://poiplegal.online/huong-dan): Editorial hub covering online wedding invitations, VietQR gift privacy, and 3D hybrid receptions.
+- [Hướng Dẫn Tạo Thiệp Cưới Online Gửi Zalo Trong 5 Phút](https://poiplegal.online/huong-dan/tao-thiep-cuoi-online): 5-step guide to choosing from 100 templates, personalized guest links, lunar calendar, RSVP, and Zalo/Facebook sharing.
+- [Cách Tạo Hộp Mừng Cưới VietQR Tự Động & Ẩn Số Tiền](https://poiplegal.online/huong-dan/mung-cuoi-vietqr): Direct-to-couple VietQR + SePay automation with 0% commission and strict gift-amount privacy.
+- [Đám Cưới Online 3D & Tiệc Cưới Hybrid Cho Người Thân Ở Xa](https://poiplegal.online/huong-dan/dam-cuoi-online-3d): Browser-based 3D reception guide covering LiveKit table voice chat, Auto-NPC hosts, and permanent 2D keepsakes.
+- [So Sánh Thiệp Cưới Online Và Thiệp Giấy Truyền Thống](https://poiplegal.online/so-sanh/thiep-cuoi-online-va-thiep-giay): Cost breakdown for 300 guests and 40/60 hybrid paper+QR strategy.
+
+## Policies & Support
+- [Bảng Giá Thiệp Cưới Online & Sảnh 3D](https://poiplegal.online/bang-gia): Transparent VND pricing for standalone online invitations (from 150,000 VND) and 3D halls (Free 24h Trial, 399,000 VND, 1,199,000 VND).
+- [Về DamCuoiOnline.vn](https://poiplegal.online/ve-chung-toi): Platform engineering architecture, zero-commission VietQR gift privacy commitment, and Vietnamese wedding heritage.
+- [Chính Sách Bảo Mật](https://poiplegal.online/chinh-sach-bao-mat): Privacy protection for couple photos, guest RSVP lists, OAuth accounts, and confidential VietQR gift ledger.
+- [Điều Khoản Sử Dụng](https://poiplegal.online/dieu-khoan-su-dung): Service terms, activation, renewal, and permanent 2D keepsake archiving rules.
+- [Liên Hệ & Hỗ Trợ](https://poiplegal.online/lien-he): Support channels and official platform information.

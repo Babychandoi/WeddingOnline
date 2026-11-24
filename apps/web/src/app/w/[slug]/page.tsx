@@ -5,18 +5,37 @@ import { dbRepo, toPublicWedding } from '@dco/database';
 import { STARTER_TEMPLATES } from '@dco/shared';
 import { HallExperience } from '@/components/hall/HallExperience';
 import { MemorialArchiveView } from '@/components/memorial/MemorialArchiveView';
+import { canonicalUrl, isPublicDemoSlug } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const wedding = await dbRepo.getWeddingBySlug(params.slug);
   if (!wedding) {
-    return { title: 'Không tìm thấy phòng cưới — DamCuoiOnline.vn' };
+    return { title: 'Không tìm thấy phòng cưới — DamCuoiOnline.vn', robots: { index: false, follow: false } };
   }
   const dateStr = new Date(wedding.weddingDate).toLocaleDateString('vi-VN');
+  const fullTitle = `${wedding.title} — DamCuoiOnline.vn`;
+  const title = fullTitle.length <= 60 ? fullTitle : `${wedding.groomName} & ${wedding.brideName} — DamCuoiOnline.vn`;
+  const description = `Trân trọng kính mời bạn vào Sảnh Cưới 3D trực tuyến ngày ${dateStr}: ngắm ảnh cưới, ký Sổ Lưu Bút, cụng ly 1-2-3 Dzô và chung vui cùng cô dâu chú rể.`;
+  const url = canonicalUrl(`/w/${wedding.slug}`);
   return {
-    title: `${wedding.title} (${wedding.groomName} & ${wedding.brideName}) — DamCuoiOnline.vn`,
-    description: `Trân trọng kính mời bạn vào Sảnh Cưới 3D trực tuyến ngày ${dateStr}: ngắm ảnh cưới, ký Sổ Lưu Bút, cụng ly 1-2-3 Dzô và chung vui cùng cô dâu chú rể.`,
+    title,
+    description,
+    alternates: { canonical: url },
+    robots: isPublicDemoSlug(wedding.slug) ? { index: true, follow: true } : { index: false, follow: false },
+    openGraph: {
+      title,
+      description,
+      url,
+      images: [{ url: `/w/${wedding.slug}/opengraph-image`, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`/w/${wedding.slug}/opengraph-image`],
+    },
   };
 }
 
