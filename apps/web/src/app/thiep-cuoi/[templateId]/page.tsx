@@ -52,10 +52,12 @@ export default function TemplateDemoPage({ params, searchParams }: { params: { t
   const backHref = is3D ? '/thiep-cuoi-3d#mau-thiep-3d' : '/thiep-cuoi#mau-thiep';
   const createHref = is3D ? `/thiep-cuoi-3d/tao?mau=${meta.id}` : `/thiep-cuoi/tao?mau=${meta.id}`;
   const collectionPath = is3D ? '/thiep-cuoi-3d' : '/thiep-cuoi';
-  const collectionName = is3D ? '10 Mẫu Thiệp Cưới 3D Dạo Bước' : '100 Mẫu Thiệp Cưới Online 2D';
-  const related = (is3D ? INVITATION_3D_TEMPLATES : INVITATION_2D_TEMPLATES.filter((t) => t.style === meta.style)).filter(
-    (t) => t.id !== meta.id,
-  );
+  const collectionName = is3D ? `${INVITATION_3D_TEMPLATES.length} Mẫu Thiệp Cưới 3D Dạo Bước` : '100 Mẫu Thiệp Cưới Online 2D';
+  const related = (
+    is3D
+      ? INVITATION_3D_TEMPLATES.filter((t) => !meta.category3d || t.category3d === meta.category3d)
+      : INVITATION_2D_TEMPLATES.filter((t) => t.style === meta.style)
+  ).filter((t) => t.id !== meta.id);
   const coverUrl = canonicalUrl(SAMPLE_PHOTOS[params.templateId]?.cover || '/opengraph-image');
   return (
     <>

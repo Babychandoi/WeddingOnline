@@ -5,6 +5,7 @@ import { Check, ExternalLink, Eye, Gift, ImagePlus, LayoutList, Link2, ListCheck
 import {
   INVITATION_2D_STYLE_LABELS,
   INVITATION_2D_TEMPLATES,
+  INVITATION_3D_CATEGORY_LABELS,
   INVITATION_3D_TEMPLATES,
   INVITATION_EVENT_LABELS,
   INVITATION_LIMITS,
@@ -13,6 +14,7 @@ import {
   invitationItemId,
   isWalkthrough3DTemplate,
   type Invitation2DTemplateStyle,
+  type Invitation3DCategory,
   type InvitationConfig,
   type InvitationEventKind,
   type InvitationMusicTrackId,
@@ -140,8 +142,10 @@ export function InvitationEditor({
   const [origin, setOrigin] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [pickStyle, setPickStyle] = useState<Invitation2DTemplateStyle | 'all'>('all');
+  const [pick3dCat, setPick3dCat] = useState<Invitation3DCategory | 'all'>('all');
   const [tplTierTab, setTplTierTab] = useState<'2d' | '3d'>('2d');
   const [pickShown, setPickShown] = useState(18);
+  const [pick3dShown, setPick3dShown] = useState(18);
   const [uploading, setUploading] = useState(0);
   const [cutoutBusy, setCutoutBusy] = useState(false);
   const [photoError, setPhotoError] = useState('');
@@ -726,27 +730,64 @@ export function InvitationEditor({
                 </div>
               </>
             ) : (
-              <div className={`grid gap-3 ${bare ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'}`}>
-                {INVITATION_3D_TEMPLATES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => patch({ templateId: t.id })}
-                    aria-pressed={config.templateId === t.id}
-                    className={`relative overflow-hidden rounded-xl text-left ring-offset-2 transition ${config.templateId === t.id ? 'ring-[3px] ring-rose-600' : 'ring-1 ring-amber-300/80 hover:ring-rose-400'}`}
-                  >
-                    <CardFace
-                      templateId={t.id}
-                      groom={config.groomFullName}
-                      bride={config.brideFullName}
-                      date={mainDate}
-                      cover={config.coupleCutoutUrl || undefined}
-                      className="pointer-events-none"
-                    />
-                    <span className="block truncate bg-white px-2 py-1.5 text-[11px] font-bold text-slate-800">{t.nameVi}</span>
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Lọc mẫu 3D theo chủ đề">
+                  {([['all', 'Tất cả'], ...Object.entries(INVITATION_3D_CATEGORY_LABELS)] as Array<[Invitation3DCategory | 'all', string]>).map(([id, text]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={pick3dCat === id}
+                      onClick={() => {
+                        setPick3dCat(id);
+                        setPick3dShown(18);
+                      }}
+                      className={`min-h-[34px] shrink-0 rounded-full px-3 text-xs font-bold transition ${pick3dCat === id ? 'bg-rose-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-rose-50'}`}
+                    >
+                      {text}
+                    </button>
+                  ))}
+                </div>
+                <div className={`grid gap-3 ${bare ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'}`}>
+                  {(() => {
+                    const base3d = pick3dCat === 'all' ? INVITATION_3D_TEMPLATES : INVITATION_3D_TEMPLATES.filter((t) => t.category3d === pick3dCat);
+                    const cur3d = INVITATION_3D_TEMPLATES.find((t) => t.id === config.templateId);
+                    const ordered3d = cur3d ? [cur3d, ...base3d.filter((t) => t.id !== cur3d.id)] : base3d;
+                    return (
+                      <>
+                        {ordered3d.slice(0, pick3dShown).map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => patch({ templateId: t.id })}
+                            aria-pressed={config.templateId === t.id}
+                            className={`relative overflow-hidden rounded-xl text-left ring-offset-2 transition ${config.templateId === t.id ? 'ring-[3px] ring-rose-600' : 'ring-1 ring-amber-300/80 hover:ring-rose-400'}`}
+                          >
+                            <CardFace
+                              templateId={t.id}
+                              groom={config.groomFullName}
+                              bride={config.brideFullName}
+                              date={mainDate}
+                              cover={config.coupleCutoutUrl || undefined}
+                              className="pointer-events-none"
+                            />
+                            <span className="block truncate bg-white px-2 py-1.5 text-[11px] font-bold text-slate-800">{t.nameVi}</span>
+                          </button>
+                        ))}
+                        {pick3dShown < ordered3d.length && (
+                          <button
+                            type="button"
+                            onClick={() => setPick3dShown((n) => n + 20)}
+                            className="col-span-full min-h-[44px] rounded-xl text-sm font-semibold text-rose-800 ring-1 ring-rose-200 transition hover:bg-rose-50"
+                          >
+                            Xem thêm mẫu 3D ({ordered3d.length - pick3dShown})
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </>
             )}
           </Group>
         );

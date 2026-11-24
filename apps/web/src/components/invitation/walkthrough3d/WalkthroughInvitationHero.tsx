@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import {
   BookOpen,
   Calendar,
+  Camera,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -13,6 +14,7 @@ import {
   Expand,
   Gift,
   MapPin,
+  PartyPopper,
   Pause,
   Play,
   Sparkles,
@@ -20,7 +22,14 @@ import {
   VolumeX,
 } from 'lucide-react';
 import type { InvitationMemoryItem, Walkthrough3DTemplateId } from '@dco/shared';
-import { formatShortDotsDate, formatWalkthroughDate, walkthrough3DTheme } from './themes3d';
+import {
+  CAMERA_FLIGHT_LABELS,
+  GALLERY_LAYOUT_LABELS,
+  formatShortDotsDate,
+  formatWalkthroughDate,
+  walkthrough3DTheme,
+  type CameraFlightStyle3D,
+} from './themes3d';
 import {
   buildTourStations,
   type JoystickInput,
@@ -43,6 +52,8 @@ function detectWebGL(): boolean {
   }
 }
 
+const CAMERA_MODES = Object.keys(CAMERA_FLIGHT_LABELS) as CameraFlightStyle3D[];
+
 export interface WalkthroughInvitationHeroProps {
   themeId: Walkthrough3DTemplateId;
   groom: string;
@@ -50,6 +61,7 @@ export interface WalkthroughInvitationHeroProps {
   dateIso: string;
   guestName: string;
   greetingTemplate?: string;
+  quote?: string;
   welcomeSubtitle?: string;
   coupleCutoutUrl?: string;
   photos: WalkthroughPhotoItem[];
@@ -63,11 +75,9 @@ export interface WalkthroughInvitationHeroProps {
   musicEnabled?: boolean;
   onToggleMusic?: () => void;
   demo?: boolean;
-  /** True inside visual editor so owner sees quick edit pills cleanly */
   editorMode?: boolean;
   onEditSpot?: (part: 'cover' | 'album' | 'events') => void;
   onOpenPhoto?: (index: number) => void;
-  /** Scroll target id below the fullscreen 3D showcase */
   detailsAnchorId?: string;
 }
 
@@ -78,6 +88,7 @@ export function WalkthroughInvitationHero({
   dateIso,
   guestName,
   greetingTemplate,
+  quote,
   welcomeSubtitle,
   coupleCutoutUrl,
   photos,
@@ -104,6 +115,8 @@ export function WalkthroughInvitationHero({
   const [inspectOpen, setInspectOpen] = useState(false);
   const [autoTour, setAutoTour] = useState(false);
   const [stationMenuOpen, setStationMenuOpen] = useState(false);
+  const [celebrationBursts, setCelebrationBursts] = useState(0);
+  const [cameraOverride, setCameraOverride] = useState<CameraFlightStyle3D | null>(null);
 
   const joystickRef = useRef<JoystickInput>({ x: 0, y: 0, active: false });
   const joyPadRef = useRef<HTMLDivElement>(null);
@@ -112,6 +125,13 @@ export function WalkthroughInvitationHero({
   useEffect(() => {
     setWebglOk(detectWebGL());
   }, []);
+
+  // Reset camera override when switching templates
+  useEffect(() => {
+    setCameraOverride(null);
+  }, [themeId]);
+
+  const activeCameraStyle = cameraOverride ?? theme.cameraStyle;
 
   const stations = useMemo(
     () =>
@@ -130,6 +150,13 @@ export function WalkthroughInvitationHero({
   const currentStation = stations[stationIndex] ?? stations[0];
   const shownPhotoCount = Math.min(6, photos.length);
 
+  // Auto-launch celebratory sparkles when guest reaches the final Ceremony Stage ("Lễ đài")!
+  useEffect(() => {
+    if (currentStation?.kind === 'stage' && !freeWalkActive) {
+      setCelebrationBursts((c) => c + 1);
+    }
+  }, [currentStation?.kind, freeWalkActive]);
+
   const goToStation = (idx: number, keepInspect = false) => {
     const nextIdx = ((idx % stations.length) + stations.length) % stations.length;
     setFreeWalkActive(false);
@@ -139,54 +166,73 @@ export function WalkthroughInvitationHero({
     setStationRevision((r) => r + 1);
   };
 
-  // Focus & zoom in on a specific photo easel (triggered by clicking the 3D frame or "Xem kỷ niệm")
   const inspectPhotoAt = (photoIdx: number) => {
-    if (editorMode && onEditSpot) {
-      onEditSpot('album');
-      return;
-    }
-    const targetIdx = stations.findIndex((s) => s.kind === 'photo' && s.photoIndex === photoIdx);
+    const found = stations.findIndex((s) => s.kind === 'photo' && s.photoIndex === photoIdx);
+    if (found < 0) return;
     setAutoTour(false);
     setFreeWalkActive(false);
     setStationMenuOpen(false);
-    if (targetIdx >= 0 && targetIdx !== stationIndex) {
-      setStationIndex(targetIdx);
-      setStationRevision((r) => r + 1);
-    }
+    setStationIndex(found);
     setInspectOpen(true);
+    setStationRevision((r) => r + 1);
   };
 
-  // Focus & zoom in on a specific event easel (triggered by clicking the 3D event board or "Xem chi tiết")
   const inspectEventAt = (eventIdx: number) => {
-    if (editorMode && onEditSpot) {
-      onEditSpot('events');
-      return;
-    }
-    const targetIdx = stations.findIndex((s) => s.kind === 'event' && s.eventIndex === eventIdx);
+    const found = stations.findIndex((s) => s.kind === 'event' && s.eventIndex === eventIdx);
+    if (found < 0) return;
     setAutoTour(false);
     setFreeWalkActive(false);
     setStationMenuOpen(false);
-    if (targetIdx >= 0 && targetIdx !== stationIndex) {
-      setStationIndex(targetIdx);
-      setStationRevision((r) => r + 1);
-    }
+    setStationIndex(found);
     setInspectOpen(true);
+    setStationRevision((r) => r + 1);
+  };
+
+  const cycleCameraStyle = () => {
+    const currIdx = CAMERA_MODES.indexOf(activeCameraStyle);
+    const next = CAMERA_MODES[(currIdx + 1) % CAMERA_MODES.length];
+    setCameraOverride(next);
   };
 
   useEffect(() => {
-    if (!autoTour || freeWalkActive || inspectOpen) return;
-    const t = window.setInterval(() => {
-      setStationIndex((idx) => {
-        if (idx >= stations.length - 1) {
+    if (!autoTour) return;
+    const timer = window.setInterval(() => {
+      setInspectOpen(false);
+      setStationIndex((prev) => {
+        if (prev >= stations.length - 1) {
           setAutoTour(false);
-          return idx;
+          return prev;
         }
         setStationRevision((r) => r + 1);
-        return idx + 1;
+        return prev + 1;
       });
-    }, 3800);
-    return () => window.clearInterval(t);
-  }, [autoTour, freeWalkActive, inspectOpen, stations.length]);
+    }, 3400);
+    return () => window.clearInterval(timer);
+  }, [autoTour, stations.length]);
+
+  const cleanGuest = guestName.trim() || 'bạn';
+  const rawGreeting = greetingTemplate?.trim() || theme.defaultGreeting;
+  const bubbleMsg = rawGreeting.includes('{khach}')
+    ? rawGreeting.replace(/\{khach\}/g, cleanGuest)
+    : guestName.trim()
+      ? `Chào ${cleanGuest}! ${rawGreeting}`
+      : rawGreeting;
+
+  const fullDateLabel = formatWalkthroughDate(dateIso);
+  const shortDotsDate = formatShortDotsDate(dateIso);
+  const finalQuote = quote?.trim() || theme.sampleQuote;
+
+  const daysUntilWedding = useMemo(() => {
+    const t = Date.parse(dateIso);
+    if (!Number.isFinite(t)) return null;
+    const diff = Math.ceil((t - Date.now()) / (24 * 3600 * 1000));
+    return diff > 0 ? diff : 0;
+  }, [dateIso]);
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id) ?? document.getElementById(detailsAnchorId);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const updateJoystickFromPointer = (clientX: number, clientY: number) => {
     const el = joyPadRef.current;
@@ -194,7 +240,7 @@ export function WalkthroughInvitationHero({
     const rect = el.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
-    const maxR = rect.width * 0.36;
+    const maxR = rect.width * 0.34;
     let dx = clientX - cx;
     let dy = clientY - cy;
     const dist = Math.hypot(dx, dy);
@@ -202,13 +248,15 @@ export function WalkthroughInvitationHero({
       dx = (dx / dist) * maxR;
       dy = (dy / dist) * maxR;
     }
-    const nx = Math.max(-1, Math.min(1, dx / maxR));
-    const ny = Math.max(-1, Math.min(1, dy / maxR));
+    const nx = dx / maxR;
+    const ny = dy / maxR;
     joystickRef.current = { x: nx, y: ny, active: true };
     setJoyKnob({ x: dx, y: dy, active: true });
-    setAutoTour(false);
-    setInspectOpen(false);
-    setFreeWalkActive(true);
+    if (!freeWalkActive) {
+      setAutoTour(false);
+      setInspectOpen(false);
+      setFreeWalkActive(true);
+    }
   };
 
   const resetJoystick = () => {
@@ -216,17 +264,6 @@ export function WalkthroughInvitationHero({
     setJoyKnob({ x: 0, y: 0, active: false });
   };
 
-  const scrollToSection = (id: string) => {
-    const target = document.getElementById(id);
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const cleanGuest = guestName.trim() || 'Quý khách';
-  const bubbleMsg = (greetingTemplate?.trim() || theme.defaultGreeting).replace(/\{khach\}/gi, cleanGuest);
-  const fullDateLabel = useMemo(() => formatWalkthroughDate(dateIso), [dateIso]);
-  const shortDotsDate = useMemo(() => formatShortDotsDate(dateIso), [dateIso]);
-
-  // Resolve current photo memory metadata when at a Photo station
   const activePhotoIndex = currentStation.kind === 'photo' ? (currentStation.photoIndex ?? 0) : null;
   const activePhoto = activePhotoIndex !== null ? photos[activePhotoIndex] : null;
   const activeMemory = useMemo(() => {
@@ -241,15 +278,19 @@ export function WalkthroughInvitationHero({
     };
   }, [activePhoto, activePhotoIndex, memories]);
 
-  // Resolve current event board metadata when at an Event station
   const activeEventIndex = currentStation.kind === 'event' ? (currentStation.eventIndex ?? 0) : null;
   const activeEvent = activeEventIndex !== null ? events[activeEventIndex] : null;
 
   return (
     <section
       aria-label={`Trải nghiệm thiệp cưới 3D ${theme.nameVi}`}
-      className={`relative mx-auto w-full select-none ${editorMode ? 'h-[620px] max-w-[560px]' : demo ? 'h-[calc(100dvh-56px)] min-h-[460px] w-full' : 'h-[100dvh] min-h-[460px] w-full'
-        }`}
+      className={`relative mx-auto w-full select-none ${
+        editorMode
+          ? 'h-[620px] max-w-[560px]'
+          : demo
+            ? 'h-[calc(100dvh-56px)] min-h-[460px] w-full'
+            : 'h-[100dvh] min-h-[460px] w-full'
+      }`}
       style={{ backgroundColor: theme.cardBgTint }}
     >
       <div className="relative h-full w-full overflow-hidden" style={{ backgroundColor: theme.cardBgTint }}>
@@ -260,6 +301,8 @@ export function WalkthroughInvitationHero({
             stationRevision={stationRevision}
             stations={stations}
             inspectFocused={inspectOpen && (currentStation.kind === 'photo' || currentStation.kind === 'event')}
+            celebrationBursts={celebrationBursts}
+            cameraOverride={cameraOverride}
             joystickRef={joystickRef}
             freeWalkActive={freeWalkActive}
             onEnterFreeWalk={() => {
@@ -279,19 +322,15 @@ export function WalkthroughInvitationHero({
             onInspectEvent={inspectEventAt}
           />
         ) : (
-          <div className="relative h-full w-full overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/invitation-3d/${theme.slug}/sky.webp`} alt={theme.nameVi} className="h-full w-full object-cover" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={currentStation.kind === 'stage' ? `/invitation-3d/${theme.slug}/stage.webp` : `/invitation-3d/${theme.slug}/arch.webp`}
-              alt={theme.nameVi}
-              className="absolute bottom-[12%] left-1/2 h-[66%] w-[92%] -translate-x-1/2 object-contain"
-            />
-          </div>
+          <div
+            className="relative h-full w-full overflow-hidden"
+            style={{
+              background: `linear-gradient(180deg, ${theme.skyTop} 0%, ${theme.skyMid} 55%, ${theme.groundColor} 100%)`,
+            }}
+          />
         )}
 
-        {/* Top-Left Compact Controls (hidden while zoomed in on a photo/event story card) */}
+        {/* Top-Left Compact Controls */}
         {!inspectOpen &&
           (editorMode && onEditSpot ? (
             <div className="absolute left-3 top-3 z-20 flex flex-wrap gap-1.5">
@@ -318,7 +357,7 @@ export function WalkthroughInvitationHero({
               </button>
             </div>
           ) : (
-            <div className="absolute left-3.5 top-3.5 z-20 flex items-center gap-2">
+            <div className="absolute left-3.5 top-3.5 z-20 flex flex-wrap items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 data-testid="walkthrough-autotour"
@@ -332,6 +371,16 @@ export function WalkthroughInvitationHero({
               >
                 {autoTour ? <Pause className="h-3.5 w-3.5 text-amber-300" /> : <Play className="h-3.5 w-3.5 text-amber-300" />}
                 <span>{autoTour ? 'Đang dẫn' : 'Tự dẫn'}</span>
+              </button>
+              <button
+                type="button"
+                data-testid="walkthrough-camera-mode"
+                onClick={cycleCameraStyle}
+                title={`Đổi kiểu bay camera (${GALLERY_LAYOUT_LABELS[theme.galleryLayout]})`}
+                className="inline-flex h-10 items-center gap-1.5 rounded-full border border-white/25 bg-[#161834]/65 px-3 text-xs font-semibold text-amber-100 shadow-lg backdrop-blur-md transition hover:bg-[#1e2147]/85"
+              >
+                <Camera className="h-3.5 w-3.5 text-amber-300" />
+                <span className="hidden sm:inline">{CAMERA_FLIGHT_LABELS[activeCameraStyle]}</span>
               </button>
               <button
                 type="button"
@@ -360,8 +409,9 @@ export function WalkthroughInvitationHero({
 
         {/* Station 0 ("Cổng cưới"): Calligraphic Cover Title */}
         <div
-          className={`pointer-events-none absolute inset-x-0 top-14 z-10 px-5 text-center transition-all duration-500 ${currentStation.kind === 'gate' && !freeWalkActive ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
-            }`}
+          className={`pointer-events-none absolute inset-x-0 top-14 z-10 px-5 text-center transition-all duration-500 ${
+            currentStation.kind === 'gate' && !freeWalkActive ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
+          }`}
         >
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] drop-shadow" style={{ color: theme.titleColor }}>
             {theme.kickerVi}
@@ -382,22 +432,24 @@ export function WalkthroughInvitationHero({
         {/* Station 1 ("Cô dâu chú rể"): Personalized Guest Speech Bubble */}
         <div
           data-walkthrough-bubble="true"
-          className={`pointer-events-none absolute inset-x-6 top-[16%] z-10 flex justify-center transition-all duration-400 ${currentStation.kind === 'couple' && !freeWalkActive
-            ? 'translate-y-0 scale-100 opacity-100'
-            : 'translate-y-2 scale-95 opacity-0'
-            }`}
+          className={`pointer-events-none absolute inset-x-6 top-[16%] z-10 flex justify-center transition-all duration-400 ${
+            currentStation.kind === 'couple' && !freeWalkActive
+              ? 'translate-y-0 scale-100 opacity-100'
+              : 'translate-y-2 scale-95 opacity-0'
+          }`}
         >
           <div className="relative max-w-[285px] rounded-2xl border border-amber-200/95 bg-[#fffdf8]/95 px-4 py-2.5 text-center text-[13.5px] font-semibold leading-snug text-slate-900 shadow-[0_12px_30px_-6px_rgba(12,8,20,0.55)] backdrop-blur-sm">
             {bubbleMsg}
             <span
               aria-hidden="true"
-              className={`absolute -bottom-1.5 h-3 w-3 rotate-45 border-b border-r border-amber-200/95 bg-[#fffdf8] ${theme.standeeSide === 'left' ? 'left-[35%]' : 'left-[62%]'
-                }`}
+              className={`absolute -bottom-1.5 h-3 w-3 rotate-45 border-b border-r border-amber-200/95 bg-[#fffdf8] ${
+                theme.standeeSide === 'left' ? 'left-[35%]' : 'left-[62%]'
+              }`}
             />
           </div>
         </div>
 
-        {/* Photo Station Prompt Pill ("Chạm ảnh / Xem kỷ niệm") when resting before zoom-in */}
+        {/* Photo Station Prompt Pill */}
         {!inspectOpen && !freeWalkActive && activePhotoIndex !== null && activeMemory && (
           <div className="absolute inset-x-4 bottom-[114px] z-20 flex justify-center sm:bottom-20">
             <button
@@ -412,7 +464,7 @@ export function WalkthroughInvitationHero({
           </div>
         )}
 
-        {/* Event Station Prompt Pill ("Xem bản đồ & chi tiết lễ") when resting before zoom-in */}
+        {/* Event Station Prompt Pill */}
         {!inspectOpen && !freeWalkActive && activeEventIndex !== null && activeEvent && (
           <div className="absolute inset-x-4 bottom-[114px] z-20 flex justify-center sm:bottom-20">
             <button
@@ -427,52 +479,71 @@ export function WalkthroughInvitationHero({
           </div>
         )}
 
-        {/* Stage Station Quick Action Chips */}
+        {/* Stage Finale Vow Quote + Countdown + Interactive 3D Firework Burst + Quick Actions */}
         <div
-          className={`absolute inset-x-3 bottom-[112px] z-10 flex flex-wrap items-center justify-center gap-2 transition-all duration-500 sm:bottom-20 ${
+          className={`absolute inset-x-3 bottom-[108px] z-10 flex flex-col items-center gap-2.5 transition-all duration-500 sm:bottom-20 ${
             currentStation.kind === 'stage' && !freeWalkActive && !inspectOpen
               ? 'translate-y-0 opacity-100'
               : 'pointer-events-none translate-y-3 opacity-0'
           }`}
         >
-          {showEvents && (
+          <div className="max-w-md rounded-2xl border border-amber-200/40 bg-[#161834]/78 px-4 py-2.5 text-center text-white shadow-xl backdrop-blur-md">
+            {daysUntilWedding !== null && (
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-300">
+                {daysUntilWedding > 0 ? `Đếm ngược · Còn ${daysUntilWedding} ngày tới lễ cưới` : 'Hôm nay là ngày trọng đại'}
+              </p>
+            )}
+            <p className="mt-1 font-serif text-sm italic leading-snug text-amber-50/95">“{finalQuote}”</p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
-              onClick={() => scrollToSection('su-kien')}
-              className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-white/95 px-3.5 text-xs font-bold text-slate-900 shadow-lg ring-1 ring-amber-200 backdrop-blur transition hover:bg-amber-50"
+              data-testid="walkthrough-firework-btn"
+              onClick={() => setCelebrationBursts((c) => c + 1)}
+              className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-amber-300 px-3.5 text-xs font-black text-slate-950 shadow-lg transition hover:scale-105 hover:bg-amber-200"
             >
-              <Calendar className="h-3.5 w-3.5 text-rose-700" /> Lịch lễ · {shortDotsDate}
+              <PartyPopper className="h-3.5 w-3.5 text-rose-700" /> Bắn pháo hoa chúc mừng
             </button>
-          )}
-          {showRsvp && (
-            <button
-              type="button"
-              onClick={() => scrollToSection('xac-nhan')}
-              className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-rose-700 px-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-rose-600"
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" /> Xác nhận tham dự
-            </button>
-          )}
-          {showGift && (
-            <button
-              type="button"
-              onClick={() => scrollToSection('mung-cuoi')}
-              className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-white/95 px-3.5 text-xs font-bold text-rose-900 shadow-lg ring-1 ring-rose-200 transition hover:bg-rose-50"
-            >
-              <Gift className="h-3.5 w-3.5 text-rose-700" /> Mừng cưới
-            </button>
-          )}
-          {hallUrl && (
-            <a
-              href={hallUrl}
-              className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-amber-400 px-3.5 text-xs font-bold text-slate-950 shadow-lg transition hover:bg-amber-300"
-            >
-              <Sparkles className="h-3.5 w-3.5" /> Vào Sảnh 3D
-            </a>
-          )}
+            {showEvents && (
+              <button
+                type="button"
+                onClick={() => scrollToSection('su-kien')}
+                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-white/95 px-3.5 text-xs font-bold text-slate-900 shadow-lg ring-1 ring-amber-200 backdrop-blur transition hover:bg-amber-50"
+              >
+                <Calendar className="h-3.5 w-3.5 text-rose-700" /> Lịch lễ · {shortDotsDate}
+              </button>
+            )}
+            {showRsvp && (
+              <button
+                type="button"
+                onClick={() => scrollToSection('xac-nhan')}
+                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-rose-700 px-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-rose-600"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" /> Xác nhận tham dự
+              </button>
+            )}
+            {showGift && (
+              <button
+                type="button"
+                onClick={() => scrollToSection('mung-cuoi')}
+                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-white/95 px-3.5 text-xs font-bold text-rose-900 shadow-lg ring-1 ring-rose-200 transition hover:bg-rose-50"
+              >
+                <Gift className="h-3.5 w-3.5 text-rose-700" /> Mừng cưới
+              </button>
+            )}
+            {hallUrl && (
+              <a
+                href={hallUrl}
+                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-amber-300/60 bg-[#161834]/85 px-3.5 text-xs font-bold text-amber-200 shadow-lg transition hover:bg-[#232754]"
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Vào Sảnh 3D
+              </a>
+            )}
+          </div>
         </div>
 
-        {/* SLIDE-UP ZOOM-IN MEMORY STORY CARD (matches @thiepcuoitiec3d 00:19/00:41!) */}
+        {/* SLIDE-UP ZOOM-IN MEMORY STORY CARD */}
         {inspectOpen && activePhotoIndex !== null && activeMemory && (
           <div
             data-testid="walkthrough-memory-card"
@@ -529,7 +600,7 @@ export function WalkthroughInvitationHero({
           </div>
         )}
 
-        {/* SLIDE-UP ZOOM-IN EVENT DETAIL CARD (matches @thiepcuoitiec3d Event Board interaction!) */}
+        {/* SLIDE-UP ZOOM-IN EVENT DETAIL CARD */}
         {inspectOpen && activeEventIndex !== null && activeEvent && (
           <div
             data-testid="walkthrough-event-card"
@@ -591,7 +662,7 @@ export function WalkthroughInvitationHero({
           </div>
         )}
 
-        {/* Bottom-Left Golden 3D Virtual Joystick (hidden while reading zoomed-in card) */}
+        {/* Bottom-Left Golden 3D Virtual Joystick */}
         {!inspectOpen && (
           <div
             ref={joyPadRef}
@@ -627,7 +698,7 @@ export function WalkthroughInvitationHero({
           </div>
         )}
 
-        {/* Bottom-Right Guided Tour Stepper (< [ Station Pill ] >) */}
+        {/* Bottom-Right Guided Tour Stepper */}
         {!inspectOpen && (
           <div className="absolute bottom-5 right-4 z-20 flex flex-col items-end gap-2">
             {stationMenuOpen && (

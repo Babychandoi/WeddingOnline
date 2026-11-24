@@ -707,6 +707,7 @@ export function InvitationView(props: InvitationViewProps) {
           dateIso={mainDate}
           guestName={guest}
           greetingTemplate={config.walkthroughGreeting}
+          quote={config.quote}
           welcomeSubtitle={config.headline ? `${config.headline.toLowerCase()} của` : undefined}
           coupleCutoutUrl={config.coupleCutoutUrl}
           photos={props.photos}

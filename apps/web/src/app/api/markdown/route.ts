@@ -54,18 +54,18 @@ function buildMarkdownForPath(rawPath: string): string {
     const plans = INVITATION_3D_PLANS.map(
       (p) => `- **${p.nameVi}**: ${p.priceVnd.toLocaleString('vi-VN')} VND`,
     ).join('\n');
-    const items = INVITATION_3D_TEMPLATES
+    const items = INVITATION_3D_TEMPLATES.slice(0, 24)
       .map((t) => `- [${t.nameVi}](${canonicalUrl(`/thiep-cuoi/${t.id}`)}): ${t.descriptionVi}`)
       .join('\n');
     return [
       `# ${INVITATION_3D_TEMPLATES.length} Bộ Thiệp Cưới 3D Dạo Bước Tương Tác — DamCuoiOnline.vn`,
       '',
-      '> Trải nghiệm 3D toàn màn hình với chuyển cảnh camera đa góc qua Cổng cưới, Cô dâu chú rể chào theo tên, Giá vẽ Lời chào, 6 Giá vẽ Kỷ niệm, Thông tin lễ & Lễ đài + cần điều khiển đi dạo tự do 360°.',
+      '> Trải nghiệm 3D toàn màn hình với 8 kiểu chuyển cảnh camera đa góc qua Cổng cưới, Cô dâu chú rể chào theo tên, Giá vẽ Lời chào, 6 Giá vẽ Kỷ niệm, Thông tin lễ & Lễ đài + pháo hoa chúc mừng 3D.',
       '',
       '## Bảng Giá Thiệp Cưới 3D (Thiết kế nháp miễn phí)',
       plans,
       '',
-      '## 10 Chủ Đề Thiệp Cưới 3D',
+      `## Các Chủ Đề Thiệp Cưới 3D Tiêu Biểu (Tổng ${INVITATION_3D_TEMPLATES.length} bộ)`,
       items,
       '',
     ].join('\n');

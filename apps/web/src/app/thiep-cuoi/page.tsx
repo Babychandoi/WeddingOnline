@@ -203,7 +203,7 @@ export default function InvitationGalleryPage() {
                 Thiệp Cưới 3D Dạo Bước &amp; Chuyển Cảnh Camera
               </h2>
               <p className="mt-2.5 text-sm leading-relaxed text-amber-50/90 sm:text-base">
-                Không gian 3D toàn màn hình với 10 chủ đề độc quyền: khách đi qua cổng hoa, gặp cô dâu chú rể vẫy chào theo tên riêng, xem giá vẽ Lời chào, lướt qua 6 giá vẽ Kỷ niệm ảnh cưới và tự do đi dạo bằng cần điều khiển 3D.
+                Không gian 3D toàn màn hình với 100 chủ đề độc quyền: khách đi qua cổng kiến trúc 3D, gặp cô dâu chú rể vẫy chào theo tên riêng, trải nghiệm 8 kiểu bay camera điện ảnh, 6 bố cục triển lãm kỷ niệm và bắn pháo hoa chúc mừng trên lễ đài.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -211,7 +211,7 @@ export default function InvitationGalleryPage() {
                 href="/thiep-cuoi-3d"
                 className="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-amber-300 px-6 text-sm font-black text-slate-950 shadow-lg transition hover:bg-amber-200"
               >
-                Khám phá 10 Bộ Thiệp 3D <ArrowRight className="h-4 w-4" />
+                Khám phá 100 Bộ Thiệp 3D <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/thiep-cuoi-3d/tao"

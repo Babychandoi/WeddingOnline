@@ -1,4 +1,4 @@
-import { defaultInvitationConfig, isWalkthrough3DTemplate, type InvitationConfig, type InvitationTemplateId } from '@dco/shared';
+import { defaultInvitationConfig, isWalkthrough3DTemplate, type Invitation3DCategory, type InvitationConfig, type InvitationTemplateId } from '@dco/shared';
 import type { InvitationWish } from '@/app/api/invitations/[slug]/wishes/route';
 import type { InvitationPhoto } from './InvitationView';
 import { WALKTHROUGH_3D_THEMES } from './walkthrough3d/themes3d';
@@ -9,9 +9,88 @@ import { WALKTHROUGH_3D_THEMES } from './walkthrough3d/themes3d';
  */
 export const SAMPLE_COUPLE = { groomName: 'Minh Quân', brideName: 'Thu Hà', weddingDate: '2026-12-20T03:00:00.000Z' };
 
+/** 9 curated 6-chapter memory storylines matched to each 3D concept category */
+const STORYLINES_3D: Record<Invitation3DCategory, Array<{ year: string; title: string; story: string }>> = {
+  'co-do-truyen-thong': [
+    { year: '2022', title: 'Phố Hội lên đèn', story: 'Lần đầu hai đứa đi chơi xa cùng nhau. Em mặc áo dài giữa phố đèn lồng rực rỡ, anh cứ đứng ngắm mãi không muốn về.' },
+    { year: '2023', title: 'Tách trà bên hiên cổ', story: 'Chiều mưa Huế se lạnh, hai đứa ngồi nghe tiếng đàn tranh văng vẳng và kể nhau nghe ước mơ về một mái nhà nhỏ.' },
+    { year: '2024', title: 'Mùa sen nở cố đô', story: 'Sương sớm còn đọng trên lá sen, em cười dịu dàng làm cả khoảng hồ tĩnh lặng bỗng bừng sáng.' },
+    { year: '2025', title: 'Lời thưa chuyện hai họ', story: 'Buổi sáng nắng đẹp hai bên gia đình nâng chén trà sen, chính thức se duyên cho đôi trẻ.' },
+    { year: '2026', title: 'Lễ dạm ngõ trầu cau', story: 'Khay trầu têm cánh phượng đỏ thắm và những cái bắt tay ấm áp mở ra chương viên mãn.' },
+    { year: '2026', title: 'Trăm năm tình viên mãn', story: 'Cảm ơn quý khách đã ghé bước chung vui và chúc phúc cho ngày trọng đại của hai gia đình chúng mình.' },
+  ],
+  'vuon-hoa-mua-xuan': [
+    { year: '2022', title: 'Nắng xuân đầu tiên', story: 'Giữa vườn hoa rực rỡ ngày đầu năm, ánh mắt tình cờ chạm nhau mà ngỡ đã thân thuộc từ bao giờ.' },
+    { year: '2023', title: 'Bó hoa dại ven đường', story: 'Anh vụng về hái vội nhành hoa nhỏ tặng em sau buổi dã ngoại, vậy mà em ép khô giữ mãi trong sổ tay.' },
+    { year: '2024', title: 'Bốn mùa đi bên nhau', story: 'Qua mùa hạ nắng vàng đến mùa thu lá đỏ, mỗi con đường có nhau đều hóa thành vườn hoa đẹp nhất.' },
+    { year: '2025', title: 'Lời cầu hôn giữa mùa hoa', story: 'Dưới tán hoa bay trong gió chiều, anh quỳ xuống trao chiếc nhẫn nhỏ cùng lời hứa che chở trọn đời.' },
+    { year: '2026', title: 'Ngày chọn váy cưới', story: 'Khoảnh khắc bức rèm mở ra, anh lặng người nhìn cô dâu đẹp nhất cuộc đời mình bước tới.' },
+    { year: '2026', title: 'Mùa quả ngọt đơm bông', story: 'Hẹn gặp những người thương yêu nhất giữa khu vườn ngập tràn hương sắc hạnh phúc hôm nay.' },
+  ],
+  'bien-dao-nhiet-doi': [
+    { year: '2022', title: 'Chuyến đi biển ngẫu hứng', story: 'Chuyến xe đêm đưa cả nhóm ra biển đón bình minh, hai đứa ngồi cạnh nhau nghe sóng vỗ suốt dọc đường.' },
+    { year: '2023', title: 'Dấu chân trên cát trắng', story: 'Đi chân trần dọc bờ biển dài, viết tên hai đứa lên cát rồi bật cười khi con sóng ùa vào xóa nhẹ.' },
+    { year: '2024', title: 'Hoàng hôn đảo ngọc', story: 'Mặt trời đỏ cam từ từ chạm mặt nước, anh nắm chặt tay em ước mọi chiều về sau đều bình yên như thế.' },
+    { year: '2025', title: 'Chiếc nhẫn dưới ánh chiều', story: 'Trước đại dương mênh mông làm chứng, em gật đầu đồng ý làm bến đỗ bình yên của đời anh.' },
+    { year: '2026', title: 'Bộ ảnh cưới gió biển', story: 'Tà voan trắng tung bay trong gió mặn mòi và tiếng cười vang khắp ghềnh đá nắng vàng.' },
+    { year: '2026', title: 'Ra khơi hành trình mới', story: 'Cùng nâng ly trước biển xanh chúc cho hải trình hôn nhân luôn thuận buồm xuôi gió!' },
+  ],
+  'rung-nui-suong-mai': [
+    { year: '2022', title: 'Sớm Đà Lạt mờ sương', story: 'Ly sữa đậu nành nóng hổi lúc năm giờ sáng và hai bàn tay đan vào nhau tìm hơi ấm trên đồi thông.' },
+    { year: '2023', title: 'Chuyến săn mây Tây Bắc', story: 'Vượt qua những cung đèo quanh co để cùng vỡ òa khi biển mây trắng xóa hiện ra ngay dưới chân.' },
+    { year: '2024', title: 'Đêm lửa trại rừng thông', story: 'Tiếng đàn guitar mộc mạc dưới bầu trời sao núi cao, hai đứa tựa vai nhau chẳng cần nói nhiều lời.' },
+    { year: '2025', title: 'Lời hẹn trên đỉnh đồi', story: 'Khi tia nắng đầu tiên xuyên qua tán lá thông, anh đeo lên tay em lời hẹn ước trăm năm.' },
+    { year: '2026', title: 'Căn nhà nhỏ bình yên', story: 'Cùng nhau chọn từng chậu cây, chiếc ghế gỗ để chuẩn bị cho tổ ấm ngập mùi nắng sớm.' },
+    { year: '2026', title: 'Về chung một mái hiên', story: 'Cảm ơn bạn đã băng qua quãng đường xa tới chia sẻ niềm hạnh phúc trong trẻo này cùng tụi mình.' },
+  ],
+  'ho-nuoc-thuy-ta': [
+    { year: '2022', title: 'Buổi chiều ven mặt hồ', story: 'Cơn mưa rào bất chợt giữ chân hai đứa dưới mái hiên thủy tạ, để rồi câu chuyện kéo dài đến tận lúc lên đèn.' },
+    { year: '2023', title: 'Ngọn hoa đăng ước nguyện', story: 'Hai đứa thả chung một chiếc đèn giấy nhỏ xuống dòng sông đêm, lặng lẽ cầu mong được đi cùng nhau thật lâu.' },
+    { year: '2024', title: 'Mùa thu liễu rủ', story: 'Mặt hồ phẳng lặng như gương soi bóng hai người thong thả bước qua nhịp cầu gỗ nhỏ.' },
+    { year: '2025', title: 'Ánh trăng lời cầu hôn', story: 'Dưới ánh trăng in đáy nước lung linh, lời cầu hôn giản dị mà chân thành khiến em rơi nước mắt hạnh phúc.' },
+    { year: '2026', title: 'Ngày báo hỷ hai nhà', story: 'Niềm vui lan tỏa như vòng sóng nhỏ trên mặt hồ trong trẻo ngày hai họ gặp nhau.' },
+    { year: '2026', title: 'Bến đỗ trọn đời', story: 'Mời quý khách thong thả bước qua nhịp cầu hoa cùng chứng giám giây phút đẹp nhất của đôi trẻ.' },
+  ],
+  'co-tich-ngan-ha': [
+    { year: '2022', title: 'Đêm ngắm mưa sao băng', story: 'Hai đứa trải tấm thảm nhỏ trên sân thượng chờ sao băng, chẳng ngờ điều ước năm ấy đang đứng ngay bên cạnh.' },
+    { year: '2023', title: 'Giấc mơ trên tầng mây', story: 'Mỗi chuyến bay cùng nhau qua những biển mây bồng bềnh đều làm dày thêm cuốn nhật ký thanh xuân.' },
+    { year: '2024', title: 'Ánh đèn đêm Giáng Sinh', story: 'Giữa phố phường lấp lánh triệu ánh đèn vàng, vòng tay ấm áp biến mùa đông thành câu chuyện cổ tích.' },
+    { year: '2025', title: 'Vì tinh tú định mệnh', story: 'Giữa hàng tỷ con người, chúng mình tìm thấy đúng tần số yêu thương để gọi nhau là duy nhất.' },
+    { year: '2026', title: 'Chiếc nhẫn ánh sao', story: 'Viên đá nhỏ lấp lánh như giữ trọn ánh trăng đêm anh ngỏ lời: “Làm vợ anh nhé!”.' },
+    { year: '2026', title: 'Cổ tích thành hiện thực', story: 'Chương cổ tích đẹp nhất chính thức mở ra hôm nay với sự chúc phúc của những người thương quý.' },
+  ],
+  'lau-dai-chau-au': [
+    { year: '2022', title: 'Bản nhạc chiều cuối tuần', story: 'Tiếng vĩ cầm du dương trong buổi hòa nhạc nhỏ đã kết nối hai tâm hồn yêu cái đẹp lại gần nhau.' },
+    { year: '2023', title: 'Buổi tối dưới ánh nến', story: 'Bữa tối kỷ niệm một năm quen nhau giản dị nhưng ngập tràn tiếng cười và ánh nhìn trìu mến.' },
+    { year: '2024', title: 'Dạo bước phố cổ châu Âu', story: 'Những quảng trường lát đá cổ kính và lời hứa một ngày sẽ cùng mặc lễ phục bước vào lễ đường.' },
+    { year: '2025', title: 'Điệu vanxơ cầu hôn', story: 'Giữa sảnh đèn vàng ấm áp, bản nhạc quen vang lên và chiếc nhẫn trao tay trong niềm xúc động vỡ òa.' },
+    { year: '2026', title: 'Hoàn thiện lễ phục cưới', story: 'Từng đường kim mũi chỉ trên tà váy trắng và bộ vest lịch lãm sẵn sàng cho ngày trọng đại.' },
+    { year: '2026', title: 'Dạ tiệc trăm năm', story: 'Hân hạnh đón tiếp quý vị cùng nâng ly rượu mừng mở màn cho hành trình hôn nhân viên mãn.' },
+  ],
+  'dien-anh-nghe-thuat': [
+    { year: '2022', title: 'Hai tấm vé hàng ghế cuối', story: 'Bộ phim tối thứ Sáu năm ấy nội dung thế nào anh chẳng nhớ rõ, chỉ nhớ nụ cười của người ngồi cạnh.' },
+    { year: '2023', title: 'Cuộn phim màu đầu tiên', story: 'Chiếc máy ảnh phim cũ kỹ ghi lại 36 kiểu ảnh vụng về nhưng tấm nào cũng ngập tràn hạnh phúc.' },
+    { year: '2024', title: 'Bản tình ca đĩa than', story: 'Chiều mưa trú chân trong tiệm đĩa nhạc cũ, hai đứa tìm thấy giai điệu sẽ vang lên trong đám cưới hôm nay.' },
+    { year: '2025', title: 'Cảnh quay quan trọng nhất', story: 'Không cần kịch bản hay ánh đèn cầu kỳ, lời cầu hôn chân thật nhất được nói ra từ tận đáy lòng.' },
+    { year: '2026', title: 'Triển lãm của riêng hai đứa', story: 'Gom góp từng bức thư tay, tấm vé tàu và bức ảnh nhỏ thành hành trình thanh xuân đáng tự hào.' },
+    { year: '2026', title: 'Suất chiếu trọn đời', story: 'Cảm ơn bạn đã có mặt trong buổi công chiếu quan trọng nhất cuộc đời của hai nhân vật chính!' },
+  ],
+  'hien-dai-thanh-thi': [
+    { year: '2022', title: 'Ly cà phê sáng thứ Hai', story: 'Quán cà phê nhỏ góc phố quen, hai người lạ gọi trùng một món đồ uống rồi mỉm cười chào nhau.' },
+    { year: '2023', title: 'Phố đêm sau giờ tan tầm', story: 'Những vòng xe lượn quanh thành phố lên đèn, bao mệt mỏi tan biến chỉ bằng một cái tựa đầu sau lưng.' },
+    { year: '2024', title: 'Cùng nhau trưởng thành', story: 'Đồng hành qua những cột mốc công việc và ước mơ tuổi trẻ giữa nhịp sống đô thị rộn ràng.' },
+    { year: '2025', title: 'Rooftop đêm pháo hoa', story: 'Giữa bầu trời thành phố rực sáng pháo hoa giao thừa, anh ngỏ lời cùng em xây dựng tổ ấm riêng.' },
+    { year: '2026', title: 'Chìa khóa căn hộ đầu tiên', story: 'Khoảnh khắc mở cánh cửa ngôi nhà nhỏ của hai đứa, biết rằng từ nay mọi tối đều có nơi thuộc về.' },
+    { year: '2026', title: 'Chung đôi giữa phố hoa', story: 'Rất vui được đón bạn tới nâng ly chúc mừng chương mới rực rỡ của hai chúng mình!' },
+  ],
+};
+
 export function sampleInvitation(templateId: InvitationTemplateId): InvitationConfig {
   const base = defaultInvitationConfig(SAMPLE_COUPLE);
-  const track = isWalkthrough3DTemplate(templateId) ? WALKTHROUGH_3D_THEMES[templateId].defaultMusic : base.music.track;
+  const is3D = isWalkthrough3DTemplate(templateId);
+  const theme3d = is3D ? WALKTHROUGH_3D_THEMES[templateId] : null;
+  const track = theme3d ? theme3d.defaultMusic : base.music.track;
+  const chapters = theme3d ? STORYLINES_3D[theme3d.category] : null;
   return {
     ...base,
     templateId,
@@ -30,49 +109,17 @@ export function sampleInvitation(templateId: InvitationTemplateId): InvitationCo
       { id: 's2', when: '14.02.2021', title: 'Chính thức hẹn hò', text: 'Một bó hoa cúc hoạ mi, một ly cà phê muối ở Huế và một câu hỏi run run.' },
       { id: 's3', when: '01.06.2026', title: 'Lời cầu hôn', text: 'Trên bãi biển Mỹ Khê lúc bình minh, cô ấy nói đồng ý trước khi anh kịp quỳ xuống.' },
     ],
-    memories: isWalkthrough3DTemplate(templateId)
-      ? [
-          {
-            photoUrl: SAMPLE_PHOTOS[templateId].photos[0]?.url ?? '',
-            year: '2023',
-            title: 'Phố Hội lên đèn',
-            story: 'Lần đầu hai đứa đi chơi xa cùng nhau. Em mặc áo dài giữa phố đèn lồng rực rỡ, anh cứ đứng ngắm mãi không muốn về.',
-          },
-          {
-            photoUrl: SAMPLE_PHOTOS[templateId].photos[1]?.url ?? '',
-            year: '2023',
-            title: 'Chiều bên nhau bình yên',
-            story: 'Một buổi chiều nắng nhẹ, chỉ có hai đứa và tiếng cười giòn tan, nhận ra ở cạnh nhau là đủ trọn vẹn.',
-          },
-          {
-            photoUrl: SAMPLE_PHOTOS[templateId].photos[2]?.url ?? '',
-            year: '2024',
-            title: 'Chuyến đi mùa thu',
-            story: 'Đi lạc giữa những con đường nhỏ rồi vô tình tìm thấy quán cà phê nhìn ra mặt hồ lấp lánh ánh hoàng hôn.',
-          },
-          {
-            photoUrl: SAMPLE_PHOTOS[templateId].photos[3]?.url ?? '',
-            year: '2025',
-            title: 'Lời hứa trước biển',
-            story: 'Anh vụng về giấu hộp nhẫn trong túi áo suốt cả buổi tối, chỉ để đợi khoảnh khắc chỉ có hai đứa dưới ánh đèn.',
-          },
-          {
-            photoUrl: SAMPLE_PHOTOS[templateId].photos[4]?.url ?? '',
-            year: '2026',
-            title: 'Lễ dạm ngõ hai nhà',
-            story: 'Ngày hai gia đình chính thức gặp mặt, tách trà nóng và những cái nắm tay thật chặt mở ra chương mới của cuộc đời.',
-          },
-          {
-            photoUrl: SAMPLE_PHOTOS[templateId].photos[5]?.url ?? '',
-            year: '2026',
-            title: 'Về chung một nhà',
-            story: 'Cảm ơn tất cả những năm tháng đã qua và hẹn gặp những người thương yêu nhất trong ngày trọng đại của chúng mình.',
-          },
-        ]
+    memories: chapters
+      ? chapters.map((ch, idx) => ({
+          photoUrl: SAMPLE_PHOTOS[templateId].photos[idx]?.url ?? '',
+          year: ch.year,
+          title: ch.title,
+          story: ch.story,
+        }))
       : [],
     rsvpDeadline: '2026-12-10T00:00:00.000Z',
-    dressCode: 'Tông màu pastel nhẹ nhàng',
-    quote: 'Thuận vợ thuận chồng, tát biển Đông cũng cạn.',
+    dressCode: theme3d ? theme3d.sampleDressCode : 'Tông màu pastel nhẹ nhàng',
+    quote: theme3d ? theme3d.sampleQuote : 'Thuận vợ thuận chồng, tát biển Đông cũng cạn.',
     coverPhotoUrl: SAMPLE_PHOTOS[templateId].cover,
   };
 }
@@ -313,7 +360,7 @@ const SETS: Record<InvitationTemplateId, string[]> = {
   'lich-cuoi': ['studio-white', 'blossom-wall', 'bridge-tower', 'veil-laugh', 'tower-couple', 'old-wall-aodai', 'studio-sitting', 'motorbike'],
   'i-love-you': ['bride-dark-window', 'studio-sitting', 'dance-lights', 'window-bouquet', 'pearl-setting', 'white-blossoms', 'chandelier', 'rings-peony', 'chandelier-p'],
   'cam-dat': ['red-parasol', 'kimono-garden', 'golden-veil', 'kimono-kiss', 'golden-hands', 'torii-gate', 'terracotta-table', 'boutonniere'],
-  // 10 interactive 3D walkthrough themes
+  // 100 interactive 3D walkthrough themes
   '3d-oai-huong': ['tower-couple', 'veil-laugh', 'greenhouse-twirl', 'field-arch', 'white-blossoms', 'rings-peony', 'garden-balloons'],
   '3d-mua-dong-tuyet': ['chandelier-p', 'veil-kiss', 'aisle-lights', 'studio-white-suit', 'candle-table', 'gold-rings', 'night-dance'],
   '3d-mua-thu': ['autumn-veil', 'bridge-autumn', 'golden-veil', 'terracotta-table', 'golden-hands', 'rustic-lights', 'dark-bouquet-bride'],
@@ -324,6 +371,105 @@ const SETS: Record<InvitationTemplateId, string[]> = {
   '3d-vuon-hoa-dao': ['blossom-wall', 'aodai-arch-pastel', 'ao-dai-gate', 'ao-dai-arch', 'old-wall-aodai', 'hoi-an-bridge', 'lantern-street'],
   '3d-co-truyen': ['red-couple-p', 'song-hy-tea', 'ao-dai-red', 'procession', 'groom-ao-dai', 'hue-door', 'red-studio-hy'],
   '3d-rap-cuoi': ['aodai-arch-pastel', 'garden-balloons', 'veil-laugh', 'studio-sitting', 'blossom-wall', 'white-bouquet', 'cake-toppers'],
+  // Cổ Đô & Gia Tiên (+11)
+  '3d-hoang-thanh-hue': ['nhat-binh', 'hue-door', 'nhat-binh-lanterns', 'phoenix-crown', 'tea-set', 'ao-dai-red', 'red-couple-p'],
+  '3d-pho-hoi-den-long': ['lantern-street', 'hoi-an-bridge', 'yellow-alley', 'hoi-an-lake', 'old-wall-aodai', 'aodai-arch-pastel', 'lotus-pond'],
+  '3d-dinh-lang-cay-da': ['ao-dai-gate', 'procession', 'groom-ao-dai', 'tea-ceremony', 'song-hy-tea', 'red-couple', 'ao-dai-arch'],
+  '3d-trang-an-thuy-dinh': ['lotus-field', 'hoi-an-lake', 'nhat-binh', 'lotus-pond', 'calla-lily', 'ao-dai-gate', 'old-wall-aodai'],
+  '3d-nhat-binh-cung-dinh': ['nhat-binh-lanterns', 'nhat-binh', 'phoenix-crown', 'hue-door', 'tea-tray', 'red-gown-columns', 'groom-fan'],
+  '3d-hang-thuan-chua-vang': ['lotus-pond', 'tea-ceremony', 'calla-lily', 'aodai-arch-pastel', 'lotus-field', 'tea-set', 'old-wall-aodai'],
+  '3d-rap-la-dua-mien-tay': ['ao-dai-arch', 'procession', 'red-aodai-flowers', 'groom-ao-dai', 'tea-tray', 'red-couple', 'happy-street'],
+  '3d-cau-trau-que-huong': ['tea-tray', 'ao-dai-red', 'song-hy-window', 'tea-ceremony', 'groom-ao-dai', 'ao-dai-gate', 'rings-peony'],
+  '3d-thang-long-hoang-kim': ['red-gown-columns', 'phoenix-crown', 'nhat-binh', 'song-hy-tea', 'hue-door', 'red-studio-hy', 'gold-rings'],
+  '3d-lua-ha-dong-son-do': ['red-aodai-flowers', 'ao-dai-red', 'old-wall-aodai', 'veil-wind', 'song-hy-window', 'tea-set', 'rings-peony'],
+  '3d-ben-nuoc-con-do': ['hoi-an-lake', 'lotus-pond', 'bridge-autumn', 'yellow-alley', 'lantern-street', 'aodai-arch-pastel', 'golden-hands'],
+  // Vườn Hoa & Bốn Mùa (+8)
+  '3d-doi-huong-duong': ['golden-veil', 'field-arch', 'daisy-field', 'bride-walk-field', 'garden-balloons', 'park-walk', 'bouquet-grass'],
+  '3d-vuon-hong-co-phap': ['rings-peony', 'blossom-wall', 'ranunculus', 'veil-laugh', 'window-bouquet', 'bouquet-veil', 'pearl-setting'],
+  '3d-hoa-ban-tay-bac': ['white-blossoms', 'misty-hills', 'aodai-arch-pastel', 'dalat-hill', 'forest-embrace', 'bouquet-veil', 'veil-kiss'],
+  '3d-thung-lung-cam-tu-cau': ['greenhouse-twirl', 'dalat-hill', 'misty-hills', 'window-bouquet', 'white-bouquet', 'veil-embrace-2', 'rings-peony'],
+  '3d-anh-dao-kyoto': ['kimono-garden', 'blossom-wall', 'kimono-kiss', 'torii-gate', 'red-parasol', 'white-blossoms', 'ranunculus-hand'],
+  '3d-canh-dong-cuc-hoa-mi': ['daisy-field', 'bride-walk-field', 'bouquet-grass', 'old-wall-aodai', 'park-walk', 'golden-veil', 'white-bouquet'],
+  '3d-vuon-cam-dia-trung-hai': ['vineyard-walk', 'terracotta-table', 'vineyard-dusk', 'field-arch', 'golden-hands', 'park-walk', 'boutonniere'],
+  '3d-mua-hoa-phuong-do': ['motorbike', 'happy-street', 'old-wall-aodai', 'red-parasol', 'park-walk', 'veil-laugh', 'love-letter'],
+  // Biển Đảo & Hoàng Hôn (+11)
+  '3d-bai-bien-hoang-hon': ['sea-dusk-hug', 'sunset-silhouette', 'beach-vows', 'shore-walk', 'golden-hands', 'palm-couple', 'sand-feet'],
+  '3d-phu-quoc-ngoc-trai': ['beach-vows', 'seaside-bride', 'sea-bride', 'pearl-setting', 'shore-walk', 'beach-lift', 'white-bouquet'],
+  '3d-ha-long-du-thuyen': ['sea-dusk-hug', 'sky-silhouette', 'seaside-bride', 'champagne' in ALT ? 'chandelier' : 'candle-table', 'shore-walk', 'gold-rings', 'proposal-night'],
+  '3d-santorini-vom-xanh': ['seaside-bride', 'sky-silhouette', 'sea-bride', 'pool-modern', 'beach-vows', 'white-bouquet', 'veil-wind'],
+  '3d-dao-san-ho-nang-vang': ['palm-couple', 'beach-lift', 'shore-walk', 'sand-feet', 'beach-vows', 'garden-balloons', 'seaside-bride'],
+  '3d-mui-ne-doi-cat-hong': ['sunset-silhouette', 'veil-wind', 'golden-veil', 'terracotta-table', 'golden-hands', 'sand-feet', 'sky-silhouette'],
+  '3d-maldives-cau-go': ['sea-bride', 'beach-vows', 'shore-walk', 'palm-couple', 'beach-lift', 'seaside-bride', 'sand-feet'],
+  '3d-vach-da-bien-khoi': ['bw-cliff', 'sea-dusk-hug', 'veil-wind', 'sky-silhouette', 'seaside-bride', 'golden-hands', 'rings-dark'],
+  '3d-rung-dua-ben-tre': ['palm-couple', 'aodai-arch-pastel', 'park-walk', 'bouquet-grass', 'happy-street', 'motorbike', 'tea-tray'],
+  '3d-con-dao-sao-dem': ['proposal-night', 'night-lake', 'sea-dusk-hug', 'string-lights', 'candle-table', 'bokeh', 'rings-dark'],
+  '3d-ben-du-thuyen-champagne': ['pool-modern', 'candle-table', 'sunset-silhouette', 'night-dance', 'pearl-setting', 'gold-rings', 'aisle-lights'],
+  // Rừng Núi & Sương Sớm (+10)
+  '3d-sapa-may-nui': ['misty-hills', 'dalat-hill', 'sky-silhouette', 'forest-embrace', 'veil-wind', 'golden-hands', 'bouquet-grass'],
+  '3d-dalat-nha-kinh-hoa': ['greenhouse-ceremony', 'greenhouse-twirl', 'white-blossoms', 'window-bouquet', 'rings-peony', 'dalat-hill', 'bouquet-veil'],
+  '3d-thac-ban-gioc': ['misty-hills', 'forest-embrace', 'bridge-autumn', 'lotus-field', 'park-walk', 'veil-wind', 'bouquet-grass'],
+  '3d-doi-che-tan-cuong': ['bride-walk-field', 'misty-hills', 'daisy-field', 'golden-veil', 'bouquet-grass', 'tea-set', 'park-walk'],
+  '3d-thao-nguyen-xanh': ['field-arch', 'bride-walk-field', 'sky-silhouette', 'golden-veil', 'daisy-field', 'veil-wind', 'bouquet-grass'],
+  '3d-rung-dom-dom': ['tree-lights', 'night-aisle', 'rustic-lights', 'forest-embrace', 'string-lights', 'bokeh', 'proposal-night'],
+  '3d-thung-lung-ruou-vang': ['vineyard-dusk', 'vineyard-walk', 'terracotta-table', 'candle-table', 'dark-bouquet-bride', 'golden-hands', 'rustic-lights'],
+  '3d-ho-tuyen-lam': ['dalat-hill', 'misty-hills', 'night-lake', 'forest-embrace', 'veil-embrace-2', 'boutonniere', 'park-walk'],
+  '3d-nui-tuyet-thuy-si': ['bw-cliff', 'studio-white-suit', 'veil-kiss', 'chandelier-p', 'white-bouquet', 'lace-gloves', 'gold-rings'],
+  '3d-nha-go-bac-au': ['rustic-lights', 'couple-wood-wall', 'candle-table', 'string-lights', 'dark-bouquet-bride', 'boutonniere', 'hands-bouquet'],
+  // Hồ Nước & Hoa Đăng (+9)
+  '3d-song-hoai-tha-den': ['hoi-an-lake', 'lantern-street', 'hoi-an-bridge', 'night-lake', 'nhat-binh-lanterns', 'bokeh', 'yellow-alley'],
+  '3d-ho-guom-the-huc': ['ao-dai-red', 'old-wall-aodai', 'bridge-autumn', 'lotus-pond', 'red-aodai-flowers', 'hoi-an-lake', 'tea-ceremony'],
+  '3d-venice-gondola': ['bridge-tower', 'night-lake', 'chandelier', 'candle-table', 'veil-embrace', 'proposal-night', 'gold-rings'],
+  '3d-suoi-nguon-rung-truc': ['forest-embrace', 'lotus-pond', 'calla-lily', 'kimono-garden', 'park-walk', 'bouquet-grass', 'tea-set'],
+  '3d-ho-thien-nga': ['night-lake', 'dance-lights', 'chandelier-p', 'veil-kiss', 'pearl-setting', 'white-bouquet', 'rings-dark'],
+  '3d-dam-sen-trang': ['lotus-field', 'lotus-pond', 'calla-lily', 'white-bouquet', 'aodai-arch-pastel', 'veil-embrace-2', 'rings-peony'],
+  '3d-thuy-ta-cung-trang': ['night-lake', 'nhat-binh-lanterns', 'lantern-street', 'bokeh', 'lotus-pond', 'proposal-night', 'gold-rings'],
+  '3d-ben-thuyen-hoa-tim': ['bridge-autumn', 'vineyard-dusk', 'veil-laugh', 'ranunculus', 'hoi-an-lake', 'bouquet-veil', 'rings-peony'],
+  '3d-vuon-nuoc-zen': ['torii-gate', 'kimono-garden', 'bridge-autumn', 'tea-set', 'calla-lily', 'park-walk', 'ring-paper'],
+  // Cổ Tích, Mây & Ngân Hà (+10)
+  '3d-cuc-quang-bac-cuc': ['night-aisle', 'sky-silhouette', 'night-lake', 'tree-lights', 'bokeh', 'rings-dark', 'proposal-night'],
+  '3d-lau-dai-pha-le': ['chandelier', 'chandelier-p', 'aisle-lights', 'pearl-setting', 'veil-kiss', 'studio-white-suit', 'gold-rings'],
+  '3d-ngan-ha-tinh-tu': ['proposal-night', 'night-aisle', 'bokeh', 'dance-lights', 'string-lights', 'rings-dark', 'night-dance'],
+  '3d-nac-thang-thien-duong': ['stairs-above', 'veil-embrace-2', 'studio-white', 'white-blossoms', 'bouquet-veil', 'lace-gloves', 'gold-rings'],
+  '3d-khu-vuon-anh-trang': ['tree-lights', 'night-lake', 'string-lights', 'veil-kiss', 'bokeh', 'candle-table', 'rings-peony'],
+  '3d-co-xe-co-tich': ['palace-couple', 'garden-balloons', 'chandelier-p', 'cake-toppers', 'blossom-wall', 'pearl-setting', 'veil-laugh'],
+  '3d-dao-noi-than-tien': ['sky-silhouette', 'white-blossoms', 'veil-wind', 'blossom-wall', 'bouquet-veil', 'ranunculus-hand', 'rings-peony'],
+  '3d-cung-dien-anh-sang': ['aisle-lights', 'chandelier', 'studio-white-suit', 'pearl-setting', 'mother-blessing', 'gold-rings', 'dance-lights'],
+  '3d-mua-sao-bang': ['proposal-night', 'bokeh', 'night-dance', 'tree-lights', 'night-aisle', 'string-lights', 'rings-dark'],
+  '3d-vuong-quoc-bang-gia': ['studio-white', 'chandelier-p', 'veil-kiss', 'pearl-setting', 'white-bouquet', 'shoes-lace', 'rings-peony'],
+  // Lâu Đài & Dạ Tiệc Thượng Lưu (+10)
+  '3d-dai-sanh-pha-le': ['chandelier', 'chandelier-p', 'aisle-lights', 'candle-table', 'pearl-setting', 'night-dance', 'gold-rings'],
+  '3d-thanh-duong-gothic': ['mother-blessing', 'bw-window', 'aisle-lights', 'lace-gloves', 'dress-buttons', 'veil-embrace-p', 'gold-rings'],
+  '3d-cung-dien-versailles': ['palace-couple', 'tower-couple', 'chandelier', 'pearl-setting', 'lace-gloves', 'shoes-lace', 'gold-rings'],
+  '3d-vuon-tuong-la-ma': ['red-gown-columns', 'tower-couple', 'palace-couple', 'veil-embrace', 'terracotta-table', 'golden-hands', 'gold-rings'],
+  '3d-da-tiec-gatsby': ['night-dance', 'chandelier-p', 'night-red-dress', 'candle-table', 'rings-dark', 'dance-lights', 'bokeh'],
+  '3d-biet-thu-ho-como': ['pool-modern', 'tower-couple', 'seaside-bride', 'pearl-setting', 'veil-embrace', 'window-bouquet', 'gold-rings'],
+  '3d-sanh-nhung-hoang-gia': ['night-red-dress', 'red-bouquet', 'chandelier-p', 'candle-table', 'dark-bouquet', 'rings-dark', 'dance-lights'],
+  '3d-lau-dai-bavaria': ['tower-couple', 'palace-couple', 'misty-hills', 'veil-embrace-p', 'lace-gloves', 'white-bouquet', 'gold-rings'],
+  '3d-nha-hat-opera': ['dance-lights', 'night-red-dress', 'chandelier', 'bride-dark-window', 'candle-table', 'night-dance', 'gold-rings'],
+  '3d-san-trong-indochine': ['hue-door', 'old-wall-aodai', 'bride-dark-window', 'tea-set', 'calla-lily', 'couple-wood-wall', 'gold-rings'],
+  // Điện Ảnh, Ký Ức & Nghệ Thuật (+11)
+  '3d-rap-chieu-phim': ['night-red-dress', 'proposal-night', 'dance-lights', 'bw-street-dip', 'candle-table', 'bokeh', 'rings-dark'],
+  '3d-chuyen-tau-thanh-xuan': ['motorbike', 'happy-street', 'bridge-autumn', 'love-letter', 'park-walk', 'golden-hands', 'ring-paper'],
+  '3d-bao-tang-my-thuat': ['bw-doorway', 'stairs-above', 'studio-white-suit', 'bw-window', 'ring-paper', 'lace-bw', 'hands-bouquet'],
+  '3d-thu-vien-co-dien': ['love-letter', 'ring-paper', 'couple-wood-wall', 'veil-embrace-p', 'dress-buttons', 'boutonniere', 'gold-rings'],
+  '3d-phong-tra-jazz': ['rustic-lights', 'night-dance', 'bride-dark-window', 'candle-table', 'dark-bouquet', 'bokeh', 'rings-dark'],
+  '3d-san-ga-mua-dong': ['city-embrace', 'bw-street-dip', 'proposal-night', 'string-lights', 'veil-kiss', 'love-letter', 'rings-dark'],
+  '3d-trien-lam-den-trang': ['bw-couple', 'bw-embrace', 'bw-bride-profile', 'bw-street-dip', 'bw-window', 'bw-cliff', 'lace-bw'],
+  '3d-tiem-dia-than': ['couple-wood-wall', 'love-letter', 'rustic-lights', 'old-wall-aodai', 'motorbike', 'ring-paper', 'golden-hands'],
+  '3d-buu-dien-sai-gon': ['old-wall-aodai', 'yellow-alley', 'love-letter', 'motorbike', 'happy-street', 'ring-paper', 'aodai-arch-pastel'],
+  '3d-san-khau-broadway': ['dance-lights', 'night-dance', 'chandelier-p', 'night-red-dress', 'aisle-lights', 'bokeh', 'gold-rings'],
+  '3d-xuong-ve-mau-nuoc': ['ranunculus', 'ranunculus-hand', 'window-bouquet', 'veil-laugh', 'blossom-wall', 'bouquet-veil', 'rings-peony'],
+  // Hiện Đại, Rooftop & Đô Thị (+10)
+  '3d-rooftop-sai-gon': ['city-street', 'proposal-night', 'city-embrace', 'night-dance', 'string-lights', 'pool-modern', 'rings-dark'],
+  '3d-cau-anh-sao': ['bridge-tower', 'night-aisle', 'dance-lights', 'proposal-night', 'bokeh', 'string-lights', 'gold-rings'],
+  '3d-trien-lam-kinh': ['greenhouse-ceremony', 'pool-modern', 'studio-white-suit', 'stairs-above', 'window-bouquet', 'white-bouquet', 'ring-paper'],
+  '3d-penthouse-vo-cuc': ['pool-modern', 'sunset-silhouette', 'city-embrace', 'candle-table', 'pearl-setting', 'champagne' in ALT ? 'chandelier' : 'gold-rings', 'night-dance'],
+  '3d-pho-di-bo-neon': ['city-street', 'bw-street-dip', 'happy-street', 'night-dance', 'bokeh', 'cake-toppers', 'proposal-night'],
+  '3d-vuon-toi-gian-zen': ['couple-wood-wall', 'studio-sitting', 'calla-lily', 'ring-paper', 'bw-doorway', 'white-bouquet', 'hands-bouquet'],
+  '3d-studio-anh-sang': ['studio-white', 'studio-white-suit', 'studio-sitting', 'window-bouquet', 'veil-kiss', 'white-bouquet', 'rings-peony'],
+  '3d-ca-phe-goc-pho': ['happy-street', 'city-embrace', 'motorbike', 'couple-wood-wall', 'love-letter', 'ranunculus-hand', 'cake-toppers'],
+  '3d-cau-rong-song-han': ['bridge-tower', 'proposal-night', 'night-lake', 'city-street', 'bokeh', 'dance-lights', 'gold-rings'],
+  '3d-khong-gian-kien-truc': ['stairs-above', 'bw-doorway', 'pool-modern', 'terracotta-table', 'studio-white-suit', 'golden-hands', 'ring-paper'],
 };
 
 const url = (name: string) => `/invitation-samples/${name}.webp`;

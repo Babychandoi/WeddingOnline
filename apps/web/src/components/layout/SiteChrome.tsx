@@ -59,7 +59,7 @@ export function SiteFooter() {
             100 Mẫu Thiệp 2D
           </Link>
           <Link href="/thiep-cuoi-3d" className="hover:text-rose-700 hover:underline">
-            10 Mẫu Thiệp 3D
+            100 Mẫu Thiệp 3D
           </Link>
           <Link href="/khong-gian" className="hover:text-rose-700 hover:underline">
             101 Không Gian 3D

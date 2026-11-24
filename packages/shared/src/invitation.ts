@@ -14,6 +14,105 @@ export const WALKTHROUGH_3D_IDS = [
   '3d-vuon-hoa-dao',
   '3d-co-truyen',
   '3d-rap-cuoi',
+  // Cổ Đô & Gia Tiên Việt (+11)
+  '3d-hoang-thanh-hue',
+  '3d-pho-hoi-den-long',
+  '3d-dinh-lang-cay-da',
+  '3d-trang-an-thuy-dinh',
+  '3d-nhat-binh-cung-dinh',
+  '3d-hang-thuan-chua-vang',
+  '3d-rap-la-dua-mien-tay',
+  '3d-cau-trau-que-huong',
+  '3d-thang-long-hoang-kim',
+  '3d-lua-ha-dong-son-do',
+  '3d-ben-nuoc-con-do',
+  // Vườn Hoa & Bốn Mùa (+8)
+  '3d-doi-huong-duong',
+  '3d-vuon-hong-co-phap',
+  '3d-hoa-ban-tay-bac',
+  '3d-thung-lung-cam-tu-cau',
+  '3d-anh-dao-kyoto',
+  '3d-canh-dong-cuc-hoa-mi',
+  '3d-vuon-cam-dia-trung-hai',
+  '3d-mua-hoa-phuong-do',
+  // Biển Đảo & Hoàng Hôn (+11)
+  '3d-bai-bien-hoang-hon',
+  '3d-phu-quoc-ngoc-trai',
+  '3d-ha-long-du-thuyen',
+  '3d-santorini-vom-xanh',
+  '3d-dao-san-ho-nang-vang',
+  '3d-mui-ne-doi-cat-hong',
+  '3d-maldives-cau-go',
+  '3d-vach-da-bien-khoi',
+  '3d-rung-dua-ben-tre',
+  '3d-con-dao-sao-dem',
+  '3d-ben-du-thuyen-champagne',
+  // Rừng Núi & Sương Sớm (+10)
+  '3d-sapa-may-nui',
+  '3d-dalat-nha-kinh-hoa',
+  '3d-thac-ban-gioc',
+  '3d-doi-che-tan-cuong',
+  '3d-thao-nguyen-xanh',
+  '3d-rung-dom-dom',
+  '3d-thung-lung-ruou-vang',
+  '3d-ho-tuyen-lam',
+  '3d-nui-tuyet-thuy-si',
+  '3d-nha-go-bac-au',
+  // Hồ Nước & Hoa Đăng (+9)
+  '3d-song-hoai-tha-den',
+  '3d-ho-guom-the-huc',
+  '3d-venice-gondola',
+  '3d-suoi-nguon-rung-truc',
+  '3d-ho-thien-nga',
+  '3d-dam-sen-trang',
+  '3d-thuy-ta-cung-trang',
+  '3d-ben-thuyen-hoa-tim',
+  '3d-vuon-nuoc-zen',
+  // Cổ Tích, Mây & Ngân Hà (+10)
+  '3d-cuc-quang-bac-cuc',
+  '3d-lau-dai-pha-le',
+  '3d-ngan-ha-tinh-tu',
+  '3d-nac-thang-thien-duong',
+  '3d-khu-vuon-anh-trang',
+  '3d-co-xe-co-tich',
+  '3d-dao-noi-than-tien',
+  '3d-cung-dien-anh-sang',
+  '3d-mua-sao-bang',
+  '3d-vuong-quoc-bang-gia',
+  // Lâu Đài & Dạ Tiệc Thượng Lưu (+10)
+  '3d-dai-sanh-pha-le',
+  '3d-thanh-duong-gothic',
+  '3d-cung-dien-versailles',
+  '3d-vuon-tuong-la-ma',
+  '3d-da-tiec-gatsby',
+  '3d-biet-thu-ho-como',
+  '3d-sanh-nhung-hoang-gia',
+  '3d-lau-dai-bavaria',
+  '3d-nha-hat-opera',
+  '3d-san-trong-indochine',
+  // Điện Ảnh, Ký Ức & Nghệ Thuật (+11)
+  '3d-rap-chieu-phim',
+  '3d-chuyen-tau-thanh-xuan',
+  '3d-bao-tang-my-thuat',
+  '3d-thu-vien-co-dien',
+  '3d-phong-tra-jazz',
+  '3d-san-ga-mua-dong',
+  '3d-trien-lam-den-trang',
+  '3d-tiem-dia-than',
+  '3d-buu-dien-sai-gon',
+  '3d-san-khau-broadway',
+  '3d-xuong-ve-mau-nuoc',
+  // Hiện Đại, Rooftop & Đô Thị (+10)
+  '3d-rooftop-sai-gon',
+  '3d-cau-anh-sao',
+  '3d-trien-lam-kinh',
+  '3d-penthouse-vo-cuc',
+  '3d-pho-di-bo-neon',
+  '3d-vuon-toi-gian-zen',
+  '3d-studio-anh-sang',
+  '3d-ca-phe-goc-pho',
+  '3d-cau-rong-song-han',
+  '3d-khong-gian-kien-truc',
 ] as const;
 
 export type Walkthrough3DTemplateId = (typeof WALKTHROUGH_3D_IDS)[number];
@@ -161,12 +260,39 @@ export const INVITATION_STYLE_LABELS: Record<InvitationTemplateStyle, string> = 
   ...INVITATION_2D_STYLE_LABELS,
 };
 
+export type Invitation3DCategory =
+  | 'co-do-truyen-thong'
+  | 'vuon-hoa-mua-xuan'
+  | 'bien-dao-nhiet-doi'
+  | 'rung-nui-suong-mai'
+  | 'ho-nuoc-thuy-ta'
+  | 'co-tich-ngan-ha'
+  | 'lau-dai-chau-au'
+  | 'dien-anh-nghe-thuat'
+  | 'hien-dai-thanh-thi';
+
+export const INVITATION_3D_CATEGORY_LABELS: Record<Invitation3DCategory, string> = {
+  'co-do-truyen-thong': 'Cổ Đô & Gia Tiên',
+  'vuon-hoa-mua-xuan': 'Vườn Hoa & Bốn Mùa',
+  'bien-dao-nhiet-doi': 'Biển Đảo & Hoàng Hôn',
+  'rung-nui-suong-mai': 'Rừng Núi & Sương Mai',
+  'ho-nuoc-thuy-ta': 'Hồ Nước & Hoa Đăng',
+  'co-tich-ngan-ha': 'Cổ Tích & Ngân Hà',
+  'lau-dai-chau-au': 'Lâu Đài & Dạ Tiệc',
+  'dien-anh-nghe-thuat': 'Điện Ảnh & Ký Ức',
+  'hien-dai-thanh-thi': 'Rooftop & Đương Đại',
+};
+
 export interface InvitationTemplateMeta {
   id: InvitationTemplateId;
   nameVi: string;
   descriptionVi: string;
   /** Gallery filter */
   style: InvitationTemplateStyle;
+  /** Sub-category for 3D walkthrough invitations */
+  category3d?: Invitation3DCategory;
+  /** Short camera choreography / layout badge for 3D cards */
+  cameraTagVi?: string;
 }
 
 /** 100 templates. The first twelve are the originals (their ids are stored in existing invitations). */
@@ -271,17 +397,125 @@ export const INVITATION_TEMPLATES: InvitationTemplateMeta[] = [
   { id: 'lich-cuoi', nameVi: 'Lịch Ngày Cưới', descriptionVi: 'Trang lịch tối giản, ngày cưới khoanh tim, ảnh studio trắng.', style: 'toi-gian' },
   { id: 'i-love-you', nameVi: 'I Love You', descriptionVi: 'Nền đỏ rượu vang, ảnh khung vòm và chữ I Love You xếp dọc.', style: 'lang-man' },
   { id: 'cam-dat', nameVi: 'Cam Đất', descriptionVi: 'Cam đất ấm, ảnh dù đỏ trong khung vòm, chữ dọc hai bên.', style: 'hien-dai' },
-  // 10 interactive 3D scroll-walk templates (added after the first 12 originals)
-  { id: '3d-oai-huong', nameVi: 'Oải Hương 3D', descriptionVi: 'Thiệp cưới 3D · Ba khu đón khách · tiệc · lễ đài giữa cánh đồng tím hoàng hôn.', style: 'thiep-3d' },
-  { id: '3d-mua-dong-tuyet', nameVi: 'Mùa Đông Tuyết 3D', descriptionVi: 'Thiệp cưới 3D · Sân tròn · gazebo kính lung linh · tuyết rơi lãng mạn.', style: 'thiep-3d' },
-  { id: '3d-mua-thu', nameVi: 'Mùa Thu Lá Phong 3D', descriptionVi: 'Thiệp cưới 3D · Triển lãm ảnh cưới dưới vòm lá phong đỏ rực.', style: 'thiep-3d' },
-  { id: '3d-ho-sen-hoa-dang', nameVi: 'Hồ Sen Hoa Đăng 3D', descriptionVi: 'Thiệp cưới 3D · Cầu cửu khúc · hoa đăng trôi nước · thủy tạ trăng thanh.', style: 'thiep-3d' },
-  { id: '3d-rung-thong', nameVi: 'Rừng Thông 3D', descriptionVi: 'Thiệp cưới 3D · Đường mòn gỗ uốn lượn · sương sớm rừng thông Đà Lạt.', style: 'thiep-3d' },
-  { id: '3d-dem-trang', nameVi: 'Đêm Trăng Sao 3D', descriptionVi: 'Thiệp cưới 3D · Vầng trăng tròn cổ tích · đèn trời · pháo hoa chúc mừng.', style: 'thiep-3d' },
-  { id: '3d-tren-may', nameVi: 'Trên Mây Hồng 3D', descriptionVi: 'Thiệp cưới 3D · Biển mây hồng bồng bềnh · đảo hoa lơ lửng · điện thần tiên.', style: 'thiep-3d' },
-  { id: '3d-vuon-hoa-dao', nameVi: 'Vườn Hoa Đào 3D', descriptionVi: 'Thiệp cưới 3D · Vườn xuân hoa đào · đèn lồng đỏ · thảm đỏ & tráp hỷ.', style: 'thiep-3d' },
-  { id: '3d-co-truyen', nameVi: 'Cổ Truyền Rồng Phụng 3D', descriptionVi: 'Thiệp cưới 3D · Cổng rồng phụng kết hoa · áo dài · hoành phi Song Hỷ.', style: 'thiep-3d' },
-  { id: '3d-rap-cuoi', nameVi: 'Rạp Cưới Voan Hồng 3D', descriptionVi: 'Thiệp cưới 3D · Rạp voan hồng lụa mềm · dãy bàn tiệc · áo dài chào khách.', style: 'thiep-3d' },
+  // 100 interactive 3D walkthrough templates (10 originals + 90 rich spatial/camera concepts)
+  { id: '3d-oai-huong', nameVi: 'Oải Hương 3D', descriptionVi: 'Cánh đồng tím hoàng hôn · camera lướt dải lụa qua ba khu đón khách, kỷ niệm & lễ đài.', style: 'thiep-3d', category3d: 'vuon-hoa-mua-xuan', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-mua-dong-tuyet', nameVi: 'Mùa Đông Tuyết 3D', descriptionVi: 'Sân tròn tuyết rơi · gazebo kính lung linh · xoay vòng tròn triển lãm.', style: 'thiep-3d', category3d: 'vuon-hoa-mua-xuan', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-mua-thu', nameVi: 'Mùa Thu Lá Phong 3D', descriptionVi: 'Triển lãm ảnh cưới dưới vòm lá phong đỏ rực · dạo bước ziczac nghệ thuật.', style: 'thiep-3d', category3d: 'vuon-hoa-mua-xuan', cameraTagVi: 'Dạo triển lãm' },
+  { id: '3d-ho-sen-hoa-dang', nameVi: 'Hồ Sen Hoa Đăng 3D', descriptionVi: 'Cầu cửu khúc · hoa đăng trôi nước · thủy tạ trăng thanh truyền thống Việt.', style: 'thiep-3d', category3d: 'ho-nuoc-thuy-ta', cameraTagVi: 'Thuyền trôi' },
+  { id: '3d-rung-thong', nameVi: 'Rừng Thông 3D', descriptionVi: 'Đường mòn gỗ uốn lượn · sương sớm rừng thông Đà Lạt · bay cánh hạc.', style: 'thiep-3d', category3d: 'rung-nui-suong-mai', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-dem-trang', nameVi: 'Đêm Trăng Sao 3D', descriptionVi: 'Vầng trăng tròn cổ tích · đèn trời lơ lửng · pháo hoa chúc mừng rực rỡ.', style: 'thiep-3d', category3d: 'co-tich-ngan-ha', cameraTagVi: 'Ống kính điện ảnh' },
+  { id: '3d-tren-may', nameVi: 'Trên Mây Hồng 3D', descriptionVi: 'Biển mây hồng bồng bềnh · đảo hoa lơ lửng · nấc thang mây thần tiên.', style: 'thiep-3d', category3d: 'co-tich-ngan-ha', cameraTagVi: 'Nấc thang mây' },
+  { id: '3d-vuon-hoa-dao', nameVi: 'Vườn Hoa Đào 3D', descriptionVi: 'Vườn xuân hoa đào · đèn lồng đỏ · thảm đỏ & tráp hỷ rước dâu.', style: 'thiep-3d', category3d: 'vuon-hoa-mua-xuan', cameraTagVi: 'Rước lễ cung đình' },
+  { id: '3d-co-truyen', nameVi: 'Cổ Truyền Rồng Phụng 3D', descriptionVi: 'Cổng rồng phụng kết hoa · áo dài · hoành phi Song Hỷ sơn mài vàng kim.', style: 'thiep-3d', category3d: 'co-do-truyen-thong', cameraTagVi: 'Rước lễ cung đình' },
+  { id: '3d-rap-cuoi', nameVi: 'Rạp Cưới Voan Hồng 3D', descriptionVi: 'Rạp voan hồng lụa mềm · dãy bàn tiệc · áo dài chào khách trang nhã.', style: 'thiep-3d', category3d: 'lau-dai-chau-au', cameraTagVi: 'Lướt dải lụa' },
+
+  // Cổ Đô & Gia Tiên Việt (+11)
+  { id: '3d-hoang-thanh-hue', nameVi: 'Hoàng Thành Đại Nội 3D', descriptionVi: 'Ngọ Môn son thếp vàng · khung tranh sơn mài cung đình · góc máy rước lễ uy nghi.', style: 'thiep-3d', category3d: 'co-do-truyen-thong', cameraTagVi: 'Rước lễ cung đình' },
+  { id: '3d-pho-hoi-den-long', nameVi: 'Phố Hội Đèn Lồng 3D', descriptionVi: 'Phố cổ tường vàng giăng trăm đèn lồng lụa · tranh cuộn lụa trúc đung đưa.', style: 'thiep-3d', category3d: 'co-do-truyen-thong', cameraTagVi: 'Thuyền trôi' },
+  { id: '3d-dinh-lang-cay-da', nameVi: 'Đình Làng Cây Đa 3D', descriptionVi: 'Sân gạch đỏ cổng tam quan cổ kính · tráp ăn hỏi truyền thống Bắc Bộ.', style: 'thiep-3d', category3d: 'co-do-truyen-thong', cameraTagVi: 'Dạo triển lãm' },
+  { id: '3d-trang-an-thuy-dinh', nameVi: 'Tràng An Thủy Đình 3D', descriptionVi: 'Non nước Ninh Bình hùng vĩ · cầu đá qua đầm sen dẫn vào thủy đình cổ.', style: 'thiep-3d', category3d: 'co-do-truyen-thong', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-nhat-binh-cung-dinh', nameVi: 'Nhật Bình Cung Đình 3D', descriptionVi: 'Không gian lầu son gác tía · cổ phục Nhật Bình & liễn lụa thêu phượng hoàng.', style: 'thiep-3d', category3d: 'co-do-truyen-thong', cameraTagVi: 'Rước lễ cung đình' },
+  { id: '3d-hang-thuan-chua-vang', nameVi: 'Lễ Hằng Thuận Chùa Vàng 3D', descriptionVi: 'Không gian thiền môn thanh tịnh · chuông gió hoa sen & bậc thềm đá an yên.', style: 'thiep-3d', category3d: 'co-do-truyen-thong', cameraTagVi: 'Nấc thang mây' },
+  { id: '3d-rap-la-dua-mien-tay', nameVi: 'Rạp Lá Dừa Miền Tây 3D', descriptionVi: 'Cổng lá dừa kết hoa đủng đỉnh · cầu ván gỗ miệt vườn sông nước hào sảng.', style: 'thiep-3d', category3d: 'co-do-truyen-thong', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-cau-trau-que-huong', nameVi: 'Cổng Cau Trầu Quê Hương 3D', descriptionVi: 'Buồng cau xanh dây trầu thắm · khung tre trúc mộc mạc đậm tình nghĩa tào khang.', style: 'thiep-3d', category3d: 'co-do-truyen-thong', cameraTagVi: 'Dạo triển lãm' },
+  { id: '3d-thang-long-hoang-kim', nameVi: 'Thăng Long Hoàng Kim 3D', descriptionVi: 'Hoàng thành rực sắc vàng son · sân tròn trống đồng & pháo hoa đại lễ.', style: 'thiep-3d', category3d: 'co-do-truyen-thong', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-lua-ha-dong-son-do', nameVi: 'Lụa Hà Đông Son Đỏ 3D', descriptionVi: 'Dải lụa tơ tằm uốn lượn trên không · khung tranh sơn mài khảm trai tinh xảo.', style: 'thiep-3d', category3d: 'co-do-truyen-thong', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-ben-nuoc-con-do', nameVi: 'Bến Nước Con Đò 3D', descriptionVi: 'Hoàng hôn tím bên bến sông quê · rặng tre ngà & hoa đăng lững lờ trôi.', style: 'thiep-3d', category3d: 'co-do-truyen-thong', cameraTagVi: 'Thuyền trôi' },
+
+  // Vườn Hoa & Bốn Mùa (+8)
+  { id: '3d-doi-huong-duong', nameVi: 'Đồi Hoa Hướng Dương 3D', descriptionVi: 'Đồi nắng vàng rực rỡ hướng về mặt trời · bậc gỗ cao dần lên lễ đài lộng gió.', style: 'thiep-3d', category3d: 'vuon-hoa-mua-xuan', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-vuon-hong-co-phap', nameVi: 'Vườn Hồng Cổ Pháp 3D', descriptionVi: 'Vòm hồng leo ngát hương · sân tròn đài phun nước & khung Rococo ngọc trai.', style: 'thiep-3d', category3d: 'vuon-hoa-mua-xuan', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-hoa-ban-tay-bac', nameVi: 'Mùa Hoa Ban Tây Bắc 3D', descriptionVi: 'Sắc trắng tím hoa ban giữa mây núi đại ngàn · bậc đá sương mù thơ mộng.', style: 'thiep-3d', category3d: 'vuon-hoa-mua-xuan', cameraTagVi: 'Nấc thang mây' },
+  { id: '3d-thung-lung-cam-tu-cau', nameVi: 'Thung Lũng Cẩm Tú Cầu 3D', descriptionVi: 'Biển hoa cẩm tú cầu xanh biếc Đà Lạt · khung ảnh vòng nguyệt quế lá tươi.', style: 'thiep-3d', category3d: 'vuon-hoa-mua-xuan', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-anh-dao-kyoto', nameVi: 'Vườn Anh Đào Kyoto 3D', descriptionVi: 'Mưa cánh hoa sakura hồng phấn · cổng gỗ mộc & cuộn tranh lụa tinh khôi.', style: 'thiep-3d', category3d: 'vuon-hoa-mua-xuan', cameraTagVi: 'Thuyền trôi' },
+  { id: '3d-canh-dong-cuc-hoa-mi', nameVi: 'Cánh Đồng Cúc Họa Mi 3D', descriptionVi: 'Thu Hà Nội dịu dàng trong sắc cúc trắng · lối đá sân vườn & nắng mật ong.', style: 'thiep-3d', category3d: 'vuon-hoa-mua-xuan', cameraTagVi: 'Dạo triển lãm' },
+  { id: '3d-vuon-cam-dia-trung-hai', nameVi: 'Vườn Cam Địa Trung Hải 3D', descriptionVi: 'Hàng cây trĩu quả vàng nắng · vòm gốm sứ xanh trắng & tiệc vườn phóng khoáng.', style: 'thiep-3d', category3d: 'vuon-hoa-mua-xuan', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-mua-hoa-phuong-do', nameVi: 'Mùa Hoa Phượng Đỏ 3D', descriptionVi: 'Bầu trời rực đỏ kỷ niệm tuổi học trò · lối đi ngập cánh phượng mùa hạ.', style: 'thiep-3d', category3d: 'vuon-hoa-mua-xuan', cameraTagVi: 'Ống kính điện ảnh' },
+
+  // Biển Đảo & Hoàng Hôn (+11)
+  { id: '3d-bai-bien-hoang-hon', nameVi: 'Bãi Biển Hoàng Hôn 3D', descriptionVi: 'Mặt trời đỏ cam lặn xuống đại dương · cổng tre voan trắng & đuốc biển lãng mạn.', style: 'thiep-3d', category3d: 'bien-dao-nhiet-doi', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-phu-quoc-ngoc-trai', nameVi: 'Phú Quốc Ngọc Trai 3D', descriptionVi: 'Biển ngọc bích đảo ngọc · khung ảnh vỏ trai trắng & thảm lụa cát mịn.', style: 'thiep-3d', category3d: 'bien-dao-nhiet-doi', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-ha-long-du-thuyen', nameVi: 'Vịnh Hạ Long Du Thuyền 3D', descriptionVi: 'Boong tàu gỗ sang trọng lướt giữa ngàn đảo đá vôi kỳ vĩ lúc chiều tà.', style: 'thiep-3d', category3d: 'bien-dao-nhiet-doi', cameraTagVi: 'Thuyền trôi' },
+  { id: '3d-santorini-vom-xanh', nameVi: 'Santorini Vòm Xanh 3D', descriptionVi: 'Bậc thang tường vôi trắng & mái vòm xanh coban nhìn thẳng ra biển Aegean.', style: 'thiep-3d', category3d: 'bien-dao-nhiet-doi', cameraTagVi: 'Nấc thang mây' },
+  { id: '3d-dao-san-ho-nang-vang', nameVi: 'Đảo San Hô Nắng Vàng 3D', descriptionVi: 'Bầu trời xanh ngắt nhiệt đới · rặng dừa nghiêng bóng & vòng hoa nhiệt đới.', style: 'thiep-3d', category3d: 'bien-dao-nhiet-doi', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-mui-ne-doi-cat-hong', nameVi: 'Mũi Né Đồi Cát Hồng 3D', descriptionVi: 'Đường cong đồi cát hồng cam rực nắng · thảm boho dệt tay & cỏ lau trắng.', style: 'thiep-3d', category3d: 'bien-dao-nhiet-doi', cameraTagVi: 'Ống kính điện ảnh' },
+  { id: '3d-maldives-cau-go', nameVi: 'Maldives Cầu Gỗ Biển Xanh 3D', descriptionVi: 'Cầu gỗ nổi uốn lượn trên làn nước pha lê · thủy tạ cưới giữa đại dương.', style: 'thiep-3d', category3d: 'bien-dao-nhiet-doi', cameraTagVi: 'Thuyền trôi' },
+  { id: '3d-vach-da-bien-khoi', nameVi: 'Vách Đá Biển Khơi 3D', descriptionVi: 'Lễ đài cheo leo trên ghềnh đá đón sóng tung bọt trắng · camera bay hùng vĩ.', style: 'thiep-3d', category3d: 'bien-dao-nhiet-doi', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-rung-dua-ben-tre', nameVi: 'Rừng Dừa Bến Tre 3D', descriptionVi: 'Nắng xuyên tàu dừa xanh mát · lối gỗ ven sông bình dị và ấm cúng.', style: 'thiep-3d', category3d: 'bien-dao-nhiet-doi', cameraTagVi: 'Dạo triển lãm' },
+  { id: '3d-con-dao-sao-dem', nameVi: 'Côn Đảo Sao Đêm 3D', descriptionVi: 'Bãi biển đêm đầy sao lấp lánh · khung pha lê phát sáng & đèn bão cổ điển.', style: 'thiep-3d', category3d: 'bien-dao-nhiet-doi', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-ben-du-thuyen-champagne', nameVi: 'Bến Du Thuyền Champagne 3D', descriptionVi: 'Tiệc chiều thượng lưu bên bến cảng · ánh vàng kim & tiếng nhạc du dương.', style: 'thiep-3d', category3d: 'bien-dao-nhiet-doi', cameraTagVi: 'Xoay vanxơ' },
+
+  // Rừng Núi & Sương Sớm (+10)
+  { id: '3d-sapa-may-nui', nameVi: 'Sapa Mây Núi 3D', descriptionVi: 'Săn mây trên đỉnh núi Tây Bắc · bậc thang đá dẫn lên cổng trời bảng lảng sương.', style: 'thiep-3d', category3d: 'rung-nui-suong-mai', cameraTagVi: 'Nấc thang mây' },
+  { id: '3d-dalat-nha-kinh-hoa', nameVi: 'Đà Lạt Nhà Kính Hoa 3D', descriptionVi: 'Vòm kính sắt nghệ thuật ngập tràn hoa tươi & nắng mai xuyên qua làn sương.', style: 'thiep-3d', category3d: 'rung-nui-suong-mai', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-thac-ban-gioc', nameVi: 'Thác Bản Giốc Ngọc Bích 3D', descriptionVi: 'Dòng nước ngọc bích giữa núi non trùng điệp · cầu gỗ & hơi sương mát lành.', style: 'thiep-3d', category3d: 'rung-nui-suong-mai', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-doi-che-tan-cuong', nameVi: 'Đồi Chè Tân Cương 3D', descriptionVi: 'Những luống chè xanh mướt trải dài tới chân trời · bình minh trong trẻo.', style: 'thiep-3d', category3d: 'rung-nui-suong-mai', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-thao-nguyen-xanh', nameVi: 'Thảo Nguyên Gió Xanh 3D', descriptionVi: 'Đồng cỏ mênh mông dưới bầu trời mây trắng · tự do phóng khoáng.', style: 'thiep-3d', category3d: 'rung-nui-suong-mai', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-rung-dom-dom', nameVi: 'Rừng Đom Đóm Đêm Hạ 3D', descriptionVi: 'Ngàn ánh đom đóm vàng xanh bay lên giữa rừng đêm cổ tích huyền diệu.', style: 'thiep-3d', category3d: 'rung-nui-suong-mai', cameraTagVi: 'Thuyền trôi' },
+  { id: '3d-thung-lung-ruou-vang', nameVi: 'Thung Lũng Rượu Vang 3D', descriptionVi: 'Hàng nho chín tím dưới nắng chiều Tuscany · vòm gạch cổ & thùng gỗ sồi.', style: 'thiep-3d', category3d: 'rung-nui-suong-mai', cameraTagVi: 'Dạo triển lãm' },
+  { id: '3d-ho-tuyen-lam', nameVi: 'Hồ Tuyền Lâm Sương Khói 3D', descriptionVi: 'Mặt hồ phẳng lặng soi bóng thông già lúc hửng đông · thuyền trôi êm đềm.', style: 'thiep-3d', category3d: 'rung-nui-suong-mai', cameraTagVi: 'Thuyền trôi' },
+  { id: '3d-nui-tuyet-thuy-si', nameVi: 'Núi Tuyết Thụy Sĩ 3D', descriptionVi: 'Đỉnh Alps phủ tuyết trắng dưới nắng hồng · lễ đài gỗ ấm áp giữa trời đông.', style: 'thiep-3d', category3d: 'rung-nui-suong-mai', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-nha-go-bac-au', nameVi: 'Nhà Gỗ Bắc Âu 3D', descriptionVi: 'Dây đèn vàng ấm giăng giữa rừng thông tuyết · phong cách Nordic Hygge.', style: 'thiep-3d', category3d: 'rung-nui-suong-mai', cameraTagVi: 'Dạo triển lãm' },
+
+  // Hồ Nước & Hoa Đăng (+9)
+  { id: '3d-song-hoai-tha-den', nameVi: 'Sông Hoài Thả Đèn 3D', descriptionVi: 'Dòng sông đêm rực sáng ngàn hoa đăng giấy · nhịp cầu gỗ nối đôi bờ thương nhớ.', style: 'thiep-3d', category3d: 'ho-nuoc-thuy-ta', cameraTagVi: 'Thuyền trôi' },
+  { id: '3d-ho-guom-the-huc', nameVi: 'Hồ Gươm Cầu Thê Húc 3D', descriptionVi: 'Nhịp cầu son đỏ uốn cong trên mặt hồ lục thủy · liễu rủ mùa thu Hà Nội.', style: 'thiep-3d', category3d: 'ho-nuoc-thuy-ta', cameraTagVi: 'Rước lễ cung đình' },
+  { id: '3d-venice-gondola', nameVi: 'Venice Gondola Tình Yêu 3D', descriptionVi: 'Kênh đào lãng mạn nước Ý · cầu đá vòm cổ kính & đèn đường phảng phất.', style: 'thiep-3d', category3d: 'ho-nuoc-thuy-ta', cameraTagVi: 'Thuyền trôi' },
+  { id: '3d-suoi-nguon-rung-truc', nameVi: 'Suối Nguồn Rừng Trúc 3D', descriptionVi: 'Dòng suối trong vắt chảy qua rừng trúc xanh · cuộn tranh treo thanh tao.', style: 'thiep-3d', category3d: 'ho-nuoc-thuy-ta', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-ho-thien-nga', nameVi: 'Hồ Thiên Nga Ánh Trăng 3D', descriptionVi: 'Mặt hồ bạc dưới trăng rằm · đài vòm pha lê & điệu vanxơ xoay vòng.', style: 'thiep-3d', category3d: 'ho-nuoc-thuy-ta', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-dam-sen-trang', nameVi: 'Đầm Sen Trắng Sương Mai 3D', descriptionVi: 'Sen bạch liên tinh khiết nở trong sương sớm · cầu ván mộc thanh khiết.', style: 'thiep-3d', category3d: 'ho-nuoc-thuy-ta', cameraTagVi: 'Thuyền trôi' },
+  { id: '3d-thuy-ta-cung-trang', nameVi: 'Thủy Tạ Cung Trăng 3D', descriptionVi: 'Lầu bát giác nổi giữa hồ sao đêm · đèn lồng cung đình soi bóng nước.', style: 'thiep-3d', category3d: 'ho-nuoc-thuy-ta', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-ben-thuyen-hoa-tim', nameVi: 'Bến Thuyền Hoa Tím 3D', descriptionVi: 'Cầu gỗ phủ hoa tử đằng tím rủ xuống mặt hồ hoàng hôn thơ mộng.', style: 'thiep-3d', category3d: 'ho-nuoc-thuy-ta', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-vuon-nuoc-zen', nameVi: 'Vườn Nước Nhật Bản 3D', descriptionVi: 'Cầu đỏ bắc qua hồ cá Koi & đá cuội rêu phong · tối giản đầy chất thiền.', style: 'thiep-3d', category3d: 'ho-nuoc-thuy-ta', cameraTagVi: 'Dạo triển lãm' },
+
+  // Cổ Tích, Mây & Ngân Hà (+10)
+  { id: '3d-cuc-quang-bac-cuc', nameVi: 'Cực Quang Bắc Cực 3D', descriptionVi: 'Dải cực quang xanh ngọc uốn lượn trên bầu trời sao · khung pha lê lơ lửng.', style: 'thiep-3d', category3d: 'co-tich-ngan-ha', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-lau-dai-pha-le', nameVi: 'Lâu Đài Pha Lê 3D', descriptionVi: 'Tháp pha lê lấp lánh giữa tầng không · thảm gương sao & ánh kim ngân hà.', style: 'thiep-3d', category3d: 'co-tich-ngan-ha', cameraTagVi: 'Rước lễ cung đình' },
+  { id: '3d-ngan-ha-tinh-tu', nameVi: 'Ngân Hà Tinh Tú 3D', descriptionVi: 'Bước đi trên dải ngân hà lấp lánh · các hành tinh & khung ảnh bay không trọng lực.', style: 'thiep-3d', category3d: 'co-tich-ngan-ha', cameraTagVi: 'Ống kính điện ảnh' },
+  { id: '3d-nac-thang-thien-duong', nameVi: 'Nấc Thang Lên Thiên Đường 3D', descriptionVi: 'Bậc thang cẩm thạch trắng vươn cao qua biển mây vàng dẫn tới vòm trăng.', style: 'thiep-3d', category3d: 'co-tich-ngan-ha', cameraTagVi: 'Nấc thang mây' },
+  { id: '3d-khu-vuon-anh-trang', nameVi: 'Khu Vườn Ánh Trăng 3D', descriptionVi: 'Cổng trăng khuyết khổng lồ tỏa sáng giữa vườn hoa đêm phát quang huyền ảo.', style: 'thiep-3d', category3d: 'co-tich-ngan-ha', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-co-xe-co-tich', nameVi: 'Cỗ Xe Bí Ngô Cổ Tích 3D', descriptionVi: 'Vườn lâu đài phép thuật nửa đêm · bụi tiên vàng kim & khung Rococo.', style: 'thiep-3d', category3d: 'co-tich-ngan-ha', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-dao-noi-than-tien', nameVi: 'Đảo Nổi Thần Tiên 3D', descriptionVi: 'Mỗi bức ảnh kỷ niệm đặt trên một hòn đảo mây lơ lửng nối bằng cầu ánh sáng.', style: 'thiep-3d', category3d: 'co-tich-ngan-ha', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-cung-dien-anh-sang', nameVi: 'Cung Điện Ánh Sáng 3D', descriptionVi: 'Hàng cột ánh sáng vươn lên trời sao · giao hưởng vàng trắng trang nghiêm.', style: 'thiep-3d', category3d: 'co-tich-ngan-ha', cameraTagVi: 'Rước lễ cung đình' },
+  { id: '3d-mua-sao-bang', nameVi: 'Mưa Sao Băng Ước Nguyện 3D', descriptionVi: 'Bầu trời đêm tím thẫm rực sáng mưa sao băng · hẹn ước vĩnh cửu.', style: 'thiep-3d', category3d: 'co-tich-ngan-ha', cameraTagVi: 'Ống kính điện ảnh' },
+  { id: '3d-vuong-quoc-bang-gia', nameVi: 'Vương Quốc Băng Giá 3D', descriptionVi: 'Cung điện băng lam ngọc phản chiếu cực quang · bông tuyết kim cương rơi.', style: 'thiep-3d', category3d: 'co-tich-ngan-ha', cameraTagVi: 'Nấc thang mây' },
+
+  // Lâu Đài & Dạ Tiệc Thượng Lưu (+10)
+  { id: '3d-dai-sanh-pha-le', nameVi: 'Đại Sảnh Đèn Chùm Pha Lê 3D', descriptionVi: 'Sàn đá cẩm thạch trắng viền vàng · dãy đèn chùm pha lê rực rỡ hoàng gia.', style: 'thiep-3d', category3d: 'lau-dai-chau-au', cameraTagVi: 'Rước lễ cung đình' },
+  { id: '3d-thanh-duong-gothic', nameVi: 'Thánh Đường Gothic 3D', descriptionVi: 'Vòm đá cao vút & khung cửa kính màu nhà thờ · khúc nhạc Canon thiêng liêng.', style: 'thiep-3d', category3d: 'lau-dai-chau-au', cameraTagVi: 'Rước lễ cung đình' },
+  { id: '3d-cung-dien-versailles', nameVi: 'Cung Điện Versailles 3D', descriptionVi: 'Khu vườn đối xứng Pháp · đài phun nước tròn & khung vòm mạ vàng cổ điển.', style: 'thiep-3d', category3d: 'lau-dai-chau-au', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-vuon-tuong-la-ma', nameVi: 'Vườn Tượng La Mã 3D', descriptionVi: 'Hàng cột đá trắng thức cột Corinth dưới hoàng hôn vàng ấm vùng Địa Trung Hải.', style: 'thiep-3d', category3d: 'lau-dai-chau-au', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-da-tiec-gatsby', nameVi: 'Dạ Tiệc Gatsby Hoàng Kim 3D', descriptionVi: 'Đen tuyền & vàng kim Art Deco thập niên 20 · pháo hoa champagne lộng lẫy.', style: 'thiep-3d', category3d: 'lau-dai-chau-au', cameraTagVi: 'Ống kính điện ảnh' },
+  { id: '3d-biet-thu-ho-como', nameVi: 'Biệt Thự Hồ Como 3D', descriptionVi: 'Ban công đá cẩm thạch nhìn ra mặt hồ nước Ý xanh thẳm & tùng bách cổ thụ.', style: 'thiep-3d', category3d: 'lau-dai-chau-au', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-sanh-nhung-hoang-gia', nameVi: 'Sảnh Nhung Đỏ Hoàng Gia 3D', descriptionVi: 'Rèm nhung đỏ rượu vang & nến ấm · dạ tiệc tối sang trọng bậc nhất.', style: 'thiep-3d', category3d: 'lau-dai-chau-au', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-lau-dai-bavaria', nameVi: 'Lâu Đài Cổ Tích Bavaria 3D', descriptionVi: 'Lâu đài trắng trên đỉnh đồi sương mù châu Âu · bậc đá dẫn lối hoàng gia.', style: 'thiep-3d', category3d: 'lau-dai-chau-au', cameraTagVi: 'Nấc thang mây' },
+  { id: '3d-nha-hat-opera', nameVi: 'Nhà Hát Opera Hoa Hồng 3D', descriptionVi: 'Khán phòng nhung đỏ mạ vàng · ánh đèn sân khấu tôn vinh nhân vật chính.', style: 'thiep-3d', category3d: 'lau-dai-chau-au', cameraTagVi: 'Ống kính điện ảnh' },
+  { id: '3d-san-trong-indochine', nameVi: 'Sân Trong Đông Dương Indochine 3D', descriptionVi: 'Gạch bông đen trắng, vòm cửa gỗ lá sách & cọ xanh phong cách Đông Dương.', style: 'thiep-3d', category3d: 'lau-dai-chau-au', cameraTagVi: 'Dạo triển lãm' },
+
+  // Điện Ảnh, Ký Ức & Nghệ Thuật (+11)
+  { id: '3d-rap-chieu-phim', nameVi: 'Rạp Chiếu Phim Tình Yêu 3D', descriptionVi: 'Bảng đèn bóng tròn Premiere · mỗi bức ảnh là một thước phim hộp đèn 35mm.', style: 'thiep-3d', category3d: 'dien-anh-nghe-thuat', cameraTagVi: 'Ống kính điện ảnh' },
+  { id: '3d-chuyen-tau-thanh-xuan', nameVi: 'Chuyến Tàu Thanh Xuân 3D', descriptionVi: 'Đường ray ký ức đi qua những mùa thương · các trạm dừng lưu giữ tuổi trẻ.', style: 'thiep-3d', category3d: 'dien-anh-nghe-thuat', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-bao-tang-my-thuat', nameVi: 'Bảo Tàng Mỹ Thuật 3D', descriptionVi: 'Phòng trưng bày vòm trắng tinh tế · camera dạo bước ngắm từng tuyệt tác tình yêu.', style: 'thiep-3d', category3d: 'dien-anh-nghe-thuat', cameraTagVi: 'Dạo triển lãm' },
+  { id: '3d-thu-vien-co-dien', nameVi: 'Thư Viện Cổ Điển 3D', descriptionVi: 'Không gian gỗ ấm & ánh đèn bàn xanh · viết tiếp chương đẹp nhất cuộc đời.', style: 'thiep-3d', category3d: 'dien-anh-nghe-thuat', cameraTagVi: 'Dạo triển lãm' },
+  { id: '3d-phong-tra-jazz', nameVi: 'Phòng Trà Jazz Sài Gòn Xưa 3D', descriptionVi: 'Ánh đèn vàng hổ phách hoài cổ · khung hộp đèn ấm áp & giai điệu du dương.', style: 'thiep-3d', category3d: 'dien-anh-nghe-thuat', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-san-ga-mua-dong', nameVi: 'Sân Ga Mùa Đông 3D', descriptionVi: 'Đồng hồ sân ga cổ & làn tuyết bay nhẹ dưới ánh đèn đường vàng ấm.', style: 'thiep-3d', category3d: 'dien-anh-nghe-thuat', cameraTagVi: 'Ống kính điện ảnh' },
+  { id: '3d-trien-lam-den-trang', nameVi: 'Triển Lãm Phim Đen Trắng 3D', descriptionVi: 'Không gian nghệ thuật Monochrome đối lập ánh kim · sang trọng vượt thời gian.', style: 'thiep-3d', category3d: 'dien-anh-nghe-thuat', cameraTagVi: 'Dạo triển lãm' },
+  { id: '3d-tiem-dia-than', nameVi: 'Tiệm Đĩa Than Hoài Niệm 3D', descriptionVi: 'Tông nâu trầm ấm Retro thập niên 90 · lưu giữ bản tình ca của riêng hai đứa.', style: 'thiep-3d', category3d: 'dien-anh-nghe-thuat', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-buu-dien-sai-gon', nameVi: 'Bưu Điện Sài Gòn Hoa Lệ 3D', descriptionVi: 'Vòm sắt xanh cổ điển & tường vàng di sản · những bức thư tay gửi trọn trăm năm.', style: 'thiep-3d', category3d: 'dien-anh-nghe-thuat', cameraTagVi: 'Rước lễ cung đình' },
+  { id: '3d-san-khau-broadway', nameVi: 'Sân Khấu Broadway 3D', descriptionVi: 'Vòm đèn rực sáng đêm công chiếu · hai bạn là ngôi sao duy nhất trên lễ đài.', style: 'thiep-3d', category3d: 'dien-anh-nghe-thuat', cameraTagVi: 'Ống kính điện ảnh' },
+  { id: '3d-xuong-ve-mau-nuoc', nameVi: 'Xưởng Vẽ Màu Nước 3D', descriptionVi: 'Bầu trời loang màu pastel thơ mộng · giá vẽ gỗ mộc điểm hoa lá tự nhiên.', style: 'thiep-3d', category3d: 'dien-anh-nghe-thuat', cameraTagVi: 'Xoay vanxơ' },
+
+  // Hiện Đại, Rooftop & Đô Thị (+10)
+  { id: '3d-rooftop-sai-gon', nameVi: 'Rooftop Sài Gòn Đêm 3D', descriptionVi: 'Tầng thượng lộng gió ngắm bokeh thành phố về đêm · khung kính phát sáng hiện đại.', style: 'thiep-3d', category3d: 'hien-dai-thanh-thi', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-cau-anh-sao', nameVi: 'Cầu Ánh Sao Pháo Hoa 3D', descriptionVi: 'Lối đi kính rực sáng ngàn điểm sao & pháo hoa rực rỡ phản chiếu mặt hồ đêm.', style: 'thiep-3d', category3d: 'hien-dai-thanh-thi', cameraTagVi: 'Ống kính điện ảnh' },
+  { id: '3d-trien-lam-kinh', nameVi: 'Triển Lãm Kính Đương Đại 3D', descriptionVi: 'Kiến trúc vòm kính trong suốt giữa thiên nhiên · khung ảnh lơ lửng tinh giản.', style: 'thiep-3d', category3d: 'hien-dai-thanh-thi', cameraTagVi: 'Dạo triển lãm' },
+  { id: '3d-penthouse-vo-cuc', nameVi: 'Penthouse Hồ Bơi Vô Cực 3D', descriptionVi: 'Lối đi nổi trên mặt nước hồ bơi vô cực nhìn ra đường chân trời hoàng hôn.', style: 'thiep-3d', category3d: 'hien-dai-thanh-thi', cameraTagVi: 'Thuyền trôi' },
+  { id: '3d-pho-di-bo-neon', nameVi: 'Phố Đi Bộ Đèn Neon 3D', descriptionVi: 'Sắc tím hồng trẻ trung hiện đại · vòng hào quang ánh sáng năng động cá tính.', style: 'thiep-3d', category3d: 'hien-dai-thanh-thi', cameraTagVi: 'Ống kính điện ảnh' },
+  { id: '3d-vuon-toi-gian-zen', nameVi: 'Khu Vườn Tối Giản Zen 3D', descriptionVi: 'Tường trắng kem, đá cuội & nhánh ô liu · vẻ đẹp tĩnh tại kiểu kiến trúc đương đại.', style: 'thiep-3d', category3d: 'hien-dai-thanh-thi', cameraTagVi: 'Dạo triển lãm' },
+  { id: '3d-studio-anh-sang', nameVi: 'Studio Ánh Sáng Trắng 3D', descriptionVi: 'Không gian toàn trắng thuần khiết tôn trọn từng khung hình cưới chuẩn Hàn Quốc.', style: 'thiep-3d', category3d: 'hien-dai-thanh-thi', cameraTagVi: 'Lướt dải lụa' },
+  { id: '3d-ca-phe-goc-pho', nameVi: 'Quán Cà Phê Góc Phố 3D', descriptionVi: 'Góc phố nắng chiều ấm áp & dây đèn vàng · nơi bắt đầu những buổi hẹn đầu tiên.', style: 'thiep-3d', category3d: 'hien-dai-thanh-thi', cameraTagVi: 'Xoay vanxơ' },
+  { id: '3d-cau-rong-song-han', nameVi: 'Cầu Rồng Sông Hàn 3D', descriptionVi: 'Đêm hội pháo hoa rực sáng đôi bờ sông Hàn Đà Nẵng · trẻ trung & rộn ràng.', style: 'thiep-3d', category3d: 'hien-dai-thanh-thi', cameraTagVi: 'Bay cánh hạc' },
+  { id: '3d-khong-gian-kien-truc', nameVi: 'Không Gian Kiến Trúc Đương Đại 3D', descriptionVi: 'Vòm bê tông kem ấm kết hợp hoa cỏ lau & ánh nắng xiên nghệ thuật.', style: 'thiep-3d', category3d: 'hien-dai-thanh-thi', cameraTagVi: 'Nấc thang mây' },
 ];
 
 export const INVITATION_2D_TEMPLATES: InvitationTemplateMeta[] = INVITATION_TEMPLATES.filter((t) => !isWalkthrough3DTemplate(t.id));

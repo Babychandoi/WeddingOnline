@@ -4,15 +4,16 @@ import { ArrowLeft, ArrowRight, Compass, ImagePlus, Navigation, Sparkles, Volume
 import { INVITATION_3D_PLANS, INVITATION_3D_TEMPLATES, TIER_CATALOG } from '@dco/shared';
 import { CardFace } from '@/components/invitation/CardFace';
 import { SAMPLE_COUPLE } from '@/components/invitation/sampleInvitation';
+import { Template3DGallery } from '@/components/invitation/walkthrough3d/Template3DGallery';
 import { LiquidMetalButton, SparkBadgePill } from '@/components/threeui/LiquidMetalButton';
 import { WeddingHeroAtmosphere } from '@/components/threeui/WeddingHeroAtmosphere';
 import { SiteFooter, SiteHeader } from '@/components/layout/SiteChrome';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { buildBreadcrumbJsonLd, canonicalUrl } from '@/lib/seo';
 
-const PAGE_TITLE = '10 Bộ Thiệp Cưới 3D Dạo Bước Tương Tác — DamCuoiOnline.vn';
+const PAGE_TITLE = '100 Bộ Thiệp Cưới 3D Dạo Bước Tương Tác — DamCuoiOnline.vn';
 const PAGE_DESC =
-  'Trải nghiệm 10 bộ thiệp cưới 3D toàn màn hình với chuyển cảnh camera điện ảnh qua Cổng cưới, Cô dâu chú rể chào theo tên, Giá vẽ Lời chào, Album Kỷ niệm 3D và Lễ đài. Giá 199.000đ/tháng hoặc 799.000đ trọn đời.';
+  'Trải nghiệm 100 bộ thiệp cưới 3D toàn màn hình với 8 kiểu bay camera điện ảnh, 6 bố cục triển lãm 3D, 8 kiểu khung nghệ thuật, xem cận cảnh kỷ niệm và pháo hoa lễ đài. Giá 199.000đ/tháng hoặc 799.000đ trọn đời.';
 
 export const metadata: Metadata = {
   title: PAGE_TITLE,
@@ -71,7 +72,7 @@ export default function Invitation3DGalleryPage() {
     mainEntity: {
       '@type': 'ItemList',
       numberOfItems: INVITATION_3D_TEMPLATES.length,
-      itemListElement: INVITATION_3D_TEMPLATES.map((t, idx) => ({
+      itemListElement: INVITATION_3D_TEMPLATES.slice(0, 24).map((t, idx) => ({
         '@type': 'ListItem',
         position: idx + 1,
         name: t.nameVi,
@@ -83,7 +84,7 @@ export default function Invitation3DGalleryPage() {
   const offerJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
-    name: 'Thiệp Cưới 3D Dạo Bước Tương Tác DamCuoiOnline.vn (10 Chủ Đề)',
+    name: 'Thiệp Cưới 3D Dạo Bước Tương Tác DamCuoiOnline.vn (100 Chủ Đề)',
     description: PAGE_DESC,
     url: canonicalUrl('/thiep-cuoi-3d'),
     image: canonicalUrl('/opengraph-image'),
@@ -121,12 +122,12 @@ export default function Invitation3DGalleryPage() {
 
             <div className="mt-5 grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
               <div>
-                <SparkBadgePill>10 Bộ Thiệp Cưới 3D Độc Quyền · 199k/tháng · 799k trọn đời</SparkBadgePill>
+                <SparkBadgePill>100 Bộ Thiệp Cưới 3D Độc Quyền · 199k/tháng · 799k trọn đời</SparkBadgePill>
                 <h1 className="mt-4 font-serif text-4xl font-bold leading-[1.08] tracking-tight text-[#fae4b5] sm:text-6xl">
-                  Thiệp Cưới 3D Chuyển Cảnh Tương Tác Toàn Màn Hình
+                  100 Không Gian Thiệp Cưới 3D Chuyển Cảnh Điện Ảnh
                 </h1>
                 <p className="mt-4 max-w-xl text-base leading-relaxed text-amber-50/90 sm:text-lg">
-                  Tách biệt hoàn toàn khỏi dòng thiệp 2D: khách mở thiệp bước thẳng vào thế giới 3D 360°, camera chuyển góc mượt mà qua <strong>Cô dâu chú rể</strong>, <strong>Giá vẽ Lời chào</strong>, <strong>6 khung ảnh Kỷ niệm</strong> đến <strong>Lễ đài</strong> hoặc tự do đi dạo bằng cần điều khiển vàng kim.
+                  Tách biệt hoàn toàn khỏi dòng thiệp 2D: <strong>9 chủ đề văn hóa &amp; thiên nhiên</strong>, <strong>8 kiểu bay camera</strong> (bay cánh hạc, xoay vanxơ, nấc thang mây, ống kính dolly, rước lễ cung đình), <strong>6 bố cục sân tròn / đảo nổi / bậc thang</strong> và pháo hoa chúc mừng trên lễ đài.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-3">
                   <LiquidMetalButton href="/thiep-cuoi-3d/tao" variant="gold" className="min-h-[52px] rounded-full px-7 text-base text-slate-950">
@@ -173,15 +174,15 @@ export default function Invitation3DGalleryPage() {
             })}
           </dl>
 
-          {/* 10 3D Themes Collection Grid */}
+          {/* 100 3D Themes Filterable Collection Grid */}
           <section id="mau-thiep-3d" className="mt-16 scroll-mt-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <h2 className="font-serif text-3xl font-bold text-rose-950 sm:text-4xl">
-                  10 Bộ Thiệp Cưới 3D Tương Tác
+                  {INVITATION_3D_TEMPLATES.length} Bộ Thiệp Cưới 3D Tương Tác
                 </h2>
                 <p className="mt-2 max-w-2xl text-[15px] text-slate-600">
-                  Bấm vào bất kỳ mẫu nào để mở trải nghiệm 3D trực tiếp theo tên khách mẫu Quốc Bảo, hoặc bấm Tạo mẫu này để bắt đầu tùy chỉnh miễn phí.
+                  Lọc theo 9 chủ đề không gian (Cổ đô, Vườn hoa, Biển đảo, Rừng núi, Hồ nước, Cổ tích ngân hà, Lâu đài, Điện ảnh, Rooftop) hoặc tìm nhanh ý tưởng của hai bạn.
                 </p>
               </div>
               <Link
@@ -192,34 +193,9 @@ export default function Invitation3DGalleryPage() {
               </Link>
             </div>
 
-            <ul className="mt-8 grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
-              {INVITATION_3D_TEMPLATES.map((t) => (
-                <li key={t.id} className="flex flex-col">
-                  <Link href={`/thiep-cuoi/${t.id}?khach=Qu%E1%BB%91c+B%E1%BA%A3o`} className="group block focus-visible:outline-none">
-                    <div className="overflow-hidden rounded-[10px] shadow-[0_14px_30px_-14px_rgba(30,20,50,0.45)] ring-1 ring-amber-300/80 transition duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_22px_40px_-16px_rgba(30,20,50,0.6)]">
-                      <CardFace templateId={t.id} groom={SAMPLE_COUPLE.groomName} bride={SAMPLE_COUPLE.brideName} />
-                    </div>
-                    <h3 className="mt-3 text-base font-bold text-slate-900">{t.nameVi}</h3>
-                    <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-slate-600">{t.descriptionVi}</p>
-                  </Link>
-                  <div className="mt-2.5 flex flex-wrap gap-2">
-                    <Link
-                      href={`/thiep-cuoi/${t.id}?khach=Qu%E1%BB%91c+B%E1%BA%A3o`}
-                      className="text-xs font-bold text-rose-700 hover:underline"
-                    >
-                      Xem thử 3D
-                    </Link>
-                    <span className="text-slate-300">·</span>
-                    <Link
-                      href={`/thiep-cuoi-3d/tao?mau=${t.id}`}
-                      className="text-xs font-bold text-amber-800 hover:underline"
-                    >
-                      Dùng mẫu này →
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-8">
+              <Template3DGallery />
+            </div>
           </section>
 
           {/* 3D Pricing Section */}

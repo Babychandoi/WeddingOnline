@@ -167,7 +167,7 @@ export function InvitationPublish({
                 {!paid && (
                   <p className="mt-0.5 text-xs text-slate-500">
                     {is3d
-                      ? 'Gói Thiệp 3D mở khóa toàn bộ 10 không gian 3D & 100 mẫu 2D. Gia hạn tự cộng dồn thời gian.'
+                      ? 'Gói Thiệp 3D mở khóa toàn bộ 100 không gian 3D & 100 mẫu 2D. Gia hạn tự cộng dồn thời gian.'
                       : 'Gói Thiệp 2D áp dụng cho 100 mẫu thiệp 2D. Gia hạn thì cộng thêm vào thời gian còn lại.'}
                   </p>
                 )}

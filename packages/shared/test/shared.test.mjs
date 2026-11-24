@@ -268,18 +268,26 @@ test('Invitation config sanitiser keeps content bounded and links safe', async (
   assert.equal(sanitizeInvitationConfig({}, legacy).music.track, 'hop-nhac');
 });
 
-test('All 10 3D walkthrough invitation templates & cutout/greeting fields are validated cleanly', async () => {
+test('All 100 3D walkthrough invitation templates & cutout/greeting fields are validated cleanly', async () => {
   const {
     WALKTHROUGH_3D_IDS,
+    INVITATION_3D_TEMPLATES,
+    INVITATION_3D_CATEGORY_LABELS,
     isInvitationTemplateId,
     isWalkthrough3DTemplate,
     defaultInvitationConfig,
     sanitizeInvitationConfig,
   } = await import('../dist/index.js');
-  assert.equal(WALKTHROUGH_3D_IDS.length, 10);
+  assert.equal(WALKTHROUGH_3D_IDS.length, 100);
+  assert.equal(new Set(WALKTHROUGH_3D_IDS).size, 100);
+  assert.equal(INVITATION_3D_TEMPLATES.length, 100);
   for (const id of WALKTHROUGH_3D_IDS) {
     assert.equal(isInvitationTemplateId(id), true, `Expected ${id} in INVITATION_TEMPLATE_IDS`);
     assert.equal(isWalkthrough3DTemplate(id), true, `Expected ${id} to be 3D walkthrough`);
+  }
+  for (const meta of INVITATION_3D_TEMPLATES) {
+    assert.ok(meta.category3d && INVITATION_3D_CATEGORY_LABELS[meta.category3d], `Missing category3d on ${meta.id}`);
+    assert.ok(meta.cameraTagVi, `Missing cameraTagVi on ${meta.id}`);
   }
   assert.equal(isWalkthrough3DTemplate('song-hy-do'), false);
 
@@ -327,7 +335,7 @@ test('Invitation plans: published only when paid, renewals add on, a paid 3D hal
     INVITATION_LIFETIME_UNTIL,
   } = await import('../dist/index.js');
   assert.equal(INVITATION_2D_TEMPLATES.length, 100);
-  assert.equal(INVITATION_3D_TEMPLATES.length, 10);
+  assert.equal(INVITATION_3D_TEMPLATES.length, 100);
   assert.deepEqual(INVITATION_PLANS.map((p) => p.priceVnd), [99000, 599000]);
   assert.deepEqual(INVITATION_3D_PLANS.map((p) => p.priceVnd), [199000, 799000]);
 

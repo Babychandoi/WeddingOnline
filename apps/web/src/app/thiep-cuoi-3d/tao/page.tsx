@@ -4,7 +4,14 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Check, ImagePlus, Loader2, Sparkles, Star, UserRound, X } from 'lucide-react';
-import { INVITATION_3D_TEMPLATES, INVITATION_LIMITS, isWalkthrough3DTemplate, type Walkthrough3DTemplateId } from '@dco/shared';
+import {
+  INVITATION_3D_CATEGORY_LABELS,
+  INVITATION_3D_TEMPLATES,
+  INVITATION_LIMITS,
+  isWalkthrough3DTemplate,
+  type Invitation3DCategory,
+  type Walkthrough3DTemplateId,
+} from '@dco/shared';
 import { OAuthModal } from '@/components/hall/OAuthModal';
 import { CardFace } from '@/components/invitation/CardFace';
 import { walkthrough3DTheme } from '@/components/invitation/walkthrough3d/themes3d';
@@ -53,6 +60,14 @@ function Create3DInvitation() {
   const [picked, setPicked] = useState<PickedPhoto[]>([]);
   const [coverId, setCoverId] = useState<string | null>(null);
   const [progress, setProgress] = useState('');
+  const [cat3d, setCat3d] = useState<Invitation3DCategory | 'all'>('all');
+  const [shown3d, setShown3d] = useState(15);
+
+  const filtered3d = useMemo(() => {
+    const base = cat3d === 'all' ? INVITATION_3D_TEMPLATES : INVITATION_3D_TEMPLATES.filter((t) => t.category3d === cat3d);
+    const chosen = INVITATION_3D_TEMPLATES.find((t) => t.id === templateId);
+    return chosen && !base.some((t) => t.id === chosen.id) ? [chosen, ...base] : base;
+  }, [cat3d, templateId]);
 
   const pickedRef = React.useRef<PickedPhoto[]>([]);
   pickedRef.current = picked;
@@ -216,7 +231,7 @@ function Create3DInvitation() {
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
         <div className="flex items-center justify-between gap-3">
           <Link href="/thiep-cuoi-3d" className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-rose-700">
-            <ArrowLeft className="h-4 w-4" /> 10 Bộ Thiệp Cưới 3D
+            <ArrowLeft className="h-4 w-4" /> 100 Bộ Thiệp Cưới 3D
           </Link>
           {authUser && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
@@ -275,9 +290,28 @@ function Create3DInvitation() {
             </div>
 
             <fieldset className="mt-7 min-w-0">
-              <legend className={label}>Chọn 1 trong 10 Chủ đề 3D</legend>
+              <legend className={label}>Chọn 1 trong {INVITATION_3D_TEMPLATES.length} Chủ đề 3D</legend>
+              <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Lọc chủ đề 3D">
+                {([['all', 'Tất cả'], ...Object.entries(INVITATION_3D_CATEGORY_LABELS)] as Array<[Invitation3DCategory | 'all', string]>).map(([id, text]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={cat3d === id}
+                    onClick={() => {
+                      setCat3d(id);
+                      setShown3d(15);
+                    }}
+                    className={`min-h-[34px] shrink-0 rounded-full px-3 text-xs font-bold transition ${
+                      cat3d === id ? 'bg-rose-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-rose-50'
+                    }`}
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
               <div role="radiogroup" aria-label="Mẫu thiệp cưới 3D" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {INVITATION_3D_TEMPLATES.map((t) => (
+                {filtered3d.slice(0, shown3d).map((t) => (
                   <button
                     key={t.id}
                     type="button"
@@ -294,6 +328,15 @@ function Create3DInvitation() {
                   </button>
                 ))}
               </div>
+              {shown3d < filtered3d.length && (
+                <button
+                  type="button"
+                  onClick={() => setShown3d((n) => n + 20)}
+                  className="mt-3 w-full min-h-[42px] rounded-xl text-xs font-bold text-rose-800 ring-1 ring-rose-200 transition hover:bg-rose-50"
+                >
+                  Xem thêm không gian 3D ({filtered3d.length - shown3d})
+                </button>
+              )}
             </fieldset>
 
             <fieldset className="mt-7 min-w-0">

@@ -5,7 +5,7 @@
 ## Core Public Pages
 - [Trang chủ DamCuoiOnline.vn](https://poiplegal.online/): Platform overview, live 3D demos, featured Vietnamese venues, invitation deck, and transparent VND pricing.
 - [100 Mẫu Thiệp Cưới Online 2D](https://poiplegal.online/thiep-cuoi): Complete gallery of 100 2D wedding invitation templates (Traditional Vietnamese Song Hỷ, Botanical Watercolor, Editorial Magazine, Luxury Baroque & Beach), pricing 99,000 VND/month or 599,000 VND lifetime (free draft & preview).
-- [10 Bộ Thiệp Cưới 3D Dạo Bước Tương Tác](https://poiplegal.online/thiep-cuoi-3d): Interactive fullscreen WebGL 3D wedding invitations with multi-station camera transitions, custom couple standee, Welcome & Memory Easels, and free-walk joystick, pricing 199,000 VND/month or 799,000 VND lifetime (free draft & preview).
+- [100 Bộ Thiệp Cưới 3D Dạo Bước Tương Tác](https://poiplegal.online/thiep-cuoi-3d): 100 interactive fullscreen WebGL 3D wedding invitations across 9 themes with 8 camera choreographies, 6 spatial gallery layouts, 8 frame designs, couple standee, memory zoom cards, and ceremony fireworks, pricing 199,000 VND/month or 799,000 VND lifetime (free draft & preview).
 - [101 Không Gian Sảnh Cưới 3D](https://poiplegal.online/khong-gian): Interactive browser-based 3D wedding venues from Vietnam (Lễ Gia Tiên, Rạp Lá Dừa Miền Tây, Phố Cổ Hội An, Biển Phú Quốc, Đà Lạt) and worldwide.
 - [Quảng Trường Cưới 3D 24/7](https://poiplegal.online/plaza): Free live 3D public wedding plaza open 24/7 for immediate browser exploration without installing an app.
 - [Tạo Thiệp Cưới Online 2D](https://poiplegal.online/thiep-cuoi/tao): Free 2D invitation builder with instant guest link preview.
@@ -14,7 +14,7 @@
 
 ## Transparent Pricing (VND)
 - **Thiệp cưới online 2D (100 mẫu)**: Thiết kế & xem trước miễn phí; phát hành `99.000đ` (1 tháng) hoặc `599.000đ` (trọn đời).
-- **Thiệp cưới 3D dạo bước (10 bộ chủ đề WebGL)**: Thiết kế & xem trước miễn phí; phát hành `199.000đ` (1 tháng) hoặc `799.000đ` (trọn đời).
+- **Thiệp cưới 3D dạo bước (100 bộ chủ đề WebGL)**: Thiết kế & xem trước miễn phí; phát hành `199.000đ` (1 tháng) hoặc `799.000đ` (trọn đời).
 - **Mừng cưới VietQR**: Chuyển thẳng 100% về tài khoản cặp đôi (0% phí nền tảng, luôn ẩn số tiền công khai).
 - **Sảnh cưới 3D trực tuyến**: Gói Dùng Thử 24h (`Miễn phí`), Gói Hạnh Phúc (`399.000đ`), Gói Viên Mãn VIP (`1.199.000đ` — bao gồm sẵn thiệp cưới 2D & 3D, LiveKit Voice Chat từng bàn tiệc & MC, Auto-NPC, Photobooth và lưu trữ Kỷ niệm 2D vĩnh viễn).
 

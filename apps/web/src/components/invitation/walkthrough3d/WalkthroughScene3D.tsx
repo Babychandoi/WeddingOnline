@@ -5,7 +5,21 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { Walkthrough3DTemplateId } from '@dco/shared';
 import { IS_HANDHELD } from '@/components/three/deviceTier';
-import { formatShortDotsDate, walkthrough3DTheme, type PathStyle3D, type Walkthrough3DTheme } from './themes3d';
+import {
+  CelebrationFireworks3D,
+  LayoutArchitectureExtras,
+  ProceduralAltarStage3D,
+  ProceduralEntranceGate3D,
+  ThemedEaselFrame3D,
+  makeProceduralSkyTexture,
+} from './ProceduralWorld3D';
+import {
+  formatShortDotsDate,
+  walkthrough3DTheme,
+  type CameraFlightStyle3D,
+  type PathStyle3D,
+  type Walkthrough3DTheme,
+} from './themes3d';
 
 export interface WalkthroughPhotoItem {
   id: string;
@@ -36,7 +50,6 @@ export interface TourStation {
   eventIndex?: number;
   camPos: [number, number, number];
   lookAt: [number, number, number];
-  /** True for side easel boards so portrait mobile backs up slightly */
   isEaselCloseUp?: boolean;
 }
 
@@ -51,8 +64,9 @@ export interface WalkthroughSceneProps {
   stationIndex: number;
   stationRevision: number;
   stations: TourStation[];
-  /** True when guest taps a photo or event easel to zoom closer + read the bottom story/event card */
   inspectFocused: boolean;
+  celebrationBursts?: number;
+  cameraOverride?: CameraFlightStyle3D | null;
   joystickRef: React.MutableRefObject<JoystickInput>;
   freeWalkActive: boolean;
   onEnterFreeWalk: () => void;
@@ -70,18 +84,107 @@ export interface WalkthroughSceneProps {
 
 const ARCH_Z = -5.6;
 const STANDEE_Z = -10.8;
-const WELCOME_POS: [number, number, number] = [-2.28, 0, -14.2];
-const WELCOME_ROT_Y = 1.08;
+const WELCOME_Z = -14.2;
 const PHOTO_Z_START = -17.3;
-const PHOTO_Z_STEP = 2.2;
-const EVENT_Z_STEP = 2.35;
+const PHOTO_Z_STEP = 2.25;
+const EVENT_Z_STEP = 2.38;
 
-export function computeLayoutZ(photoCount: number, eventCount: number) {
+export interface EaselPlacement {
+  pos: [number, number, number];
+  rotY: number;
+}
+
+export function computeScenePlacements(theme: Walkthrough3DTheme, photoCount: number, eventCount: number) {
   const shownPhotos = Math.min(6, photoCount);
   const shownEvents = Math.min(3, eventCount);
-  const eventZStart = PHOTO_Z_START - shownPhotos * PHOTO_Z_STEP - 0.85;
-  const stageZ = Math.min(-34.5, eventZStart - shownEvents * EVENT_Z_STEP - 3.6);
-  return { shownPhotos, shownEvents, eventZStart, stageZ };
+  const layout = theme.galleryLayout;
+  const standeeX = theme.standeeSide === 'left' ? -0.58 : 0.58;
+
+  const standeeY = layout === 'terraced-ascent' ? 0.18 : layout === 'floating-archipelago' ? 0.22 : 0;
+  const welcomeY = layout === 'terraced-ascent' ? 0.42 : layout === 'floating-archipelago' ? 0.3 : 0;
+
+  const standeePos: [number, number, number] = [standeeX, standeeY, STANDEE_Z];
+  const welcomePlacement: EaselPlacement = { pos: [-2.28, welcomeY, WELCOME_Z], rotY: 1.08 };
+
+  const rotundaCenterZ = -21.2;
+  const rotundaRadius = 4.95;
+
+  const photoPlacements: EaselPlacement[] = [];
+  const alcoveZList: number[] = [];
+
+  for (let i = 0; i < shownPhotos; i++) {
+    if (layout === 'rotunda-circle') {
+      const denom = Math.max(1, shownPhotos - 1);
+      const angle = -1.16 + (i / denom) * 2.32;
+      const px = Math.sin(angle) * rotundaRadius;
+      const pz = rotundaCenterZ - Math.cos(angle) * rotundaRadius;
+      photoPlacements.push({ pos: [px, 0, pz], rotY: -angle });
+    } else if (layout === 'paired-alcoves') {
+      const pairIdx = Math.floor(i / 2);
+      const side = i % 2 === 0 ? 1 : -1;
+      const pz = PHOTO_Z_START - pairIdx * 3.6 - (side === -1 ? 0.65 : 0);
+      if (i % 2 === 0) alcoveZList.push(pz - 0.32);
+      photoPlacements.push({ pos: [side * 2.36, 0, pz], rotY: side * -1.08 });
+    } else {
+      const pz = PHOTO_Z_START - i * PHOTO_Z_STEP;
+      const side = i % 2 === 0 ? 1 : -1;
+      const xAmp = layout === 'zigzag-courtyard' ? 2.48 : 2.28;
+      const py =
+        layout === 'terraced-ascent'
+          ? 0.68 + i * 0.22
+          : layout === 'floating-archipelago'
+            ? 0.26 + (i % 3) * 0.16
+            : 0;
+      photoPlacements.push({ pos: [side * xAmp, py, pz], rotY: side * -1.08 });
+    }
+  }
+
+  const lastPhotoZ =
+    layout === 'rotunda-circle'
+      ? rotundaCenterZ - rotundaRadius - 2.2
+      : photoPlacements.length > 0
+        ? photoPlacements[photoPlacements.length - 1].pos[2] - 2.5
+        : PHOTO_Z_START - 1.2;
+
+  const eventZStart = lastPhotoZ;
+  const eventPlacements: EaselPlacement[] = [];
+  for (let i = 0; i < shownEvents; i++) {
+    const ez = eventZStart - i * EVENT_Z_STEP;
+    const side = (shownPhotos + i) % 2 === 0 ? 1 : -1;
+    const ey =
+      layout === 'terraced-ascent'
+        ? 2.02 + i * 0.2
+        : layout === 'floating-archipelago'
+          ? 0.34 + (i % 2) * 0.14
+          : 0;
+    eventPlacements.push({ pos: [side * 2.28, ey, ez], rotY: side * -1.08 });
+  }
+
+  const stageZ = Math.min(-34.5, eventZStart - shownEvents * EVENT_Z_STEP - 3.8);
+  const stageY = layout === 'terraced-ascent' ? 2.55 : layout === 'floating-archipelago' ? 0.42 : 0;
+  const stagePos: [number, number, number] = [0, stageY, stageZ];
+
+  const islandPositions: Array<[number, number, number]> = [
+    [0, standeeY, STANDEE_Z],
+    welcomePlacement.pos,
+    ...photoPlacements.map((p) => p.pos),
+    ...eventPlacements.map((p) => p.pos),
+    stagePos,
+  ];
+
+  return {
+    shownPhotos,
+    shownEvents,
+    standeePos,
+    welcomePlacement,
+    photoPlacements,
+    eventPlacements,
+    stagePos,
+    stageZ,
+    rotundaCenterZ,
+    alcoveZList,
+    islandPositions,
+  };
 }
 
 function easelCamPose(
@@ -92,8 +195,8 @@ function easelCamPose(
   const nx = Math.sin(rotY);
   const nz = Math.cos(rotY);
   return {
-    camPos: [easelPos[0] + nx * distance, 1.42, easelPos[2] + nz * distance],
-    lookAt: [easelPos[0], 1.28, easelPos[2]],
+    camPos: [easelPos[0] + nx * distance, easelPos[1] + 1.42, easelPos[2] + nz * distance],
+    lookAt: [easelPos[0], easelPos[1] + 1.28, easelPos[2]],
   };
 }
 
@@ -107,8 +210,15 @@ export function buildTourStations({
   events: WalkthroughEventBoardItem[];
 }): TourStation[] {
   const theme = walkthrough3DTheme(themeId);
-  const standeeX = theme.standeeSide === 'left' ? -0.58 : 0.58;
-  const { shownPhotos, shownEvents, eventZStart, stageZ } = computeLayoutZ(photoCount, events.length);
+  const {
+    shownPhotos,
+    shownEvents,
+    standeePos,
+    welcomePlacement,
+    photoPlacements,
+    eventPlacements,
+    stagePos,
+  } = computeScenePlacements(theme, photoCount, events.length);
 
   const list: TourStation[] = [
     {
@@ -122,46 +232,40 @@ export function buildTourStations({
       id: 'couple',
       label: 'Cô dâu chú rể',
       kind: 'couple',
-      camPos: [standeeX * 0.18, 1.58, STANDEE_Z + 4.35],
-      lookAt: [standeeX * 0.62, 1.36, STANDEE_Z],
+      camPos: [standeePos[0] * 0.18, standeePos[1] + 1.58, standeePos[2] + 4.35],
+      lookAt: [standeePos[0] * 0.62, standeePos[1] + 1.36, standeePos[2]],
     },
     {
       id: 'welcome',
       label: 'Lời chào',
       kind: 'welcome',
       isEaselCloseUp: true,
-      ...easelCamPose(WELCOME_POS, WELCOME_ROT_Y, 2.86),
+      ...easelCamPose(welcomePlacement.pos, welcomePlacement.rotY, 2.86),
     },
   ];
 
   for (let i = 0; i < shownPhotos; i++) {
-    const z = PHOTO_Z_START - i * PHOTO_Z_STEP;
-    const side = i % 2 === 0 ? 1 : -1;
-    const x = side * 2.28;
-    const rotY = side * -1.08;
+    const pl = photoPlacements[i];
     list.push({
       id: `photo-${i}`,
       label: `Kỷ niệm ${i + 1}/${shownPhotos}`,
       kind: 'photo',
       photoIndex: i,
       isEaselCloseUp: true,
-      ...easelCamPose([x, 0, z], rotY, 2.86),
+      ...easelCamPose(pl.pos, pl.rotY, 2.86),
     });
   }
 
   for (let i = 0; i < shownEvents; i++) {
     const ev = events[i];
-    const z = eventZStart - i * EVENT_Z_STEP;
-    const side = (shownPhotos + i) % 2 === 0 ? 1 : -1;
-    const x = side * 2.28;
-    const rotY = side * -1.08;
+    const pl = eventPlacements[i];
     list.push({
       id: `event-${ev.id}`,
       label: ev.stationLabel,
       kind: 'event',
       eventIndex: i,
       isEaselCloseUp: true,
-      ...easelCamPose([x, 0, z], rotY, 2.88),
+      ...easelCamPose(pl.pos, pl.rotY, 2.88),
     });
   }
 
@@ -169,8 +273,8 @@ export function buildTourStations({
     id: 'stage',
     label: 'Lễ đài',
     kind: 'stage',
-    camPos: [0, 2.05, stageZ + 9.2],
-    lookAt: [0, 2.88, stageZ],
+    camPos: [0, stagePos[1] + 2.05, stagePos[2] + 9.2],
+    lookAt: [0, stagePos[1] + 2.75, stagePos[2]],
   });
 
   return list;
@@ -227,7 +331,6 @@ function useLoadedTexture(
   return tex;
 }
 
-/** Ornate corner filigree for Welcome board */
 function drawCornerFiligree(ctx: CanvasRenderingContext2D, w: number, h: number, gold: string, flower: string) {
   ctx.strokeStyle = gold;
   ctx.lineWidth = 4;
@@ -278,13 +381,11 @@ function drawCornerFiligree(ctx: CanvasRenderingContext2D, w: number, h: number,
   }
 }
 
-/** Painterly floral corner bouquet (blush/ivory roses + eucalyptus leaves) matching @thiepcuoitiec3d Event Boards */
 function drawFloralCornerBouquet(ctx: CanvasRenderingContext2D, x: number, y: number, flipX: number, flipY: number) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(flipX, flipY);
 
-  // Soft eucalyptus foliage leaves
   const leaves: Array<[number, number, number, number, number, string]> = [
     [65, 18, 34, 13, 0.35, '#4b6b59'],
     [102, 42, 30, 12, 0.6, '#5c7f6a'],
@@ -303,7 +404,6 @@ function drawFloralCornerBouquet(ctx: CanvasRenderingContext2D, x: number, y: nu
     ctx.restore();
   }
 
-  // Layered rose blooms
   const roses: Array<[number, number, number, string, string]> = [
     [34, 34, 28, '#f2b8c6', '#d47c93'],
     [76, 36, 22, '#fff5eb', '#e8ccb3'],
@@ -329,7 +429,6 @@ function drawFloralCornerBouquet(ctx: CanvasRenderingContext2D, x: number, y: nu
   ctx.restore();
 }
 
-/** Dynamic Welcome Card printed onto WelcomeEasel at Station "Lời chào" */
 function makeWelcomeBoardCanvasTexture(
   guestName: string,
   bride: string,
@@ -345,6 +444,7 @@ function makeWelcomeBoardCanvasTexture(
   c.height = h;
   const ctx = c.getContext('2d')!;
   const pal = theme.welcomeBoard;
+  const isLight = theme.boardSkin === 'ivory-floral' || theme.boardSkin === 'porcelain-blue' || theme.boardSkin === 'sakura-silk';
 
   const grad = ctx.createRadialGradient(w / 2, h * 0.42, 60, w / 2, h / 2, h * 0.68);
   grad.addColorStop(0, pal.bgTop);
@@ -356,15 +456,17 @@ function makeWelcomeBoardCanvasTexture(
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(0,0,0,0.42)';
-  ctx.shadowBlur = 10;
-  ctx.shadowOffsetY = 2;
+  if (!isLight) {
+    ctx.shadowColor = 'rgba(0,0,0,0.42)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 2;
+  }
 
   ctx.fillStyle = pal.text;
   ctx.font = 'italic 600 84px "Imperial Script", "Dancing Script", Georgia, serif';
   ctx.fillText('Kính chào', w / 2, 232);
 
-  ctx.fillStyle = '#fff5da';
+  ctx.fillStyle = isLight ? pal.text : '#fff5da';
   ctx.font = '700 58px "Cormorant Garamond", "Playfair Display", Georgia, serif';
   ctx.fillText(guestName.trim() || 'Quý khách', w / 2, 344, 620);
 
@@ -382,7 +484,7 @@ function makeWelcomeBoardCanvasTexture(
   ctx.arc(w / 2, 647, 5, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = '#fdecc2';
+  ctx.fillStyle = isLight ? pal.sub : '#fdecc2';
   ctx.font = '600 34px "Cormorant Garamond", "Be Vietnam Pro", serif';
   ctx.fillText(dateText, w / 2, 726);
 
@@ -393,7 +495,6 @@ function makeWelcomeBoardCanvasTexture(
   return tex;
 }
 
-/** Luxury Dark-Velvet & Gold Floral Event Board ("Thông tin tiệc", "Lễ Vu Quy", "Lễ Thành Hôn") */
 function makeEventBoardCanvasTexture(event: WalkthroughEventBoardItem, theme: Walkthrough3DTheme): THREE.CanvasTexture {
   const w = 768;
   const h = 960;
@@ -402,63 +503,76 @@ function makeEventBoardCanvasTexture(event: WalkthroughEventBoardItem, theme: Wa
   c.height = h;
   const ctx = c.getContext('2d')!;
 
+  const skin = theme.boardSkin;
+  const isLight = skin === 'ivory-floral' || skin === 'porcelain-blue' || skin === 'sakura-silk';
+  const [bgA, bgB] =
+    skin === 'ivory-floral'
+      ? ['#fffdf8', '#f2e5d0']
+      : skin === 'porcelain-blue'
+        ? ['#f5f9ff', '#dde9f8']
+        : skin === 'sakura-silk'
+          ? ['#fff7fa', '#f9dce6']
+          : skin === 'emerald-deco'
+            ? ['#15382f', '#091c17']
+            : skin === 'boho-terracotta'
+              ? ['#5e2614', '#331208']
+              : skin === 'son-mai'
+                ? ['#520b12', '#2b0408']
+                : ['#1d1a26', '#0d0c12'];
+
   const grad = ctx.createRadialGradient(w / 2, h * 0.38, 40, w / 2, h / 2, h * 0.72);
-  grad.addColorStop(0, '#1d1a26');
-  grad.addColorStop(1, '#0d0c12');
+  grad.addColorStop(0, bgA);
+  grad.addColorStop(1, bgB);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
 
-  // Sleek gold double hairline frame
-  ctx.strokeStyle = theme.accentGold;
+  ctx.strokeStyle = isLight ? '#c99b49' : theme.accentGold;
   ctx.lineWidth = 3.5;
   ctx.strokeRect(22, 22, w - 44, h - 44);
-  ctx.strokeStyle = 'rgba(245, 215, 145, 0.45)';
+  ctx.strokeStyle = isLight ? 'rgba(180, 130, 60, 0.4)' : 'rgba(245, 215, 145, 0.45)';
   ctx.lineWidth = 1.4;
   ctx.strokeRect(32, 32, w - 64, h - 64);
 
-  // Top-right & bottom-left rose bouquets matching @thiepcuoitiec3d Event Board
   drawFloralCornerBouquet(ctx, w - 26, 26, -1, 1);
   drawFloralCornerBouquet(ctx, 26, h - 26, 1, -1);
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  ctx.fillStyle = '#d4bc8c';
+  const primaryInk = isLight ? '#2b1b17' : '#fff9ec';
+  const accentInk = isLight ? theme.accentColor : '#f8dfaa';
+  const subInk = isLight ? '#5c463c' : '#d8c5a3';
+
+  ctx.fillStyle = isLight ? '#8a6840' : '#d4bc8c';
   ctx.font = '600 24px "Be Vietnam Pro", system-ui, sans-serif';
   ctx.fillText(event.kicker.toUpperCase(), w / 2, 128, 520);
 
-  ctx.fillStyle = '#f8dfaa';
+  ctx.fillStyle = accentInk;
   ctx.font = 'italic 600 72px "Imperial Script", "Dancing Script", Georgia, serif';
   ctx.fillText(event.title, w / 2, 212, 580);
 
-  // Huge bold clock time (e.g. "18:00")
-  ctx.fillStyle = '#fff9ec';
+  ctx.fillStyle = primaryInk;
   ctx.font = '700 92px "Cormorant Garamond", "Playfair Display", Georgia, serif';
   ctx.fillText(event.timeText, w / 2, 336, 560);
 
-  // Solar date
-  ctx.fillStyle = '#efe2c8';
+  ctx.fillStyle = isLight ? '#3d2a22' : '#efe2c8';
   ctx.font = '600 27px "Be Vietnam Pro", system-ui, sans-serif';
   ctx.fillText(event.solarDateText.toUpperCase(), w / 2, 426, 620);
 
-  // Lunar date
   if (event.lunarDateText) {
-    ctx.fillStyle = '#d8c5a3';
+    ctx.fillStyle = subInk;
     ctx.font = 'italic 500 24px "Cormorant Garamond", Georgia, serif';
     ctx.fillText(`Nhằm ngày ${event.lunarDateText}`, w / 2, 474, 620);
   }
 
-  // Gold divider
-  ctx.fillStyle = 'rgba(243, 211, 152, 0.55)';
+  ctx.fillStyle = isLight ? 'rgba(180, 130, 60, 0.45)' : 'rgba(243, 211, 152, 0.55)';
   ctx.fillRect(w / 2 - 90, 524, 180, 1.8);
 
-  // Venue name
-  ctx.fillStyle = '#fff5dc';
+  ctx.fillStyle = primaryInk;
   ctx.font = '700 38px "Cormorant Garamond", Georgia, serif';
   ctx.fillText(event.venueName || 'Địa điểm tổ chức', w / 2, 586, 610);
 
-  // Address wrapped up to 2 lines
-  ctx.fillStyle = '#d7cab6';
+  ctx.fillStyle = subInk;
   ctx.font = '500 24px "Be Vietnam Pro", system-ui, sans-serif';
   const words = (event.address || '').split(/\s+/).filter(Boolean);
   const lines: string[] = [];
@@ -477,14 +591,13 @@ function makeEventBoardCanvasTexture(event: WalkthroughEventBoardItem, theme: Wa
     ctx.fillText(line, w / 2, 650 + i * 36, 580);
   });
 
-  // Note & dress code
   if (event.note) {
-    ctx.fillStyle = '#f3d494';
+    ctx.fillStyle = accentInk;
     ctx.font = '600 25px "Be Vietnam Pro", system-ui, sans-serif';
     ctx.fillText(event.note, w / 2, 756, 560);
   }
   if (event.dressCode) {
-    ctx.fillStyle = '#bfb3a0';
+    ctx.fillStyle = subInk;
     ctx.font = 'italic 500 22px "Cormorant Garamond", Georgia, serif';
     ctx.fillText(`Trang phục: ${event.dressCode}`, w / 2, 816, 520);
   }
@@ -525,13 +638,12 @@ function makePathCanvasTexture(style: PathStyle3D, accentGold: string): THREE.Ca
     ctx.fillRect(488, 0, 10, 512);
     ctx.fillRect(476, 0, 4, 512);
 
-    const petalColor =
+    ctx.fillStyle =
       style === 'royal-blue-carpet'
         ? 'rgba(246,216,149,0.55)'
         : style === 'blush-carpet'
           ? 'rgba(225,130,160,0.5)'
           : 'rgba(252,216,162,0.48)';
-    ctx.fillStyle = petalColor;
     for (let i = 0; i < 36; i++) {
       const px = 48 + ((i * 137) % 416);
       const py = (i * 89) % 512;
@@ -542,6 +654,62 @@ function makePathCanvasTexture(style: PathStyle3D, accentGold: string): THREE.Ca
       ctx.ellipse(0, 0, 7, 3.5, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+    }
+  } else if (style === 'marble-gold') {
+    ctx.fillStyle = '#fbf8f1';
+    ctx.fillRect(0, 0, 512, 512);
+    ctx.strokeStyle = 'rgba(180, 165, 140, 0.25)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 10; i++) {
+      ctx.beginPath();
+      ctx.moveTo((i * 73) % 512, 0);
+      ctx.bezierCurveTo(180, 170, 340, 340, ((i + 3) * 97) % 512, 512);
+      ctx.stroke();
+    }
+    ctx.fillStyle = accentGold;
+    ctx.fillRect(16, 0, 8, 512);
+    ctx.fillRect(488, 0, 8, 512);
+    ctx.fillRect(0, 254, 512, 3);
+  } else if (style === 'starlight-glass') {
+    const grad = ctx.createLinearGradient(0, 0, 512, 0);
+    grad.addColorStop(0, 'rgba(30, 41, 82, 0.92)');
+    grad.addColorStop(0.5, 'rgba(52, 68, 125, 0.95)');
+    grad.addColorStop(1, 'rgba(30, 41, 82, 0.92)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 512, 512);
+    ctx.fillStyle = accentGold;
+    ctx.fillRect(12, 0, 7, 512);
+    ctx.fillRect(493, 0, 7, 512);
+    for (let i = 0; i < 48; i++) {
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(255,245,200,0.75)' : 'rgba(190,225,255,0.65)';
+      ctx.beginPath();
+      ctx.arc(36 + ((i * 83) % 440), (i * 67) % 512, 2.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (style === 'sand-aisle') {
+    const grad = ctx.createLinearGradient(0, 0, 512, 0);
+    grad.addColorStop(0, '#e6cca8');
+    grad.addColorStop(0.18, '#faf3e6');
+    grad.addColorStop(0.82, '#faf3e6');
+    grad.addColorStop(1, '#e6cca8');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 512, 512);
+    ctx.fillStyle = accentGold;
+    ctx.fillRect(22, 0, 5, 512);
+    ctx.fillRect(485, 0, 5, 512);
+  } else if (style === 'stone-garden') {
+    ctx.fillStyle = '#6c7366';
+    ctx.fillRect(0, 0, 512, 512);
+    const stones = [
+      [256, 85, 175, 62],
+      [244, 248, 182, 66],
+      [264, 415, 172, 64],
+    ];
+    for (const [sx, sy, rx, ry] of stones) {
+      ctx.fillStyle = '#dcd7cc';
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
     }
   } else if (style === 'cloud-aisle') {
     const grad = ctx.createLinearGradient(0, 0, 512, 0);
@@ -629,95 +797,32 @@ function makeShadowDiscTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(c);
 }
 
-/** Authentic 3D Wooden Tripod Easel shared by Welcome Board, Photo Frames & Event Boards */
-function OrnateEaselFrame({
-  position,
-  rotationY,
-  texture,
-  matBoard = false,
-  onSelect,
-}: {
-  position: [number, number, number];
-  rotationY: number;
-  texture: THREE.Texture | null;
-  matBoard?: boolean;
-  onSelect?: () => void;
-}) {
-  return (
-    <group
-      position={position}
-      rotation={[0, rotationY, 0]}
-      onClick={(e) => {
-        if (!onSelect) return;
-        e.stopPropagation();
-        onSelect();
-      }}
-    >
-      {/* Tripod legs leaning backward cleanly behind the gold molding */}
-      <mesh position={[-0.31, 1.08, -0.08]} rotation={[-0.06, 0, -0.14]}>
-        <boxGeometry args={[0.052, 2.26, 0.052]} />
-        <meshStandardMaterial color="#734b2f" roughness={0.78} />
-      </mesh>
-      <mesh position={[0.31, 1.08, -0.08]} rotation={[-0.06, 0, 0.14]}>
-        <boxGeometry args={[0.052, 2.26, 0.052]} />
-        <meshStandardMaterial color="#734b2f" roughness={0.78} />
-      </mesh>
-      <mesh position={[0, 1.02, -0.4]} rotation={[-0.26, 0, 0]}>
-        <boxGeometry args={[0.05, 2.18, 0.05]} />
-        <meshStandardMaterial color="#593822" roughness={0.85} />
-      </mesh>
-      <mesh position={[0, 1.2, -0.07]} rotation={[-0.06, 0, 0]}>
-        <boxGeometry args={[0.058, 2.18, 0.045]} />
-        <meshStandardMaterial color="#6b442a" roughness={0.78} />
-      </mesh>
-      <mesh position={[0, 0.42, -0.02]}>
-        <boxGeometry args={[0.74, 0.045, 0.045]} />
-        <meshStandardMaterial color="#6b442a" roughness={0.78} />
-      </mesh>
-      <mesh position={[0, 0.78, 0.09]}>
-        <boxGeometry args={[1.08, 0.055, 0.1]} />
-        <meshStandardMaterial color="#7a5134" roughness={0.72} />
-      </mesh>
-
-      {/* Tilted Gold Frame + Artwork */}
-      <group position={[0, 1.44, 0.1]} rotation={[-0.06, 0, 0]}>
-        <mesh position={[0, 0, -0.02]}>
-          <boxGeometry args={[1.02, 1.26, 0.042]} />
-          <meshStandardMaterial color="#d4ad63" roughness={0.4} metalness={0.42} />
-        </mesh>
-        {matBoard && (
-          <mesh position={[0, 0, 0.004]}>
-            <planeGeometry args={[0.92, 1.16]} />
-            <meshBasicMaterial color="#f6efe2" toneMapped={false} />
-          </mesh>
-        )}
-        <mesh position={[0, 0, matBoard ? 0.012 : 0.009]}>
-          <planeGeometry args={matBoard ? [0.82, 1.06] : [0.95, 1.19]} />
-          <meshBasicMaterial
-            key={texture?.uuid ?? 'easel-empty'}
-            map={texture ?? undefined}
-            color={texture ? '#ffffff' : '#f3e7d8'}
-            toneMapped={false}
-          />
-        </mesh>
-      </group>
-    </group>
-  );
-}
-
 function PhotoEasel({
   position,
   rotationY,
   photoUrl,
+  theme,
   onSelect,
 }: {
   position: [number, number, number];
   rotationY: number;
   photoUrl: string;
+  theme: Walkthrough3DTheme;
   onSelect: () => void;
 }) {
   const photoTex = useLoadedTexture(photoUrl);
-  return <OrnateEaselFrame position={position} rotationY={rotationY} texture={photoTex} matBoard onSelect={onSelect} />;
+  return (
+    <ThemedEaselFrame3D
+      position={position}
+      rotationY={rotationY}
+      texture={photoTex}
+      matBoard
+      frameStyle={theme.frameStyle}
+      accentGold={theme.accentGold}
+      accentColor={theme.accentColor}
+      onSelect={onSelect}
+    />
+  );
 }
 
 function EventEasel({
@@ -741,7 +846,17 @@ function EventEasel({
     [event, theme, fontsReady],
   );
   useEffect(() => () => tex.dispose(), [tex]);
-  return <OrnateEaselFrame position={position} rotationY={rotationY} texture={tex} onSelect={onSelect} />;
+  return (
+    <ThemedEaselFrame3D
+      position={position}
+      rotationY={rotationY}
+      texture={tex}
+      frameStyle={theme.frameStyle}
+      accentGold={theme.accentGold}
+      accentColor={theme.accentColor}
+      onSelect={onSelect}
+    />
+  );
 }
 
 function WillowTree3D({ position, scale = 1, tint = '#2b4a3e' }: { position: [number, number, number]; scale?: number; tint?: string }) {
@@ -765,9 +880,46 @@ function WillowTree3D({ position, scale = 1, tint = '#2b4a3e' }: { position: [nu
       {[-1.1, -0.55, 0, 0.55, 1.1].map((fx, i) => (
         <mesh key={fx} position={[fx, 2.35 + (i % 2) * 0.2, i % 2 === 0 ? 0.55 : -0.35]}>
           <cylinderGeometry args={[0.04, 0.24, 2.75, 6]} />
-          <meshStandardMaterial color="#375d4d" roughness={0.88} />
+          <meshStandardMaterial color={tint} roughness={0.88} />
         </mesh>
       ))}
+    </group>
+  );
+}
+
+function PalmTree3D({ position, scale = 1, foliageColor = '#2b6e40' }: { position: [number, number, number]; scale?: number; foliageColor?: string }) {
+  return (
+    <group position={position} scale={scale}>
+      <mesh position={[0, 2.1, 0]} rotation={[0.06, 0, 0.05]}>
+        <cylinderGeometry args={[0.11, 0.21, 4.2, 8]} />
+        <meshStandardMaterial color="#6e5036" roughness={0.9} />
+      </mesh>
+      {[0, 1, 2, 3, 4, 5].map((i) => {
+        const ang = (i / 6) * Math.PI * 2;
+        return (
+          <group key={i} position={[0.1, 4.15, 0.1]} rotation={[0, ang, 0]}>
+            <mesh position={[0.85, -0.12, 0]} rotation={[0, 0, -0.42]} scale={[1.6, 0.12, 0.42]}>
+              <sphereGeometry args={[0.6, 8, 6]} />
+              <meshStandardMaterial color={foliageColor} roughness={0.78} />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+function CypressTree3D({ position, scale = 1, foliageColor = '#2e523b' }: { position: [number, number, number]; scale?: number; foliageColor?: string }) {
+  return (
+    <group position={position} scale={scale}>
+      <mesh position={[0, 0.6, 0]}>
+        <cylinderGeometry args={[0.12, 0.16, 1.2, 8]} />
+        <meshStandardMaterial color="#422d1f" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 2.75, 0]}>
+        <coneGeometry args={[0.65, 3.9, 10]} />
+        <meshStandardMaterial color={foliageColor} roughness={0.85} />
+      </mesh>
     </group>
   );
 }
@@ -823,7 +975,7 @@ function ScenicTree3D({
 function LotusCluster3D({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.42, 12]} />
         <meshStandardMaterial color="#234d39" roughness={0.6} />
       </mesh>
@@ -865,21 +1017,22 @@ function PavilionHorizon3D({ position, rotY }: { position: [number, number, numb
 }
 
 function ThemeSurroundScenery({ theme }: { theme: Walkthrough3DTheme }) {
+  const treeX = theme.galleryLayout === 'rotunda-circle' ? 7.2 : 5.2;
   const treePositions: Array<[number, number, number, number]> = [
-    [-5.1, 0, -13.6, 1.2],
-    [5.1, 0, -14.8, 1.15],
-    [-5.2, 0, -18.5, 1.25],
-    [5.2, 0, -20.2, 1.2],
-    [-5.3, 0, -23.8, 1.2],
-    [5.2, 0, -25.8, 1.22],
-    [-5.2, 0, -29.8, 1.25],
-    [5.3, 0, -31.8, 1.15],
-    [-5.3, 0, -35.8, 1.2],
-    [5.3, 0, -37.8, 1.2],
-    [-9.5, 0, -15.5, 1.35],
-    [9.5, 0, -21.5, 1.35],
-    [-9.8, 0, -27.0, 1.4],
-    [9.2, 0, -33.0, 1.3],
+    [-treeX, 0, -13.6, 1.2],
+    [treeX, 0, -14.8, 1.15],
+    [-treeX, 0, -18.5, 1.25],
+    [treeX, 0, -20.2, 1.2],
+    [-treeX, 0, -23.8, 1.2],
+    [treeX, 0, -25.8, 1.22],
+    [-treeX, 0, -29.8, 1.25],
+    [treeX, 0, -31.8, 1.15],
+    [-treeX, 0, -35.8, 1.2],
+    [treeX, 0, -37.8, 1.2],
+    [-10.2, 0, -15.5, 1.35],
+    [10.2, 0, -21.5, 1.35],
+    [-10.4, 0, -27.0, 1.4],
+    [9.8, 0, -33.0, 1.3],
   ];
 
   const waterTex = useMemo(() => {
@@ -889,12 +1042,12 @@ function ThemeSurroundScenery({ theme }: { theme: Walkthrough3DTheme }) {
     c.height = 256;
     const ctx = c.getContext('2d')!;
     const g = ctx.createLinearGradient(0, 0, 0, 256);
-    g.addColorStop(0, '#272f72');
-    g.addColorStop(0.5, '#1e265c');
-    g.addColorStop(1, '#272f72');
+    g.addColorStop(0, theme.groundColor);
+    g.addColorStop(0.5, theme.fogColor);
+    g.addColorStop(1, theme.groundColor);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 256, 256);
-    ctx.fillStyle = 'rgba(148, 163, 248, 0.08)';
+    ctx.fillStyle = 'rgba(255, 245, 220, 0.1)';
     for (let i = 0; i < 42; i++) {
       const rx = (i * 53) % 256;
       const ry = (i * 37) % 256;
@@ -905,27 +1058,12 @@ function ThemeSurroundScenery({ theme }: { theme: Walkthrough3DTheme }) {
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.repeat.set(16, 16);
     return t;
-  }, [theme.hasWaterSurface]);
+  }, [theme.fogColor, theme.groundColor, theme.hasWaterSurface]);
   useEffect(() => () => waterTex?.dispose(), [waterTex]);
-
-  const isWillow = theme.id === '3d-ho-sen-hoa-dang' || theme.id === '3d-vuon-hoa-dao' || theme.id === '3d-rap-cuoi';
-  const isConical = theme.id === '3d-rung-thong' || theme.id === '3d-mua-dong-tuyet';
-  const foliageColor =
-    theme.id === '3d-mua-thu'
-      ? '#c94c1a'
-      : theme.id === '3d-vuon-hoa-dao' || theme.id === '3d-rap-cuoi'
-        ? '#f49ebb'
-        : theme.id === '3d-oai-huong'
-          ? '#6f548c'
-          : theme.id === '3d-mua-dong-tuyet'
-            ? '#38575c'
-            : theme.id === '3d-rung-thong'
-              ? '#2f5934'
-              : '#36584b';
 
   return (
     <group>
-      {(theme.hasWaterSurface || theme.id === '3d-co-truyen' || theme.id === '3d-dem-trang') && (
+      {(theme.hasWaterSurface || theme.category === 'co-do-truyen-thong') && (
         <group>
           <PavilionHorizon3D position={[-20, 0.1, -13]} rotY={1.1} />
           <PavilionHorizon3D position={[21, 0.1, -18]} rotY={-1.15} />
@@ -934,22 +1072,21 @@ function ThemeSurroundScenery({ theme }: { theme: Walkthrough3DTheme }) {
         </group>
       )}
 
-      {theme.id !== '3d-tren-may' &&
+      {theme.treeKind !== 'none' &&
         treePositions.map(([x, y, z, s], idx) =>
-          isWillow ? (
-            <WillowTree3D
-              key={idx}
-              position={[x, y, z]}
-              scale={s}
-              tint={theme.id === '3d-vuon-hoa-dao' ? '#c96f8f' : '#2b4a3e'}
-            />
+          theme.treeKind === 'willow' ? (
+            <WillowTree3D key={idx} position={[x, y, z]} scale={s} tint={theme.foliageColor} />
+          ) : theme.treeKind === 'palm' ? (
+            <PalmTree3D key={idx} position={[x, y, z]} scale={s} foliageColor={theme.foliageColor} />
+          ) : theme.treeKind === 'cypress' ? (
+            <CypressTree3D key={idx} position={[x, y, z]} scale={s} foliageColor={theme.foliageColor} />
           ) : (
             <ScenicTree3D
               key={idx}
               position={[x, y, z]}
               scale={s}
-              foliageColor={idx % 2 === 0 ? foliageColor : '#4f6d42'}
-              conical={isConical}
+              foliageColor={theme.foliageColor}
+              conical={theme.treeKind === 'pine'}
             />
           ),
         )}
@@ -968,18 +1105,14 @@ function ThemeSurroundScenery({ theme }: { theme: Walkthrough3DTheme }) {
           {[
             [-2.4, -0.1, -11.5],
             [2.6, -0.1, -12.8],
-            [-3.9, -0.1, -15.4],
-            [3.9, -0.1, -17.2],
-            [-3.7, -0.1, -20.0],
-            [3.8, -0.1, -22.4],
-            [-3.8, -0.1, -25.2],
-            [3.9, -0.1, -28.0],
-            [-4.1, -0.1, -31.2],
-            [3.8, -0.1, -34.2],
-            [-3.9, -0.1, -37.2],
-            [2.1, -0.1, -15.2],
-            [-2.2, -0.1, -22.0],
-            [2.2, -0.1, -26.5],
+            [-4.2, -0.1, -15.4],
+            [4.2, -0.1, -17.2],
+            [-4.1, -0.1, -20.0],
+            [4.1, -0.1, -22.4],
+            [-4.1, -0.1, -25.2],
+            [4.2, -0.1, -28.0],
+            [-4.2, -0.1, -31.2],
+            [4.1, -0.1, -34.2],
           ].map((pos, idx) => (
             <LotusCluster3D key={idx} position={pos as [number, number, number]} />
           ))}
@@ -1004,7 +1137,7 @@ function SeasonalParticles({ kind }: { kind: Walkthrough3DTheme['particleKind'] 
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const isRising = kind === 'lotus-glow' || kind === 'stardust-fireworks';
+    const isRising = kind === 'lotus-glow' || kind === 'stardust-fireworks' || kind === 'fireflies' || kind === 'sea-sparkles';
     return { geometry: geo, speeds: sp, rise: isRising };
   }, [count, kind]);
 
@@ -1017,15 +1150,17 @@ function SeasonalParticles({ kind }: { kind: Walkthrough3DTheme['particleKind'] 
         ? '#ffffff'
         : kind === 'maple'
           ? '#f57836'
-          : kind === 'lotus-glow'
-            ? '#ffcf70'
-            : kind === 'pine-mist'
-              ? '#edf5dc'
-              : kind === 'stardust-fireworks'
-                ? '#ffe099'
-                : kind === 'cloud-petals' || kind === 'peach-petals' || kind === 'blush-petals'
-                  ? '#ffc2d6'
-                  : '#f6cf78';
+          : kind === 'fireflies'
+            ? '#bef264'
+            : kind === 'sea-sparkles'
+              ? '#bae6fd'
+              : kind === 'lotus-glow' || kind === 'stardust-fireworks'
+                ? '#ffcf70'
+                : kind === 'pine-mist'
+                  ? '#edf5dc'
+                  : kind === 'cloud-petals' || kind === 'peach-petals' || kind === 'blush-petals'
+                    ? '#ffc2d6'
+                    : '#f6cf78';
 
   useFrame(({ clock }, delta) => {
     const pts = pointsRef.current;
@@ -1052,7 +1187,7 @@ function SeasonalParticles({ kind }: { kind: Walkthrough3DTheme['particleKind'] 
     <points ref={pointsRef} geometry={geometry}>
       <pointsMaterial
         color={color}
-        size={kind === 'snow' || kind === 'stardust-fireworks' ? 0.13 : 0.15}
+        size={kind === 'snow' || kind === 'stardust-fireworks' || kind === 'fireflies' ? 0.14 : 0.15}
         transparent
         opacity={0.86}
         depthWrite={false}
@@ -1062,16 +1197,17 @@ function SeasonalParticles({ kind }: { kind: Walkthrough3DTheme['particleKind'] 
   );
 }
 
-/** Themed side decorations placed outside easel sightlines so they never block photos */
+/** Themed side decorations placed safely outside easel sightlines (x >= 3.85 or 6.3 on rotundas) */
 function ThemeSideDecor({ theme }: { theme: Walkthrough3DTheme }) {
+  const galleryX = theme.galleryLayout === 'rotunda-circle' ? 6.35 : 3.95;
   const placements: Array<{ z: number; xOffset: number }> = [
-    { z: -2.4, xOffset: 2.3 },
-    { z: -8.4, xOffset: 2.3 },
-    { z: -15.5, xOffset: 3.85 },
-    { z: -20.5, xOffset: 3.85 },
-    { z: -25.5, xOffset: 3.85 },
-    { z: -30.5, xOffset: 3.85 },
-    { z: -35.5, xOffset: 3.85 },
+    { z: -2.4, xOffset: 2.35 },
+    { z: -8.4, xOffset: 2.35 },
+    { z: -15.5, xOffset: galleryX },
+    { z: -20.5, xOffset: galleryX },
+    { z: -25.5, xOffset: galleryX },
+    { z: -30.5, xOffset: galleryX },
+    { z: -35.5, xOffset: galleryX },
   ];
 
   if (theme.hasWaterSurface) return null;
@@ -1079,14 +1215,14 @@ function ThemeSideDecor({ theme }: { theme: Walkthrough3DTheme }) {
   return (
     <group>
       {theme.hasMarqueeRoof && (
-        <group position={[0, 5.3, -20]}>
+        <group position={[0, 5.5, -20]}>
           {[-2.8, -1.4, 0, 1.4, 2.8].map((rx, idx) => (
             <mesh key={rx} position={[rx, 0.18 * (idx % 2 === 0 ? 1 : -1), 0]} rotation={[0, 0, rx * -0.06]}>
-              <planeGeometry args={[1.65, 48]} />
+              <planeGeometry args={[1.65, 52]} />
               <meshBasicMaterial
                 color={idx % 2 === 0 ? '#f7d8e2' : '#fff8fa'}
                 transparent
-                opacity={0.78}
+                opacity={0.76}
                 side={THREE.DoubleSide}
               />
             </mesh>
@@ -1107,6 +1243,39 @@ function ThemeSideDecor({ theme }: { theme: Walkthrough3DTheme }) {
                   <mesh position={[0, 0.42, 0]}>
                     <cylinderGeometry args={[0.33, 0.33, 0.06, 16]} />
                     <meshStandardMaterial color="#e8be66" roughness={0.35} metalness={0.4} />
+                  </mesh>
+                </group>
+              ) : theme.sidePropKind === 'roman-columns' ? (
+                <group>
+                  <mesh position={[0, 1.15, 0]}>
+                    <cylinderGeometry args={[0.16, 0.19, 2.3, 14]} />
+                    <meshStandardMaterial color="#f5efe4" roughness={0.55} />
+                  </mesh>
+                  <mesh position={[0, 2.42, 0]}>
+                    <sphereGeometry args={[0.26, 10, 10]} />
+                    <meshBasicMaterial color={theme.accentColor} toneMapped={false} />
+                  </mesh>
+                </group>
+              ) : theme.sidePropKind === 'beach-torches' ? (
+                <group>
+                  <mesh position={[0, 0.82, 0]}>
+                    <cylinderGeometry args={[0.04, 0.05, 1.64, 8]} />
+                    <meshStandardMaterial color="#a16207" roughness={0.8} />
+                  </mesh>
+                  <mesh position={[0, 1.72, 0]}>
+                    <coneGeometry args={[0.12, 0.28, 8]} />
+                    <meshBasicMaterial color="#fb923c" toneMapped={false} />
+                  </mesh>
+                </group>
+              ) : theme.sidePropKind === 'cinema-stanchions' || theme.sidePropKind === 'neon-halos' ? (
+                <group>
+                  <mesh position={[0, 0.52, 0]}>
+                    <cylinderGeometry args={[0.035, 0.045, 1.04, 10]} />
+                    <meshStandardMaterial color={theme.accentGold} metalness={0.6} roughness={0.25} />
+                  </mesh>
+                  <mesh position={[0, 1.12, 0]}>
+                    <sphereGeometry args={[0.1, 10, 10]} />
+                    <meshBasicMaterial color={theme.accentGold} toneMapped={false} />
                   </mesh>
                 </group>
               ) : theme.sidePropKind === 'marquee-tables' ? (
@@ -1149,8 +1318,11 @@ function ThemeSideDecor({ theme }: { theme: Walkthrough3DTheme }) {
   );
 }
 
-/** Cinematic Bezier Camera Flight + Close-Up Zoom Focus + Virtual Joystick Free-Roam */
+/**
+ * Cinematic Bezier Camera Flight supporting all 8 Camera Choreographies + Close-Up Zoom + Free-Roam!
+ */
 function CameraDirector({
+  cameraStyle,
   stations,
   stationIndex,
   stationRevision,
@@ -1160,6 +1332,7 @@ function CameraDirector({
   freeWalkActive,
   onEnterFreeWalk,
 }: {
+  cameraStyle: CameraFlightStyle3D;
   stations: TourStation[];
   stationIndex: number;
   stationRevision: number;
@@ -1174,6 +1347,7 @@ function CameraDirector({
 
   const flight = useRef({
     active: false,
+    isShortZoom: false,
     t: 1,
     duration: 1.38,
     fromPos: new THREE.Vector3(0, 1.88, 2.8),
@@ -1204,10 +1378,13 @@ function CameraDirector({
       const finalLen = zoomed ? Math.max(1.88, (len + extraD) * 0.78) : len + extraD;
       pos.copy(look).addScaledVector(dir, finalLen);
       if (zoomed) {
-        // Shift camera aim slightly lower so the framed photo rises into the upper half above the slide-up story card
         look.y -= 0.34;
         pos.y -= 0.16;
       }
+    } else if (cameraStyle === 'royal-procession') {
+      // Heroic upward framing at Gate, Couple & Stage
+      pos.y -= 0.12;
+      look.y += 0.16;
     }
     return { pos, look };
   };
@@ -1216,7 +1393,7 @@ function CameraDirector({
   useEffect(() => {
     if (!targetStation) return;
     const { pos: destPos, look: destLook } = resolvePose(targetStation, inspectFocused);
-    scratchMat.lookAt(destPos, destLook, camera.up);
+    scratchMat.lookAt(destPos, destLook, THREE.Object3D.DEFAULT_UP);
     const destQuat = new THREE.Quaternion().setFromRotationMatrix(scratchMat);
 
     if (firstMount.current) {
@@ -1230,16 +1407,64 @@ function CameraDirector({
 
     const fromPos = camera.position.clone();
     const dist = fromPos.distanceTo(destPos);
-    // Short zoom-in/out glides straight without swinging out to the center; station-to-station arcs cleanly around easels
     const isShortZoom = dist < 1.85;
-    const midX = isShortZoom ? (fromPos.x + destPos.x) * 0.5 : THREE.MathUtils.lerp((fromPos.x + destPos.x) * 0.5, 0, 0.68);
-    const midY = isShortZoom ? (fromPos.y + destPos.y) * 0.5 : Math.max(fromPos.y, destPos.y) + 0.14;
+
+    let midX = (fromPos.x + destPos.x) * 0.5;
+    let midY = Math.max(fromPos.y, destPos.y) + 0.14;
     const midZ = (fromPos.z + destPos.z) * 0.5;
+    let duration = 1.38;
+
+    if (isShortZoom) {
+      midY = (fromPos.y + destPos.y) * 0.5;
+      duration = 0.65;
+    } else {
+      switch (cameraStyle) {
+        case 'crane-swoop':
+          midX = THREE.MathUtils.lerp(midX, 0, 0.55);
+          midY = Math.max(fromPos.y, destPos.y) + 1.58;
+          duration = 1.55;
+          break;
+        case 'waltz-orbit':
+          midX = (stationIndex % 2 === 0 ? 1 : -1) * 1.45;
+          midY = Math.max(fromPos.y, destPos.y) + 0.38;
+          duration = 1.52;
+          break;
+        case 'dolly-cinematic':
+          midX = THREE.MathUtils.lerp(midX, 0, 0.72);
+          midY = Math.max(fromPos.y, destPos.y) + 0.24;
+          duration = 1.44;
+          break;
+        case 'boat-drift':
+          midX = THREE.MathUtils.lerp(midX, 0, 0.45);
+          midY = Math.min(fromPos.y, destPos.y) - 0.08;
+          duration = 1.72;
+          break;
+        case 'zigzag-promenade':
+          midX = THREE.MathUtils.lerp(midX, 0, 0.85);
+          midY = (fromPos.y + destPos.y) * 0.5 + 0.06;
+          duration = 1.15;
+          break;
+        case 'spiral-ascent':
+          midX = midX + (stationIndex % 2 === 0 ? 0.85 : -0.85);
+          midY = Math.max(fromPos.y, destPos.y) + 0.65;
+          duration = 1.5;
+          break;
+        case 'royal-procession':
+          midX = THREE.MathUtils.lerp(midX, 0, 0.78);
+          midY = (fromPos.y + destPos.y) * 0.5;
+          duration = 1.65;
+          break;
+        default:
+          midX = THREE.MathUtils.lerp(midX, 0, 0.68);
+          break;
+      }
+    }
 
     flight.current = {
       active: true,
+      isShortZoom,
       t: 0,
-      duration: isShortZoom ? 0.65 : 1.38,
+      duration,
       fromPos,
       midPos: new THREE.Vector3(midX, midY, midZ),
       toPos: destPos,
@@ -1247,7 +1472,7 @@ function CameraDirector({
       toQuat: destQuat,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stationIndex, stationRevision, inspectFocused]);
+  }, [stationIndex, stationRevision, inspectFocused, cameraStyle]);
 
   useEffect(() => {
     const dom = gl.domElement;
@@ -1273,6 +1498,7 @@ function CameraDirector({
       euler.setFromQuaternion(camera.quaternion, 'YXZ');
       euler.y -= dx * 0.0042;
       euler.x = THREE.MathUtils.clamp(euler.x - dy * 0.0032, -0.55, 0.65);
+      euler.z = 0;
       camera.quaternion.setFromEuler(euler);
     };
     const onUp = () => {
@@ -1320,6 +1546,7 @@ function CameraDirector({
       if (Math.abs(turnRate) > 0.0001) {
         euler.setFromQuaternion(camera.quaternion, 'YXZ');
         euler.y += turnRate;
+        euler.z = 0;
         camera.quaternion.setFromEuler(euler);
       }
       const moveForward = -joy.y + kForward;
@@ -1328,9 +1555,8 @@ function CameraDirector({
         scratchFwd.y = 0;
         if (scratchFwd.lengthSq() > 1e-4) scratchFwd.normalize();
         camera.position.addScaledVector(scratchFwd, moveForward * 3.6 * dt);
-        camera.position.x = THREE.MathUtils.clamp(camera.position.x, -3.2, 3.2);
+        camera.position.x = THREE.MathUtils.clamp(camera.position.x, -4.5, 4.5);
         camera.position.z = THREE.MathUtils.clamp(camera.position.z, stageZ + 3.2, 4.2);
-        camera.position.y = THREE.MathUtils.lerp(camera.position.y, 1.76, dt * 4);
       }
       return;
     }
@@ -1347,13 +1573,34 @@ function CameraDirector({
       camera.position.copy(scratchVecA).add(scratchVecB).add(scratchVecC);
       camera.quaternion.slerpQuaternions(f.fromQuat, f.toQuat, u);
 
+      // Dynamic waltz roll banking or dolly-zoom lens pulse during station-to-station flights
+      if (!f.isShortZoom && camera instanceof THREE.PerspectiveCamera) {
+        if (cameraStyle === 'dolly-cinematic') {
+          const targetFov = f.t >= 1 ? 50 : 50 + Math.sin(u * Math.PI) * 10;
+          if (Math.abs(camera.fov - targetFov) > 0.05) {
+            camera.fov = targetFov;
+            camera.updateProjectionMatrix();
+          }
+        } else if (camera.fov !== 50) {
+          camera.fov = 50;
+          camera.updateProjectionMatrix();
+        }
+
+        if (cameraStyle === 'waltz-orbit' && f.t < 1) {
+          euler.setFromQuaternion(camera.quaternion, 'YXZ');
+          euler.z = Math.sin(u * Math.PI) * (stationIndex % 2 === 0 ? 0.038 : -0.038);
+          camera.quaternion.setFromEuler(euler);
+        }
+      }
+
       if (f.t >= 1) f.active = false;
       return;
     }
 
     if (!freeWalkActive && targetStation) {
       const { pos } = resolvePose(targetStation, inspectFocused);
-      camera.position.y = pos.y + Math.sin(clock.elapsedTime * 1.1) * 0.012;
+      const swayAmp = cameraStyle === 'boat-drift' ? 0.022 : 0.012;
+      camera.position.y = pos.y + Math.sin(clock.elapsedTime * 1.15) * swayAmp;
     }
   });
 
@@ -1367,6 +1614,8 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
     stationIndex,
     stationRevision,
     inspectFocused,
+    celebrationBursts = 0,
+    cameraOverride,
     joystickRef,
     freeWalkActive,
     onEnterFreeWalk,
@@ -1382,28 +1631,43 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
     onInspectEvent,
   } = props;
   const theme = walkthrough3DTheme(themeId);
-  const { shownPhotos, shownEvents, eventZStart, stageZ } = useMemo(
-    () => computeLayoutZ(photos.length, events.length),
-    [photos.length, events.length],
-  );
+  const activeCameraStyle = cameraOverride ?? theme.cameraStyle;
 
-  // Dynamically stretch walkway curve cleanly all the way to stageZ
+  const {
+    shownPhotos,
+    shownEvents,
+    standeePos,
+    welcomePlacement,
+    photoPlacements,
+    eventPlacements,
+    stagePos,
+    stageZ,
+    rotundaCenterZ,
+    alcoveZList,
+    islandPositions,
+  } = useMemo(() => computeScenePlacements(theme, photos.length, events.length), [theme, photos.length, events.length]);
+
   const curve = useMemo(() => {
-    const pts = theme.curvePoints.map(([x, y, z], i, arr) => {
-      if (i === arr.length - 1) return new THREE.Vector3(x, y, stageZ + 2.6);
+    const pts = theme.curvePoints.map(([x, , z], i, arr) => {
       const ratio = i / (arr.length - 1);
-      return new THREE.Vector3(x, y, THREE.MathUtils.lerp(2.6, stageZ + 2.6, ratio));
+      const pz = i === arr.length - 1 ? stageZ + 2.4 : THREE.MathUtils.lerp(2.6, stageZ + 2.4, ratio);
+      const py = theme.galleryLayout === 'terraced-ascent' ? ratio * stagePos[1] + 0.02 : theme.galleryLayout === 'floating-archipelago' ? ratio * stagePos[1] + 0.02 : 0.015;
+      return new THREE.Vector3(x, py, pz);
     });
     return new THREE.CatmullRomCurve3(pts);
-  }, [theme.curvePoints, stageZ]);
+  }, [theme.curvePoints, theme.galleryLayout, stagePos, stageZ]);
 
-  const skyTex = useLoadedTexture(`/invitation-3d/${theme.slug}/sky.webp`, {
+  const rasterSkyTex = useLoadedTexture(theme.hasRasterAssets ? `/invitation-3d/${theme.slug}/sky.webp` : undefined, {
     mirrorWrapS: true,
     repeatX: 4,
     repeatY: 1,
   });
-  const archTex = useLoadedTexture(`/invitation-3d/${theme.slug}/arch.webp`);
-  const stageTex = useLoadedTexture(`/invitation-3d/${theme.slug}/stage.webp`);
+  const procSkyTex = useMemo(() => (theme.hasRasterAssets ? null : makeProceduralSkyTexture(theme)), [theme]);
+  useEffect(() => () => procSkyTex?.dispose(), [procSkyTex]);
+  const skyTex = theme.hasRasterAssets ? rasterSkyTex : procSkyTex;
+
+  const archTex = useLoadedTexture(theme.hasRasterAssets ? `/invitation-3d/${theme.slug}/arch.webp` : undefined);
+  const stageTex = useLoadedTexture(theme.hasRasterAssets ? `/invitation-3d/${theme.slug}/stage.webp` : undefined);
   const standeeTex = useLoadedTexture(coupleCutoutUrl || `/invitation-3d/standees/standee-${theme.standee}.webp`);
 
   const pathTex = useMemo(() => makePathCanvasTexture(theme.pathStyle, theme.accentGold), [theme.pathStyle, theme.accentGold]);
@@ -1439,13 +1703,13 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
   useEffect(() => () => welcomeTex.dispose(), [welcomeTex]);
 
   const pathGeo = useMemo(() => {
-    const segs = 54;
+    const segs = 64;
     const width = theme.hasCircularPlaza ? 2.45 : 2.3;
     const halfW = width / 2;
     const pts: THREE.Vector3[] = [];
     for (let i = 0; i <= segs; i++) {
       const p = curve.getPointAt(i / segs);
-      pts.push(new THREE.Vector3(p.x, 0.015, p.z));
+      pts.push(new THREE.Vector3(p.x, p.y, p.z));
     }
     const positions: number[] = [];
     const uvs: number[] = [];
@@ -1475,10 +1739,9 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
   }, [curve, theme.hasCircularPlaza]);
   useEffect(() => () => pathGeo.dispose(), [pathGeo]);
 
-  const standeeX = theme.standeeSide === 'left' ? -0.58 : 0.58;
   const stageH = 6.9;
-  const stageY = 3.3;
-  const plaqueY = stageY + theme.plaque.y;
+  const stageBillboardY = 3.3;
+  const plaqueY = stageBillboardY + theme.plaque.y;
   const plaqueX = theme.plaque.x ?? 0;
   const easelPhotos = photos.slice(0, shownPhotos);
   const easelEvents = events.slice(0, shownEvents);
@@ -1492,6 +1755,7 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
       <directionalLight position={[4, 9, 5]} intensity={1.15} color="#fff7e8" />
 
       <CameraDirector
+        cameraStyle={activeCameraStyle}
         stations={stations}
         stationIndex={stationIndex}
         stationRevision={stationRevision}
@@ -1502,9 +1766,9 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
         onEnterFreeWalk={onEnterFreeWalk}
       />
 
-      {/* 360° Seamless Curved Skybox Cylinder */}
-      <mesh position={[0, 2.4, -20]}>
-        <cylinderGeometry args={[54, 54, 30, 64, 1, true]} />
+      {/* 360° Skybox Cylinder */}
+      <mesh position={[0, 3.2, -20]}>
+        <cylinderGeometry args={[56, 56, 34, 64, 1, true]} />
         <meshBasicMaterial
           key={skyTex?.uuid ?? 'sky-loading'}
           map={skyTex ?? undefined}
@@ -1517,30 +1781,45 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
 
       {!theme.hasWaterSurface && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -22]}>
-          <planeGeometry args={[112, 112]} />
+          <planeGeometry args={[120, 120]} />
           <meshLambertMaterial color={theme.groundColor} />
         </mesh>
       )}
 
-      {theme.hasCircularPlaza && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, -13]}>
-          <circleGeometry args={[4.2, 32]} />
-          <meshStandardMaterial color="#e6ecf8" roughness={0.9} />
-        </mesh>
-      )}
+      {/* Ascending Terrace Platforms when galleryLayout === 'terraced-ascent' */}
+      {theme.galleryLayout === 'terraced-ascent' &&
+        photoPlacements.map((pl, idx) => (
+          <mesh key={`terrace-${idx}`} position={[0, pl.pos[1] * 0.5, pl.pos[2]]}>
+            <boxGeometry args={[6.8, Math.max(0.08, pl.pos[1]), 2.4]} />
+            <meshStandardMaterial color="#e8e2d6" roughness={0.8} />
+          </mesh>
+        ))}
+
+      <LayoutArchitectureExtras
+        theme={theme}
+        islandPositions={islandPositions}
+        alcoveZList={alcoveZList}
+        rotundaCenterZ={rotundaCenterZ}
+      />
 
       <mesh geometry={pathGeo}>
         <meshBasicMaterial key={pathTex.uuid} map={pathTex} toneMapped={false} />
       </mesh>
 
-      {archTex && (
-        <mesh position={[0, 2.78, ARCH_Z]}>
-          <planeGeometry args={[6.1, 6.1]} />
-          <meshBasicMaterial key={archTex.uuid} map={archTex} transparent alphaTest={0.05} side={THREE.DoubleSide} toneMapped={false} />
-        </mesh>
+      {/* Entrance Gate: Raster cutout for original 10, real 3D architecture for 90 procedural themes */}
+      {theme.hasRasterAssets ? (
+        archTex && (
+          <mesh position={[0, 2.78, ARCH_Z]}>
+            <planeGeometry args={[6.1, 6.1]} />
+            <meshBasicMaterial key={archTex.uuid} map={archTex} transparent alphaTest={0.05} side={THREE.DoubleSide} toneMapped={false} />
+          </mesh>
+        )
+      ) : (
+        <ProceduralEntranceGate3D theme={theme} zPos={ARCH_Z} />
       )}
 
-      <group position={[standeeX, 0, STANDEE_Z]}>
+      {/* Couple Standee */}
+      <group position={standeePos}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
           <planeGeometry args={[1.55, 0.7]} />
           <meshBasicMaterial map={shadowTex} transparent depthWrite={false} />
@@ -1553,37 +1832,39 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
         )}
       </group>
 
-      {/* Ornate Welcome Easel ("Lời chào") */}
-      <OrnateEaselFrame position={WELCOME_POS} rotationY={WELCOME_ROT_Y} texture={welcomeTex} />
+      {/* Welcome Board Easel ("Lời chào") */}
+      <ThemedEaselFrame3D
+        position={welcomePlacement.pos}
+        rotationY={welcomePlacement.rotY}
+        texture={welcomeTex}
+        frameStyle={theme.frameStyle}
+        accentGold={theme.accentGold}
+        accentColor={theme.accentColor}
+      />
 
-      {/* Alternating Gilded Double-Matted Photo Easels ("Kỷ niệm 1/6..6/6") */}
+      {/* Photo Memory Easels ("Kỷ niệm 1/6..6/6") */}
       {easelPhotos.map((photo, idx) => {
-        const z = PHOTO_Z_START - idx * PHOTO_Z_STEP;
-        const side = idx % 2 === 0 ? 1 : -1;
-        const x = side * 2.28;
-        const rotY = side * -1.08;
+        const pl = photoPlacements[idx];
         return (
           <PhotoEasel
             key={photo.id}
-            position={[x, 0, z]}
-            rotationY={rotY}
+            position={pl.pos}
+            rotationY={pl.rotY}
             photoUrl={photo.url}
+            theme={theme}
             onSelect={() => onInspectPhoto?.(idx)}
           />
         );
       })}
 
-      {/* Dedicated Dark-Velvet & Gold Floral Event Easels ("Lễ Vu Quy", "Lễ Thành Hôn", "Thông tin tiệc") */}
+      {/* Event Board Easels ("Lễ Vu Quy", "Lễ Thành Hôn", "Thông tin tiệc") */}
       {easelEvents.map((ev, idx) => {
-        const z = eventZStart - idx * EVENT_Z_STEP;
-        const side = (shownPhotos + idx) % 2 === 0 ? 1 : -1;
-        const x = side * 2.28;
-        const rotY = side * -1.08;
+        const pl = eventPlacements[idx];
         return (
           <EventEasel
             key={ev.id}
-            position={[x, 0, z]}
-            rotationY={rotY}
+            position={pl.pos}
+            rotationY={pl.rotY}
             event={ev}
             theme={theme}
             fontsReady={fontsReady}
@@ -1595,29 +1876,38 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
       <ThemeSideDecor theme={theme} />
       <ThemeSurroundScenery theme={theme} />
 
-      {/* Ceremony Stage */}
-      <group position={[0, 0, stageZ]}>
-        <mesh position={[0, 0.1, 1.2]}>
-          <boxGeometry args={[5.4, 0.2, 2.1]} />
-          <meshStandardMaterial color={theme.accentGold} roughness={0.75} />
-        </mesh>
-        <mesh position={[0, 0.26, 0.6]}>
-          <boxGeometry args={[4.6, 0.18, 1.6]} />
-          <meshStandardMaterial color="#f4ead9" roughness={0.8} />
-        </mesh>
-
-        {stageTex && (
-          <mesh position={[0, stageY, 0]}>
-            <planeGeometry args={[stageH, stageH]} />
-            <meshBasicMaterial key={stageTex.uuid} map={stageTex} transparent alphaTest={0.05} toneMapped={false} />
+      {/* Ceremony Stage: Raster stage for original 10, real 3D Altar for 90 procedural themes */}
+      {theme.hasRasterAssets ? (
+        <group position={stagePos}>
+          <mesh position={[0, 0.1, 1.2]}>
+            <boxGeometry args={[5.4, 0.2, 2.1]} />
+            <meshStandardMaterial color={theme.accentGold} roughness={0.75} />
           </mesh>
-        )}
+          <mesh position={[0, 0.26, 0.6]}>
+            <boxGeometry args={[4.6, 0.18, 1.6]} />
+            <meshStandardMaterial color="#f4ead9" roughness={0.8} />
+          </mesh>
+          {stageTex && (
+            <mesh position={[0, stageBillboardY, 0]}>
+              <planeGeometry args={[stageH, stageH]} />
+              <meshBasicMaterial key={stageTex.uuid} map={stageTex} transparent alphaTest={0.05} toneMapped={false} />
+            </mesh>
+          )}
+          <mesh position={[plaqueX, plaqueY, 0.14]}>
+            <planeGeometry args={[theme.plaque.width, theme.plaque.width * (420 / 768)]} />
+            <meshBasicMaterial key={plaqueTex.uuid} map={plaqueTex} transparent depthWrite={false} toneMapped={false} />
+          </mesh>
+        </group>
+      ) : (
+        <ProceduralAltarStage3D theme={theme} position={stagePos} plaqueTex={plaqueTex} />
+      )}
 
-        <mesh position={[plaqueX, plaqueY, 0.14]}>
-          <planeGeometry args={[theme.plaque.width, theme.plaque.width * (420 / 768)]} />
-          <meshBasicMaterial key={plaqueTex.uuid} map={plaqueTex} transparent depthWrite={false} toneMapped={false} />
-        </mesh>
-      </group>
+      <CelebrationFireworks3D
+        burstCount={celebrationBursts}
+        stagePos={stagePos}
+        accentGold={theme.accentGold}
+        accentColor={theme.accentColor}
+      />
 
       <SeasonalParticles kind={theme.particleKind} />
     </>
@@ -1628,7 +1918,7 @@ export function WalkthroughSceneCanvas(props: WalkthroughSceneProps) {
   return (
     <Canvas
       dpr={IS_HANDHELD ? [1, 1.5] : [1, 2]}
-      camera={{ fov: 50, near: 0.1, far: 135, position: [0, 1.88, 2.8] }}
+      camera={{ fov: 50, near: 0.1, far: 145, position: [0, 1.88, 2.8] }}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: false }}
       className="h-full w-full touch-pan-y"
     >
