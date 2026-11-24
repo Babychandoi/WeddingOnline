@@ -8,10 +8,7 @@ import { IS_HANDHELD } from '@/components/three/deviceTier';
 import {
   CelebrationFireworks3D,
   LayoutArchitectureExtras,
-  ProceduralAltarStage3D,
-  ProceduralEntranceGate3D,
   ThemedEaselFrame3D,
-  makeProceduralSkyTexture,
 } from './ProceduralWorld3D';
 import {
   formatShortDotsDate,
@@ -859,119 +856,6 @@ function EventEasel({
   );
 }
 
-function WillowTree3D({ position, scale = 1, tint = '#2b4a3e' }: { position: [number, number, number]; scale?: number; tint?: string }) {
-  return (
-    <group position={position} scale={scale}>
-      <mesh position={[0, 1.8, 0]}>
-        <cylinderGeometry args={[0.16, 0.28, 3.6, 8]} />
-        <meshStandardMaterial color="#3c2b21" roughness={0.92} />
-      </mesh>
-      {[
-        [0, 4.1, 0, 1.45],
-        [-0.95, 3.6, 0.4, 1.1],
-        [0.95, 3.55, -0.35, 1.12],
-        [0.2, 3.7, 0.9, 1.05],
-      ].map(([x, y, z, r], i) => (
-        <mesh key={i} position={[x, y, z]}>
-          <dodecahedronGeometry args={[r, 0]} />
-          <meshStandardMaterial color={tint} roughness={0.85} />
-        </mesh>
-      ))}
-      {[-1.1, -0.55, 0, 0.55, 1.1].map((fx, i) => (
-        <mesh key={fx} position={[fx, 2.35 + (i % 2) * 0.2, i % 2 === 0 ? 0.55 : -0.35]}>
-          <cylinderGeometry args={[0.04, 0.24, 2.75, 6]} />
-          <meshStandardMaterial color={tint} roughness={0.88} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function PalmTree3D({ position, scale = 1, foliageColor = '#2b6e40' }: { position: [number, number, number]; scale?: number; foliageColor?: string }) {
-  return (
-    <group position={position} scale={scale}>
-      <mesh position={[0, 2.1, 0]} rotation={[0.06, 0, 0.05]}>
-        <cylinderGeometry args={[0.11, 0.21, 4.2, 8]} />
-        <meshStandardMaterial color="#6e5036" roughness={0.9} />
-      </mesh>
-      {[0, 1, 2, 3, 4, 5].map((i) => {
-        const ang = (i / 6) * Math.PI * 2;
-        return (
-          <group key={i} position={[0.1, 4.15, 0.1]} rotation={[0, ang, 0]}>
-            <mesh position={[0.85, -0.12, 0]} rotation={[0, 0, -0.42]} scale={[1.6, 0.12, 0.42]}>
-              <sphereGeometry args={[0.6, 8, 6]} />
-              <meshStandardMaterial color={foliageColor} roughness={0.78} />
-            </mesh>
-          </group>
-        );
-      })}
-    </group>
-  );
-}
-
-function CypressTree3D({ position, scale = 1, foliageColor = '#2e523b' }: { position: [number, number, number]; scale?: number; foliageColor?: string }) {
-  return (
-    <group position={position} scale={scale}>
-      <mesh position={[0, 0.6, 0]}>
-        <cylinderGeometry args={[0.12, 0.16, 1.2, 8]} />
-        <meshStandardMaterial color="#422d1f" roughness={0.9} />
-      </mesh>
-      <mesh position={[0, 2.75, 0]}>
-        <coneGeometry args={[0.65, 3.9, 10]} />
-        <meshStandardMaterial color={foliageColor} roughness={0.85} />
-      </mesh>
-    </group>
-  );
-}
-
-function ScenicTree3D({
-  position,
-  scale = 1,
-  foliageColor,
-  conical = false,
-}: {
-  position: [number, number, number];
-  scale?: number;
-  foliageColor: string;
-  conical?: boolean;
-}) {
-  return (
-    <group position={position} scale={scale}>
-      <mesh position={[0, 1.4, 0]}>
-        <cylinderGeometry args={[0.14, 0.22, 2.8, 7]} />
-        <meshStandardMaterial color="#422d1f" roughness={0.9} />
-      </mesh>
-      {conical ? (
-        <>
-          <mesh position={[0, 2.6, 0]}>
-            <coneGeometry args={[1.3, 2.2, 8]} />
-            <meshStandardMaterial color={foliageColor} roughness={0.85} />
-          </mesh>
-          <mesh position={[0, 3.7, 0]}>
-            <coneGeometry args={[0.95, 1.8, 8]} />
-            <meshStandardMaterial color={foliageColor} roughness={0.85} />
-          </mesh>
-        </>
-      ) : (
-        <>
-          <mesh position={[0, 3.2, 0]}>
-            <dodecahedronGeometry args={[1.3, 0]} />
-            <meshStandardMaterial color={foliageColor} roughness={0.85} />
-          </mesh>
-          <mesh position={[-0.7, 2.9, 0.35]}>
-            <dodecahedronGeometry args={[0.88, 0]} />
-            <meshStandardMaterial color={foliageColor} roughness={0.85} />
-          </mesh>
-          <mesh position={[0.75, 2.95, -0.3]}>
-            <dodecahedronGeometry args={[0.92, 0]} />
-            <meshStandardMaterial color={foliageColor} roughness={0.85} />
-          </mesh>
-        </>
-      )}
-    </group>
-  );
-}
-
 function LotusCluster3D({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
@@ -993,48 +877,87 @@ function LotusCluster3D({ position }: { position: [number, number, number] }) {
   );
 }
 
-function PavilionHorizon3D({ position, rotY }: { position: [number, number, number]; rotY: number }) {
-  return (
-    <group position={position} rotation={[0, rotY, 0]}>
-      <mesh position={[0, 0.85, 0]}>
-        <boxGeometry args={[2.6, 1.5, 2.0]} />
-        <meshBasicMaterial color="#201e3b" />
-      </mesh>
-      <mesh position={[0, 0.78, 1.02]}>
-        <planeGeometry args={[1.65, 0.92]} />
-        <meshBasicMaterial color="#ffcf78" toneMapped={false} />
-      </mesh>
-      <mesh position={[0, 2.05, 0]}>
-        <coneGeometry args={[2.15, 0.95, 4]} />
-        <meshBasicMaterial color="#18162e" />
-      </mesh>
-      <mesh position={[0, 2.75, 0]}>
-        <coneGeometry args={[1.35, 0.72, 4]} />
-        <meshBasicMaterial color="#18162e" />
-      </mesh>
-    </group>
-  );
+function makePainterlyFloralPropTexture(accentColor: string, accentGold: string): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 320;
+  const ctx = c.getContext('2d')!;
+  ctx.clearRect(0, 0, 256, 320);
+
+  // Soft warm lantern / fairy-light halo above the floral arrangement
+  const glow = ctx.createRadialGradient(128, 86, 6, 128, 86, 58);
+  glow.addColorStop(0, 'rgba(255, 244, 200, 0.92)');
+  glow.addColorStop(0.38, 'rgba(255, 208, 120, 0.36)');
+  glow.addColorStop(1, 'rgba(255, 195, 100, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(128, 86, 58, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Delicate slender gold lantern stand
+  ctx.strokeStyle = accentGold;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(128, 292);
+  ctx.lineTo(128, 72);
+  ctx.quadraticCurveTo(128, 48, 148, 52);
+  ctx.stroke();
+
+  // Warm glowing glass/silk lantern drop
+  ctx.fillStyle = '#fff5cf';
+  ctx.strokeStyle = accentGold;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.ellipse(148, 76, 14, 20, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Painterly foliage leaves at the base
+  const leaves: Array<[number, number, number, number, number, string]> = [
+    [90, 266, 36, 13, -0.45, '#3b5e49'],
+    [166, 266, 36, 13, 0.45, '#3b5e49'],
+    [76, 242, 30, 11, -0.8, '#4e755c'],
+    [180, 242, 30, 11, 0.8, '#4e755c'],
+    [128, 232, 28, 12, 0, '#2f4d3b'],
+  ];
+  for (const [lx, ly, rx, ry, rot, col] of leaves) {
+    ctx.save();
+    ctx.translate(lx, ly);
+    ctx.rotate(rot);
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Painterly layered roses & ivory blossoms at the base
+  const blooms: Array<[number, number, number, string]> = [
+    [104, 258, 22, accentColor],
+    [152, 260, 21, '#fff6ec'],
+    [128, 246, 24, '#fbe7ee'],
+    [86, 274, 16, '#fff6ec'],
+    [170, 274, 16, accentColor],
+    [128, 276, 19, accentColor],
+  ];
+  for (const [bx, by, br, col] of blooms) {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = accentGold;
+    ctx.beginPath();
+    ctx.arc(bx, by, br * 0.24, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
 }
 
 function ThemeSurroundScenery({ theme }: { theme: Walkthrough3DTheme }) {
-  const treeX = theme.galleryLayout === 'rotunda-circle' ? 7.2 : 5.2;
-  const treePositions: Array<[number, number, number, number]> = [
-    [-treeX, 0, -13.6, 1.2],
-    [treeX, 0, -14.8, 1.15],
-    [-treeX, 0, -18.5, 1.25],
-    [treeX, 0, -20.2, 1.2],
-    [-treeX, 0, -23.8, 1.2],
-    [treeX, 0, -25.8, 1.22],
-    [-treeX, 0, -29.8, 1.25],
-    [treeX, 0, -31.8, 1.15],
-    [-treeX, 0, -35.8, 1.2],
-    [treeX, 0, -37.8, 1.2],
-    [-10.2, 0, -15.5, 1.35],
-    [10.2, 0, -21.5, 1.35],
-    [-10.4, 0, -27.0, 1.4],
-    [9.8, 0, -33.0, 1.3],
-  ];
-
   const waterTex = useMemo(() => {
     if (!theme.hasWaterSurface) return null;
     const c = document.createElement('canvas');
@@ -1061,63 +984,33 @@ function ThemeSurroundScenery({ theme }: { theme: Walkthrough3DTheme }) {
   }, [theme.fogColor, theme.groundColor, theme.hasWaterSurface]);
   useEffect(() => () => waterTex?.dispose(), [waterTex]);
 
+  if (!theme.hasWaterSurface) return null;
+
   return (
     <group>
-      {(theme.hasWaterSurface || theme.category === 'co-do-truyen-thong') && (
-        <group>
-          <PavilionHorizon3D position={[-20, 0.1, -13]} rotY={1.1} />
-          <PavilionHorizon3D position={[21, 0.1, -18]} rotY={-1.15} />
-          <PavilionHorizon3D position={[-19, 0.1, -28]} rotY={0.85} />
-          <PavilionHorizon3D position={[20, 0.1, -35]} rotY={-0.95} />
-        </group>
-      )}
-
-      {theme.treeKind !== 'none' &&
-        treePositions.map(([x, y, z, s], idx) =>
-          theme.treeKind === 'willow' ? (
-            <WillowTree3D key={idx} position={[x, y, z]} scale={s} tint={theme.foliageColor} />
-          ) : theme.treeKind === 'palm' ? (
-            <PalmTree3D key={idx} position={[x, y, z]} scale={s} foliageColor={theme.foliageColor} />
-          ) : theme.treeKind === 'cypress' ? (
-            <CypressTree3D key={idx} position={[x, y, z]} scale={s} foliageColor={theme.foliageColor} />
-          ) : (
-            <ScenicTree3D
-              key={idx}
-              position={[x, y, z]}
-              scale={s}
-              foliageColor={theme.foliageColor}
-              conical={theme.treeKind === 'pine'}
-            />
-          ),
-        )}
-
-      {theme.hasWaterSurface && (
-        <group>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.16, -22]}>
-            <planeGeometry args={[112, 112]} />
-            <meshBasicMaterial
-              key={waterTex?.uuid ?? 'water-flat'}
-              map={waterTex ?? undefined}
-              color="#ffffff"
-              toneMapped={false}
-            />
-          </mesh>
-          {[
-            [-2.4, -0.1, -11.5],
-            [2.6, -0.1, -12.8],
-            [-4.2, -0.1, -15.4],
-            [4.2, -0.1, -17.2],
-            [-4.1, -0.1, -20.0],
-            [4.1, -0.1, -22.4],
-            [-4.1, -0.1, -25.2],
-            [4.2, -0.1, -28.0],
-            [-4.2, -0.1, -31.2],
-            [4.1, -0.1, -34.2],
-          ].map((pos, idx) => (
-            <LotusCluster3D key={idx} position={pos as [number, number, number]} />
-          ))}
-        </group>
-      )}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.16, -22]}>
+        <planeGeometry args={[112, 112]} />
+        <meshBasicMaterial
+          key={waterTex?.uuid ?? 'water-flat'}
+          map={waterTex ?? undefined}
+          color="#ffffff"
+          toneMapped={false}
+        />
+      </mesh>
+      {[
+        [-2.4, -0.1, -11.5],
+        [2.6, -0.1, -12.8],
+        [-4.2, -0.1, -15.4],
+        [4.2, -0.1, -17.2],
+        [-4.1, -0.1, -20.0],
+        [4.1, -0.1, -22.4],
+        [-4.1, -0.1, -25.2],
+        [4.2, -0.1, -28.0],
+        [-4.2, -0.1, -31.2],
+        [4.1, -0.1, -34.2],
+      ].map((pos, idx) => (
+        <LotusCluster3D key={idx} position={pos as [number, number, number]} />
+      ))}
     </group>
   );
 }
@@ -1197,8 +1090,14 @@ function SeasonalParticles({ kind }: { kind: Walkthrough3DTheme['particleKind'] 
   );
 }
 
-/** Themed side decorations placed safely outside easel sightlines (x >= 3.85 or 6.3 on rotundas) */
+/** Painterly floral & glowing lantern side accents placed safely outside easel sightlines */
 function ThemeSideDecor({ theme }: { theme: Walkthrough3DTheme }) {
+  const propTex = useMemo(
+    () => makePainterlyFloralPropTexture(theme.accentColor, theme.accentGold),
+    [theme.accentColor, theme.accentGold],
+  );
+  useEffect(() => () => propTex.dispose(), [propTex]);
+
   const galleryX = theme.galleryLayout === 'rotunda-circle' ? 6.35 : 3.95;
   const placements: Array<{ z: number; xOffset: number }> = [
     { z: -2.4, xOffset: 2.35 },
@@ -1233,84 +1132,17 @@ function ThemeSideDecor({ theme }: { theme: Walkthrough3DTheme }) {
       {placements.map(({ z: zPos, xOffset }) => (
         <React.Fragment key={zPos}>
           {[-xOffset, xOffset].map((xPos, sideIdx) => (
-            <group key={`${zPos}-${sideIdx}`} position={[xPos, 0, zPos]}>
-              {theme.sidePropKind === 'peach-traps' || theme.sidePropKind === 'dragon-traps-mist' ? (
-                <group>
-                  <mesh position={[0, 0.22, 0]}>
-                    <cylinderGeometry args={[0.3, 0.32, 0.36, 16]} />
-                    <meshStandardMaterial color="#a9141d" roughness={0.45} />
-                  </mesh>
-                  <mesh position={[0, 0.42, 0]}>
-                    <cylinderGeometry args={[0.33, 0.33, 0.06, 16]} />
-                    <meshStandardMaterial color="#e8be66" roughness={0.35} metalness={0.4} />
-                  </mesh>
-                </group>
-              ) : theme.sidePropKind === 'roman-columns' ? (
-                <group>
-                  <mesh position={[0, 1.15, 0]}>
-                    <cylinderGeometry args={[0.16, 0.19, 2.3, 14]} />
-                    <meshStandardMaterial color="#f5efe4" roughness={0.55} />
-                  </mesh>
-                  <mesh position={[0, 2.42, 0]}>
-                    <sphereGeometry args={[0.26, 10, 10]} />
-                    <meshBasicMaterial color={theme.accentColor} toneMapped={false} />
-                  </mesh>
-                </group>
-              ) : theme.sidePropKind === 'beach-torches' ? (
-                <group>
-                  <mesh position={[0, 0.82, 0]}>
-                    <cylinderGeometry args={[0.04, 0.05, 1.64, 8]} />
-                    <meshStandardMaterial color="#a16207" roughness={0.8} />
-                  </mesh>
-                  <mesh position={[0, 1.72, 0]}>
-                    <coneGeometry args={[0.12, 0.28, 8]} />
-                    <meshBasicMaterial color="#fb923c" toneMapped={false} />
-                  </mesh>
-                </group>
-              ) : theme.sidePropKind === 'cinema-stanchions' || theme.sidePropKind === 'neon-halos' ? (
-                <group>
-                  <mesh position={[0, 0.52, 0]}>
-                    <cylinderGeometry args={[0.035, 0.045, 1.04, 10]} />
-                    <meshStandardMaterial color={theme.accentGold} metalness={0.6} roughness={0.25} />
-                  </mesh>
-                  <mesh position={[0, 1.12, 0]}>
-                    <sphereGeometry args={[0.1, 10, 10]} />
-                    <meshBasicMaterial color={theme.accentGold} toneMapped={false} />
-                  </mesh>
-                </group>
-              ) : theme.sidePropKind === 'marquee-tables' ? (
-                <group>
-                  <mesh position={[0, 0.45, 0]}>
-                    <cylinderGeometry args={[0.52, 0.65, 0.9, 16]} />
-                    <meshStandardMaterial color="#fff3f7" roughness={0.85} />
-                  </mesh>
-                  <mesh position={[0, 0.92, 0]}>
-                    <cylinderGeometry args={[0.53, 0.53, 0.08, 16]} />
-                    <meshStandardMaterial color="#f2a8c0" roughness={0.6} />
-                  </mesh>
-                </group>
-              ) : theme.sidePropKind === 'cloud-lamps' || theme.sidePropKind === 'floating-islands' ? (
-                <mesh position={[0, 0.16, 0]} scale={[1.15, 0.5, 0.8]}>
-                  <sphereGeometry args={[0.48, 10, 8]} />
-                  <meshBasicMaterial color={theme.sidePropKind === 'floating-islands' ? '#fbe7f3' : '#cfd8f5'} />
-                </mesh>
-              ) : (
-                <group>
-                  <mesh position={[0, 0.72, 0]}>
-                    <cylinderGeometry args={[0.032, 0.044, 1.44, 8]} />
-                    <meshStandardMaterial color="#2a221f" roughness={0.7} />
-                  </mesh>
-                  <mesh position={[0, 1.5, 0]}>
-                    <cylinderGeometry args={[0.1, 0.08, 0.22, 6]} />
-                    <meshBasicMaterial color="#ffe094" toneMapped={false} />
-                  </mesh>
-                  <mesh position={[0, 1.65, 0]}>
-                    <coneGeometry args={[0.15, 0.11, 6]} />
-                    <meshStandardMaterial color="#2a221f" roughness={0.65} />
-                  </mesh>
-                </group>
-              )}
-            </group>
+            <mesh key={`${zPos}-${sideIdx}`} position={[xPos, 0.86, zPos]} rotation={[0, sideIdx === 0 ? 0.22 : -0.22, 0]}>
+              <planeGeometry args={[1.45, 1.82]} />
+              <meshBasicMaterial
+                key={propTex.uuid}
+                map={propTex}
+                transparent
+                alphaTest={0.04}
+                side={THREE.DoubleSide}
+                toneMapped={false}
+              />
+            </mesh>
           ))}
         </React.Fragment>
       ))}
@@ -1657,17 +1489,13 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
     return new THREE.CatmullRomCurve3(pts);
   }, [theme.curvePoints, theme.galleryLayout, stagePos, stageZ]);
 
-  const rasterSkyTex = useLoadedTexture(theme.hasRasterAssets ? `/invitation-3d/${theme.slug}/sky.webp` : undefined, {
+  const skyTex = useLoadedTexture(`/invitation-3d/${theme.slug}/sky.webp`, {
     mirrorWrapS: true,
     repeatX: 4,
     repeatY: 1,
   });
-  const procSkyTex = useMemo(() => (theme.hasRasterAssets ? null : makeProceduralSkyTexture(theme)), [theme]);
-  useEffect(() => () => procSkyTex?.dispose(), [procSkyTex]);
-  const skyTex = theme.hasRasterAssets ? rasterSkyTex : procSkyTex;
-
-  const archTex = useLoadedTexture(theme.hasRasterAssets ? `/invitation-3d/${theme.slug}/arch.webp` : undefined);
-  const stageTex = useLoadedTexture(theme.hasRasterAssets ? `/invitation-3d/${theme.slug}/stage.webp` : undefined);
+  const archTex = useLoadedTexture(`/invitation-3d/${theme.slug}/arch.webp`);
+  const stageTex = useLoadedTexture(`/invitation-3d/${theme.slug}/stage.webp`);
   const standeeTex = useLoadedTexture(coupleCutoutUrl || `/invitation-3d/standees/standee-${theme.standee}.webp`);
 
   const pathTex = useMemo(() => makePathCanvasTexture(theme.pathStyle, theme.accentGold), [theme.pathStyle, theme.accentGold]);
@@ -1727,7 +1555,7 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
       uvs.push(0, v, 1, v);
       if (i < segs) {
         const b = i * 2;
-        indices.push(b, b + 1, b + 2, b + 1, b + 3, b + 2);
+        indices.push(b, b + 2, b + 1, b + 1, b + 2, b + 3);
       }
     }
     const g = new THREE.BufferGeometry();
@@ -1803,19 +1631,15 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
       />
 
       <mesh geometry={pathGeo}>
-        <meshBasicMaterial key={pathTex.uuid} map={pathTex} toneMapped={false} />
+        <meshBasicMaterial key={pathTex.uuid} map={pathTex} side={THREE.DoubleSide} toneMapped={false} />
       </mesh>
 
-      {/* Entrance Gate: Raster cutout for original 10, real 3D architecture for 90 procedural themes */}
-      {theme.hasRasterAssets ? (
-        archTex && (
-          <mesh position={[0, 2.78, ARCH_Z]}>
-            <planeGeometry args={[6.1, 6.1]} />
-            <meshBasicMaterial key={archTex.uuid} map={archTex} transparent alphaTest={0.05} side={THREE.DoubleSide} toneMapped={false} />
-          </mesh>
-        )
-      ) : (
-        <ProceduralEntranceGate3D theme={theme} zPos={ARCH_Z} />
+      {/* Painterly Illustrated Entrance Gate across all 100 3D templates */}
+      {archTex && (
+        <mesh position={[0, 2.78, ARCH_Z]}>
+          <planeGeometry args={[6.1, 6.1]} />
+          <meshBasicMaterial key={archTex.uuid} map={archTex} transparent alphaTest={0.05} side={THREE.DoubleSide} toneMapped={false} />
+        </mesh>
       )}
 
       {/* Couple Standee */}
@@ -1876,31 +1700,27 @@ function WalkthroughInnerScene(props: WalkthroughSceneProps) {
       <ThemeSideDecor theme={theme} />
       <ThemeSurroundScenery theme={theme} />
 
-      {/* Ceremony Stage: Raster stage for original 10, real 3D Altar for 90 procedural themes */}
-      {theme.hasRasterAssets ? (
-        <group position={stagePos}>
-          <mesh position={[0, 0.1, 1.2]}>
-            <boxGeometry args={[5.4, 0.2, 2.1]} />
-            <meshStandardMaterial color={theme.accentGold} roughness={0.75} />
+      {/* Painterly Illustrated Ceremony Stage across all 100 3D templates */}
+      <group position={stagePos}>
+        <mesh position={[0, 0.1, 1.2]}>
+          <boxGeometry args={[5.4, 0.2, 2.1]} />
+          <meshStandardMaterial color={theme.accentGold} roughness={0.75} />
+        </mesh>
+        <mesh position={[0, 0.26, 0.6]}>
+          <boxGeometry args={[4.6, 0.18, 1.6]} />
+          <meshStandardMaterial color="#f4ead9" roughness={0.8} />
+        </mesh>
+        {stageTex && (
+          <mesh position={[0, stageBillboardY, 0]}>
+            <planeGeometry args={[stageH, stageH]} />
+            <meshBasicMaterial key={stageTex.uuid} map={stageTex} transparent alphaTest={0.05} toneMapped={false} />
           </mesh>
-          <mesh position={[0, 0.26, 0.6]}>
-            <boxGeometry args={[4.6, 0.18, 1.6]} />
-            <meshStandardMaterial color="#f4ead9" roughness={0.8} />
-          </mesh>
-          {stageTex && (
-            <mesh position={[0, stageBillboardY, 0]}>
-              <planeGeometry args={[stageH, stageH]} />
-              <meshBasicMaterial key={stageTex.uuid} map={stageTex} transparent alphaTest={0.05} toneMapped={false} />
-            </mesh>
-          )}
-          <mesh position={[plaqueX, plaqueY, 0.14]}>
-            <planeGeometry args={[theme.plaque.width, theme.plaque.width * (420 / 768)]} />
-            <meshBasicMaterial key={plaqueTex.uuid} map={plaqueTex} transparent depthWrite={false} toneMapped={false} />
-          </mesh>
-        </group>
-      ) : (
-        <ProceduralAltarStage3D theme={theme} position={stagePos} plaqueTex={plaqueTex} />
-      )}
+        )}
+        <mesh position={[plaqueX, plaqueY, 0.14]}>
+          <planeGeometry args={[theme.plaque.width, theme.plaque.width * (420 / 768)]} />
+          <meshBasicMaterial key={plaqueTex.uuid} map={plaqueTex} transparent depthWrite={false} toneMapped={false} />
+        </mesh>
+      </group>
 
       <CelebrationFireworks3D
         burstCount={celebrationBursts}

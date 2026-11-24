@@ -41,37 +41,16 @@ export function WalkthroughCardThumb({
       className="relative h-full w-full overflow-hidden select-none"
       style={{ backgroundColor: t.cardBgTint }}
     >
-      {/* Sky backdrop: raster webp for original 10, painterly multi-stop sky + SVG celestial/landscape for 90 procedural */}
-      {t.hasRasterAssets ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={`/invitation-3d/${t.slug}/sky.webp`}
-          alt=""
-          width={960}
-          height={1280}
-          loading="lazy"
-          className="absolute inset-0 h-[76%] w-full object-cover"
-        />
-      ) : (
-        <div
-          className="absolute inset-0 h-[76%] w-full"
-          style={{
-            background: `linear-gradient(180deg, ${t.skyTop} 0%, ${t.skyMid} 54%, ${t.skyHorizon} 100%)`,
-          }}
-        >
-          {/* Sun / Moon glow */}
-          <div
-            className="absolute left-1/2 top-[52%] h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-80 blur-md"
-            style={{ background: 'radial-gradient(circle, #fffbe8 0%, rgba(255,230,175,0) 72%)' }}
-          />
-          {/* Subtle mountain / skyline silhouette */}
-          {(t.skyMood === 'misty-karst' || t.skyMood === 'alpine-dawn' || t.skyMood === 'emerald-forest') && (
-            <svg viewBox="0 0 200 60" preserveAspectRatio="none" className="absolute bottom-0 inset-x-0 h-[32%] w-full opacity-45">
-              <path d="M0,60 L0,36 L34,14 L68,38 L108,8 L148,34 L178,18 L200,32 L200,60 Z" fill={t.fogColor} />
-            </svg>
-          )}
-        </div>
-      )}
+      {/* Painterly illustrated sky backdrop across all 100 3D templates */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`/invitation-3d/${t.slug}/sky.webp`}
+        alt=""
+        width={800}
+        height={1066}
+        loading="lazy"
+        className="absolute inset-0 h-[76%] w-full object-cover"
+      />
 
       {/* Horizon & Ground strip */}
       <div
@@ -93,55 +72,16 @@ export function WalkthroughCardThumb({
         }}
       />
 
-      {/* Entrance arch: raster cutout for original 10, crisp SVG architectural silhouette for 90 procedural */}
-      {t.hasRasterAssets ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={`/invitation-3d/${t.slug}/arch.webp`}
-          alt=""
-          width={900}
-          height={900}
-          loading="lazy"
-          className="absolute bottom-[19%] left-1/2 h-[48%] w-[88%] -translate-x-1/2 object-contain drop-shadow-[0_10px_14px_rgba(0,0,0,0.35)]"
-        />
-      ) : (
-        <svg
-          viewBox="0 0 200 200"
-          className="pointer-events-none absolute bottom-[19%] left-1/2 h-[46%] w-[84%] -translate-x-1/2 drop-shadow-[0_8px_12px_rgba(0,0,0,0.38)]"
-        >
-          {t.archStyle === 'crescent-moon' || t.archStyle === 'modern-halo' ? (
-            <>
-              <circle cx="100" cy="108" r="68" fill="none" stroke={t.accentGold} strokeWidth="6" strokeDasharray="320 120" transform="rotate(130 100 108)" />
-              <circle cx="104" cy="108" r="60" fill="none" stroke={t.accentColor} strokeWidth="2.5" opacity="0.85" />
-            </>
-          ) : t.archStyle === 'traditional-tamquan' || t.archStyle === 'zen-torii' || t.archStyle === 'hoian-lanterns' ? (
-            <>
-              <rect x="36" y="48" width="10" height="142" rx="3" fill={t.archStyle === 'hoian-lanterns' ? '#d99b26' : '#991b1b'} />
-              <rect x="154" y="48" width="10" height="142" rx="3" fill={t.archStyle === 'hoian-lanterns' ? '#d99b26' : '#991b1b'} />
-              <path d="M18,52 Q100,28 182,52 L174,62 Q100,42 26,62 Z" fill={t.accentGold} />
-              <rect x="30" y="66" width="140" height="7" rx="2" fill="#7f1d1d" />
-              <circle cx="64" cy="82" r="7" fill="#ef4444" />
-              <circle cx="136" cy="82" r="7" fill="#fbbf24" />
-            </>
-          ) : t.archStyle === 'cinema-marquee' ? (
-            <>
-              <rect x="34" y="44" width="132" height="146" rx="6" fill="none" stroke="#18181b" strokeWidth="12" />
-              <rect x="34" y="40" width="132" height="22" rx="4" fill={t.accentColor} stroke={t.accentGold} strokeWidth="2.5" />
-              {[52, 76, 100, 124, 148].map((cx) => (
-                <circle key={cx} cx={cx} cy="51" r="3" fill="#fde68a" />
-              ))}
-            </>
-          ) : (
-            <>
-              <path d="M42,190 L42,96 A58,58 0 0,1 158,96 L158,190" fill="none" stroke="#f8f4ec" strokeWidth="10" />
-              <path d="M42,96 A58,58 0 0,1 158,96" fill="none" stroke={t.accentGold} strokeWidth="4" />
-              {[46, 68, 100, 132, 154].map((cx, idx) => (
-                <circle key={cx} cx={cx} cy={idx === 2 ? 38 : idx === 1 || idx === 3 ? 48 : 74} r="10" fill={idx % 2 === 0 ? t.accentColor : '#fff7ed'} />
-              ))}
-            </>
-          )}
-        </svg>
-      )}
+      {/* Painterly illustrated entrance arch cutout across all 100 3D templates */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`/invitation-3d/${t.slug}/arch.webp`}
+        alt=""
+        width={768}
+        height={768}
+        loading="lazy"
+        className="absolute bottom-[19%] left-1/2 h-[48%] w-[88%] -translate-x-1/2 object-contain drop-shadow-[0_10px_14px_rgba(0,0,0,0.35)]"
+      />
 
       {/* Miniature couple standing at the gate */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
