@@ -5,7 +5,7 @@ import { canonicalUrl } from '@/lib/seo';
 export const metadata: Metadata = {
   title: 'Thiết Kế Thiệp Cưới Online 2D Miễn Phí — DamCuoiOnline.vn',
   description:
-    'Chọn từ 100 mẫu thiệp cưới online 2D, nhập tên cô dâu chú rể, ngày cưới và tải ảnh xem trước miễn phí. Chỉ trả phí (từ 150k) khi phát hành gửi khách qua Zalo/Facebook.',
+    'Chọn từ 100 mẫu thiệp cưới online 2D, nhập tên cô dâu chú rể, ngày cưới và tải ảnh xem trước miễn phí. Chỉ trả phí (99k/tháng hoặc 599k trọn đời) khi phát hành gửi khách qua Zalo/Facebook.',
   alternates: { canonical: canonicalUrl('/thiep-cuoi/tao') },
   openGraph: {
     title: 'Thiết Kế Thiệp Cưới Online 2D Miễn Phí — DamCuoiOnline.vn',

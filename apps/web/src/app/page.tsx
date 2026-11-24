@@ -240,7 +240,7 @@ export default function HomePage() {
               {INVITATION_2D_TEMPLATES.length} Mẫu Thiệp 2D &amp; {INVITATION_3D_TEMPLATES.length} Bộ Thiệp Cưới 3D
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
-              Mua riêng không cần sảnh 3D: dòng <strong>Thiệp 2D</strong> gọn nhẹ từ 150.000đ/tháng và dòng <strong>Thiệp Cưới 3D Dạo Bước</strong> chuyển cảnh camera toàn màn hình từ 290.000đ/tháng. Thiết kế và xem trước miễn phí.
+              Mua riêng không cần sảnh 3D: dòng <strong>Thiệp 2D</strong> gọn nhẹ chỉ 99.000đ/tháng (599.000đ trọn đời) và dòng <strong>Thiệp Cưới 3D Dạo Bước</strong> chuyển cảnh camera toàn màn hình 199.000đ/tháng (799.000đ trọn đời). Thiết kế và xem trước miễn phí.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link

@@ -41,7 +41,7 @@ function buildMarkdownForPath(rawPath: string): string {
       '## Bảng Giá Phát Hành Thiệp Cưới 2D (Thiết kế & xem trước miễn phí)',
       plans,
       '',
-      '## Dòng Cao Cấp Thiệp Cưới 3D Dạo Bước Tương Tác (Từ 290.000đ)',
+      '## Dòng Cao Cấp Thiệp Cưới 3D Dạo Bước Tương Tác (199.000đ/tháng · 799.000đ trọn đời)',
       `- [${INVITATION_3D_TEMPLATES.length} Bộ Thiệp Cưới 3D](${canonicalUrl('/thiep-cuoi-3d')})`,
       '',
       '## Mẫu Thiệp 2D Nổi Bật',

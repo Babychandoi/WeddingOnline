@@ -54,9 +54,9 @@ export default function TermsOfServicePage() {
             <h2 className="font-serif text-xl font-bold text-slate-900">1. Trải nghiệm miễn phí &amp; phát hành gói</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5">
               <li>
-                <strong>Thiệp cưới online:</strong> Bạn được chọn trong 100 mẫu, nhập nội dung, tải ảnh cưới và xem
+                <strong>Thiệp cưới online:</strong> Bạn được chọn trong 100 mẫu 2D và 10 bộ 3D, nhập nội dung, tải ảnh cưới và xem
                 trước hoàn toàn miễn phí dưới dạng bản nháp. Chi phí chỉ phát sinh khi bạn kích hoạt gói phát hành gửi
-                cho khách mời (từ 150.000đ).
+                cho khách mời (Thiệp 2D: 99.000đ/tháng hoặc 599.000đ trọn đời; Thiệp 3D: 199.000đ/tháng hoặc 799.000đ trọn đời).
               </li>
               <li>
                 <strong>Sảnh cưới 3D trực tuyến:</strong> Hỗ trợ gói Dùng Thử 24 giờ miễn phí và các gói trả phí một

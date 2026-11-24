@@ -219,9 +219,9 @@ function CreateInvitation() {
           <form onSubmit={submit} className="min-w-0 rounded-3xl border border-amber-200 bg-white p-5 shadow-sm sm:p-8">
             <h1 className="font-serif text-3xl font-bold leading-tight text-rose-950 sm:text-4xl">Tạo thiệp cưới online 2D</h1>
             <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-slate-600">
-              Dành cho 100 mẫu thiệp cưới 2D: gửi thiệp qua Zalo, Facebook, khách mở ra xem giờ, địa điểm, chỉ đường, xác nhận tham dự và gửi lời chúc. Thiết kế và xem trước miễn phí; khi ưng ý mới chọn gói phát hành (từ 150.000đ/tháng).{' '}
+              Dành cho 100 mẫu thiệp cưới 2D: gửi thiệp qua Zalo, Facebook, khách mở ra xem giờ, địa điểm, chỉ đường, xác nhận tham dự và gửi lời chúc. Thiết kế và xem trước miễn phí; khi ưng ý mới chọn gói phát hành (99.000đ/tháng hoặc 599.000đ trọn đời).{' '}
               <Link href="/thiep-cuoi-3d/tao" className="font-bold text-rose-700 underline underline-offset-4">
-                Tạo Thiệp Cưới 3D (từ 290k) →
+                Tạo Thiệp Cưới 3D (199k/tháng · 799k trọn đời) →
               </Link>
             </p>
 

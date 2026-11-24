@@ -43,7 +43,7 @@ export function InvitationPublish({
   const plans = is3d ? INVITATION_3D_PLANS : INVITATION_PLANS;
 
   const [open, setOpen] = useState(false);
-  const [plan, setPlan] = useState<InvitationPlanId>('3m');
+  const [plan, setPlan] = useState<InvitationPlanId>('1m');
   const [order, setOrder] = useState<PendingOrder | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -125,7 +125,7 @@ export function InvitationPublish({
   const note = access.published
     ? 'Mọi thay đổi khách thấy ngay.'
     : access.needs3dUpgrade
-      ? 'Gói Thiệp 2D hiện tại chỉ mở được 100 mẫu 2D. Mua gói Thiệp 3D (từ 290k) để phát hành mẫu 3D hoặc chuyển lại về mẫu 2D.'
+      ? 'Gói Thiệp 2D hiện tại chỉ mở được 100 mẫu 2D. Mua gói Thiệp 3D (từ 199k/tháng) để phát hành mẫu 3D hoặc chuyển lại về mẫu 2D.'
       : 'Thiết kế thoải mái, mọi thứ tự lưu nháp. Khi ưng ý, bấm Phát hành để gửi thiệp cho khách.';
 
   const chosenPrice = plans.find((p) => p.id === plan)!.priceVnd;
@@ -186,25 +186,24 @@ export function InvitationPublish({
             ) : !order ? (
               <>
                 <div role="radiogroup" aria-label={`Chọn gói ${kindLabel}`} className="mt-5 space-y-2">
-                  {plans.map((p) => {
-                    const perMonth = p.months ? Math.round(p.priceVnd / p.months / 1000) * 1000 : null;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        role="radio"
-                        aria-checked={plan === p.id}
-                        onClick={() => setPlan(p.id)}
-                        className={`flex min-h-[60px] w-full items-center justify-between gap-3 rounded-2xl border-2 px-4 text-left transition ${plan === p.id ? 'border-rose-600 bg-rose-50' : 'border-slate-200 hover:border-rose-300'}`}
-                      >
-                        <span>
-                          <span className="block text-sm font-black text-slate-900">{p.nameVi}</span>
-                          <span className="block text-xs text-slate-500">{perMonth ? (p.months && p.months > 1 ? `≈ ${vnd(perMonth)}/tháng` : 'Phù hợp khi cưới gần') : 'Thiệp và lời chúc giữ mãi làm kỷ niệm'}</span>
+                  {plans.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={plan === p.id}
+                      onClick={() => setPlan(p.id)}
+                      className={`flex min-h-[60px] w-full items-center justify-between gap-3 rounded-2xl border-2 px-4 text-left transition ${plan === p.id ? 'border-rose-600 bg-rose-50' : 'border-slate-200 hover:border-rose-300'}`}
+                    >
+                      <span>
+                        <span className="block text-sm font-black text-slate-900">{p.nameVi}</span>
+                        <span className="block text-xs text-slate-500">
+                          {p.months === null ? 'Thiệp và lời chúc giữ mãi làm kỷ niệm' : 'Phù hợp cho đám cưới sắp diễn ra · gia hạn giữ nguyên link'}
                         </span>
-                        <span className="text-base font-black tabular-nums text-rose-800">{vnd(p.priceVnd)}</span>
-                      </button>
-                    );
-                  })}
+                      </span>
+                      <span className="text-base font-black tabular-nums text-rose-800">{vnd(p.priceVnd)}</span>
+                    </button>
+                  ))}
                 </div>
                 {error && <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800" role="alert">{error}</p>}
                 <button type="button" disabled={busy} onClick={() => void startOrder()} className="mt-5 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-rose-700 text-base font-bold text-white hover:bg-rose-600 disabled:opacity-60">

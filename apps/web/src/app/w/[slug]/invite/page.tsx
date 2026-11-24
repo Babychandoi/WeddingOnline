@@ -89,7 +89,7 @@ export default async function InvitationPage({ params, searchParams }: { params:
       <div className="fixed inset-x-0 top-0 z-[70] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-400 px-4 py-2 text-center text-sm font-bold text-amber-950 shadow">
         <span>
           {access.needs3dUpgrade
-            ? 'Mẫu Thiệp 3D cần gói Thiệp 3D riêng (từ 290k): khách chưa mở được.'
+            ? 'Mẫu Thiệp 3D cần gói Thiệp 3D riêng (199k/tháng hoặc 799k trọn đời): khách chưa mở được.'
             : access.expired
               ? 'Thiệp đã hết hạn: khách đang thấy “tạm ngưng”.'
               : 'Bản xem trước: khách chưa mở được thiệp này.'}

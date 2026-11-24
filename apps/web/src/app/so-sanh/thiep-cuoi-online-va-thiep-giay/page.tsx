@@ -65,8 +65,8 @@ export default function OnlineVsPaperComparisonPage() {
             <Scale className="h-4 w-4" /> Kết luận nhanh cho đám cưới 300 khách:
           </p>
           <p className="mt-1">
-            Thiệp cưới online tốn chỉ <strong>150.000đ – 600.000đ trọn gói</strong> không giới hạn số khách (tiết kiệm
-            75–90% so với 1,8 – 4,5 triệu đồng in 300 thiệp giấy), kèm sẵn Google Maps, RSVP tự động và album ảnh cưới.
+            Thiệp cưới online tốn chỉ <strong>99.000đ/tháng – 599.000đ trọn đời</strong> không giới hạn số khách (tiết kiệm
+            75–95% so với 1,8 – 4,5 triệu đồng in 300 thiệp giấy), kèm sẵn Google Maps, RSVP tự động và album ảnh cưới.
             Phương án tối ưu nhất tại Việt Nam là <strong>kết hợp 40% thiệp giấy cho bậc trưởng bối</strong> (có in mã
             QR) + <strong>60% thiệp cưới online gửi Zalo</strong> cho bạn bè, đồng nghiệp và người thân ở xa.
           </p>
@@ -89,7 +89,7 @@ export default function OnlineVsPaperComparisonPage() {
                 <tbody className="divide-y divide-amber-100">
                   <tr>
                     <td className="px-4 py-3 font-semibold text-slate-900">Chi phí cho 300 khách</td>
-                    <td className="px-4 py-3 font-bold text-emerald-700">150.000đ – 600.000đ (không giới hạn lượt gửi)</td>
+                    <td className="px-4 py-3 font-bold text-emerald-700">99.000đ/tháng – 599.000đ trọn đời (không giới hạn lượt gửi)</td>
                     <td className="px-4 py-3">1.800.000đ – 4.500.000đ (6.000đ – 15.000đ/thiệp)</td>
                   </tr>
                   <tr>

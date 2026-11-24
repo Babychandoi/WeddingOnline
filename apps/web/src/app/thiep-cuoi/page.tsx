@@ -105,12 +105,12 @@ export default function InvitationGalleryPage() {
 
           <div className="mt-4 grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
-              <SparkBadgePill>100 Mẫu Thiệp Cưới 2D · Lật Sách 3D · Từ 150.000đ</SparkBadgePill>
+              <SparkBadgePill>100 Mẫu Thiệp Cưới 2D · Lật Sách 3D · Từ 99.000đ</SparkBadgePill>
               <h1 className="mt-4 max-w-[16ch] text-balance font-serif text-[2.6rem] font-bold leading-[1.05] tracking-[-0.02em] text-rose-950 sm:text-6xl">
                 Thiệp cưới online 2D, mở ra như thiệp thật
               </h1>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-700 sm:text-lg">
-                Chọn một trong {INVITATION_2D_TEMPLATES.length} mẫu thiệp 2D, điền tên hai bên gia đình, giờ làm lễ và địa điểm. Gửi qua Zalo hay Facebook, khách chạm để mở phong bì có ghi tên mình. Thiết kế và xem trước miễn phí, phát hành từ 150.000đ.
+                Chọn một trong {INVITATION_2D_TEMPLATES.length} mẫu thiệp 2D, điền tên hai bên gia đình, giờ làm lễ và địa điểm. Gửi qua Zalo hay Facebook, khách chạm để mở phong bì có ghi tên mình. Thiết kế và xem trước miễn phí, phát hành từ 99.000đ/tháng hoặc 599.000đ trọn đời.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <LiquidMetalButton href="/thiep-cuoi/tao" variant="crimson" className="min-h-[52px] rounded-full px-7 text-base">
@@ -169,15 +169,20 @@ export default function InvitationGalleryPage() {
         <section id="bang-gia" className="mt-20 scroll-mt-6">
           <h2 className="font-serif text-3xl font-bold text-rose-950 sm:text-4xl">Bảng giá thiệp cưới 2D</h2>
           <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-slate-700">
-            Chọn mẫu, điền nội dung, tải ảnh và xem trước hoàn toàn miễn phí, mọi thứ được lưu nháp. Chỉ khi muốn gửi thiệp 2D cho khách mới cần chọn gói phát hành. Muốn làm <Link href="/thiep-cuoi-3d" className="font-bold text-rose-700 underline underline-offset-4">Thiệp Cưới 3D Dạo Bước Tương Tác</Link>? Giá từ 290.000đ.
+            Chọn mẫu, điền nội dung, tải ảnh và xem trước hoàn toàn miễn phí, mọi thứ được lưu nháp. Chỉ khi muốn gửi thiệp 2D cho khách mới cần chọn gói phát hành. Muốn làm <Link href="/thiep-cuoi-3d" className="font-bold text-rose-700 underline underline-offset-4">Thiệp Cưới 3D Dạo Bước Tương Tác</Link>? Giá 199.000đ/tháng hoặc 799.000đ trọn đời.
           </p>
-          <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <ul className="mt-8 grid max-w-2xl gap-4 sm:grid-cols-2">
             {INVITATION_2D_PLANS.map((p) => (
-              <li key={p.id} className={`rounded-2xl border bg-white p-5 ${p.id === '3m' ? 'border-rose-700 ring-2 ring-rose-200' : 'border-rose-900/15'}`}>
-                <p className="text-sm font-bold uppercase tracking-wide text-rose-800">{p.nameVi}</p>
-                <p className="mt-2 text-2xl font-black tabular-nums text-slate-900">{p.priceVnd.toLocaleString('vi-VN')}đ</p>
-                <p className="mt-1 text-xs text-slate-600">
-                  {p.months === null ? 'Giữ thiệp và lời chúc mãi mãi' : p.months === 1 ? 'Cho đám cưới sắp diễn ra' : `≈ ${(Math.round(p.priceVnd / p.months / 1000) * 1000).toLocaleString('vi-VN')}đ/tháng`}
+              <li key={p.id} className={`rounded-2xl border bg-white p-6 ${p.id === 'life' ? 'border-rose-700 ring-2 ring-rose-200' : 'border-rose-900/15'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold uppercase tracking-wide text-rose-800">{p.nameVi}</p>
+                  {p.id === 'life' && (
+                    <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-bold text-rose-800">Lưu mãi mãi</span>
+                  )}
+                </div>
+                <p className="mt-2 text-3xl font-black tabular-nums text-slate-900">{p.priceVnd.toLocaleString('vi-VN')}đ</p>
+                <p className="mt-1.5 text-xs text-slate-600">
+                  {p.months === null ? 'Giữ thiệp, album ảnh và lời chúc mãi mãi' : 'Cho đám cưới sắp diễn ra · gia hạn linh hoạt'}
                 </p>
               </li>
             ))}
@@ -237,7 +242,7 @@ export default function InvitationGalleryPage() {
             {[
               {
                 q: 'Tạo thiệp cưới online trên DamCuoiOnline.vn có mất phí trước không?',
-                a: 'Hoàn toàn miễn phí ở bước thiết kế và xem trước: bạn được chọn trong 100 mẫu, nhập đầy đủ nội dung, tải ảnh cưới và kiểm tra trên điện thoại. Chỉ khi muốn phát hành gửi cho khách mới cần chọn gói từ 150.000đ.',
+                a: 'Hoàn toàn miễn phí ở bước thiết kế và xem trước: bạn được chọn trong 100 mẫu, nhập đầy đủ nội dung, tải ảnh cưới và kiểm tra trên điện thoại. Chỉ khi muốn phát hành gửi cho khách mới cần chọn gói 99.000đ/tháng hoặc 599.000đ trọn đời.',
               },
               {
                 q: 'Chỉ tổ chức tiệc cưới ngoài đời, không dùng Sảnh 3D có mua thiệp được không?',

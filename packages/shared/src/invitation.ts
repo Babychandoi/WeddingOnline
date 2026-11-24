@@ -616,11 +616,8 @@ export interface InvitationRsvpInput {
  * free and saved as a draft; guests see it once published with one of these plans.
  */
 export const INVITATION_PLANS = [
-  { id: '1m', nameVi: '1 tháng', months: 1, priceVnd: 150_000 },
-  { id: '3m', nameVi: '3 tháng', months: 3, priceVnd: 400_000 },
-  { id: '6m', nameVi: '6 tháng', months: 6, priceVnd: 750_000 },
-  { id: '12m', nameVi: '1 năm', months: 12, priceVnd: 1_400_000 },
-  { id: 'life', nameVi: 'Trọn đời', months: null, priceVnd: 3_000_000 },
+  { id: '1m', nameVi: '1 tháng', months: 1, priceVnd: 99_000 },
+  { id: 'life', nameVi: 'Trọn đời', months: null, priceVnd: 599_000 },
 ] as const;
 
 export const INVITATION_2D_PLANS = INVITATION_PLANS;
@@ -636,11 +633,8 @@ export function isInvitationPlanId(v: unknown): v is InvitationPlanId {
  * Buying a 3D plan also permits using 2D templates; buying a 2D plan does NOT unlock 3D templates.
  */
 export const INVITATION_3D_PLANS = [
-  { id: '1m', nameVi: '1 tháng', months: 1, priceVnd: 290_000 },
-  { id: '3m', nameVi: '3 tháng', months: 3, priceVnd: 690_000 },
-  { id: '6m', nameVi: '6 tháng', months: 6, priceVnd: 1_190_000 },
-  { id: '12m', nameVi: '1 năm', months: 12, priceVnd: 1_990_000 },
-  { id: 'life', nameVi: 'Trọn đời', months: null, priceVnd: 3_990_000 },
+  { id: '1m', nameVi: '1 tháng', months: 1, priceVnd: 199_000 },
+  { id: 'life', nameVi: 'Trọn đời', months: null, priceVnd: 799_000 },
 ] as const;
 
 export type Invitation3dPlanId = (typeof INVITATION_3D_PLANS)[number]['id'];
@@ -652,6 +646,8 @@ export function isInvitation3dPlanId(v: unknown): v is Invitation3dPlanId {
 /** "Lifetime" is stored as this far-future date */
 export const INVITATION_LIFETIME_UNTIL = '2999-12-31T00:00:00.000Z';
 
+const LEGACY_PLAN_MONTHS: Record<string, number> = { '3m': 3, '6m': 6, '12m': 12 };
+
 function addMonthsPlanEnd(months: number | null, currentUntil: string | null | undefined, now = new Date()): string {
   if (months === null) return INVITATION_LIFETIME_UNTIL;
   const cur = currentUntil ? new Date(currentUntil) : null;
@@ -662,15 +658,17 @@ function addMonthsPlanEnd(months: number | null, currentUntil: string | null | u
 }
 
 /** New end of the publishing period for 2D invitations: a renewal adds onto time not yet used */
-export function invitationPlanEnd(plan: InvitationPlanId, currentUntil: string | null | undefined, now = new Date()): string {
-  const p = INVITATION_PLANS.find((x) => x.id === plan)!;
-  return addMonthsPlanEnd(p.months, currentUntil, now);
+export function invitationPlanEnd(plan: InvitationPlanId | string, currentUntil: string | null | undefined, now = new Date()): string {
+  const p = INVITATION_PLANS.find((x) => x.id === plan);
+  const months = p ? p.months : (LEGACY_PLAN_MONTHS[plan] ?? 1);
+  return addMonthsPlanEnd(months, currentUntil, now);
 }
 
 /** New end of the publishing period for 3D walkthrough invitations */
-export function invitation3dPlanEnd(plan: Invitation3dPlanId, currentUntil: string | null | undefined, now = new Date()): string {
-  const p = INVITATION_3D_PLANS.find((x) => x.id === plan)!;
-  return addMonthsPlanEnd(p.months, currentUntil, now);
+export function invitation3dPlanEnd(plan: Invitation3dPlanId | string, currentUntil: string | null | undefined, now = new Date()): string {
+  const p = INVITATION_3D_PLANS.find((x) => x.id === plan);
+  const months = p ? p.months : (LEGACY_PLAN_MONTHS[plan] ?? 1);
+  return addMonthsPlanEnd(months, currentUntil, now);
 }
 
 export interface InvitationAccess {

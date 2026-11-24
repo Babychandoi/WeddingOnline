@@ -12,7 +12,7 @@ import { buildBreadcrumbJsonLd, canonicalUrl } from '@/lib/seo';
 
 const PAGE_TITLE = '10 Bộ Thiệp Cưới 3D Dạo Bước Tương Tác — DamCuoiOnline.vn';
 const PAGE_DESC =
-  'Trải nghiệm 10 bộ thiệp cưới 3D toàn màn hình với chuyển cảnh camera điện ảnh qua Cổng cưới, Cô dâu chú rể chào theo tên, Giá vẽ Lời chào, Album Kỷ niệm 3D và Lễ đài. Giá từ 290.000đ.';
+  'Trải nghiệm 10 bộ thiệp cưới 3D toàn màn hình với chuyển cảnh camera điện ảnh qua Cổng cưới, Cô dâu chú rể chào theo tên, Giá vẽ Lời chào, Album Kỷ niệm 3D và Lễ đài. Giá 199.000đ/tháng hoặc 799.000đ trọn đời.';
 
 export const metadata: Metadata = {
   title: PAGE_TITLE,
@@ -121,7 +121,7 @@ export default function Invitation3DGalleryPage() {
 
             <div className="mt-5 grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
               <div>
-                <SparkBadgePill>10 Bộ Thiệp Cưới 3D Độc Quyền · Từ 290.000đ</SparkBadgePill>
+                <SparkBadgePill>10 Bộ Thiệp Cưới 3D Độc Quyền · 199k/tháng · 799k trọn đời</SparkBadgePill>
                 <h1 className="mt-4 font-serif text-4xl font-bold leading-[1.08] tracking-tight text-[#fae4b5] sm:text-6xl">
                   Thiệp Cưới 3D Chuyển Cảnh Tương Tác Toàn Màn Hình
                 </h1>
@@ -188,7 +188,7 @@ export default function Invitation3DGalleryPage() {
                 href="/thiep-cuoi"
                 className="inline-flex min-h-[40px] items-center rounded-full border border-slate-300 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"
               >
-                Tìm mẫu 2D gọn nhẹ (từ 150k)? Xem 100 mẫu 2D →
+                Tìm mẫu 2D gọn nhẹ (từ 99k)? Xem 100 mẫu 2D →
               </Link>
             </div>
 
@@ -228,20 +228,23 @@ export default function Invitation3DGalleryPage() {
             <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-slate-700">
               Giá gói Thiệp Cưới 3D phản ánh công nghệ dựng cảnh WebGL 360°, chuyển cảnh camera đa góc và cá nhân hóa standee/lời chào. Thiết kế nháp miễn phí; chỉ trả phí khi phát hành cho khách.
             </p>
-            <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <ul className="mt-8 grid max-w-2xl gap-4 sm:grid-cols-2">
               {INVITATION_3D_PLANS.map((p) => (
                 <li
                   key={p.id}
-                  className={`rounded-2xl border bg-white p-5 ${p.id === '3m' ? 'border-rose-700 ring-2 ring-rose-200' : 'border-amber-200'}`}
+                  className={`rounded-2xl border bg-white p-6 ${p.id === 'life' ? 'border-rose-700 ring-2 ring-rose-200' : 'border-amber-200'}`}
                 >
-                  <p className="text-sm font-bold uppercase tracking-wide text-rose-800">{p.nameVi}</p>
-                  <p className="mt-2 text-2xl font-black tabular-nums text-slate-900">{p.priceVnd.toLocaleString('vi-VN')}đ</p>
-                  <p className="mt-1 text-xs text-slate-600">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-bold uppercase tracking-wide text-rose-800">{p.nameVi}</p>
+                    {p.id === 'life' && (
+                      <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-bold text-rose-800">Lưu mãi mãi</span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-3xl font-black tabular-nums text-slate-900">{p.priceVnd.toLocaleString('vi-VN')}đ</p>
+                  <p className="mt-1.5 text-xs text-slate-600">
                     {p.months === null
-                      ? 'Lưu giữ không gian 3D & lời chúc mãi mãi'
-                      : p.months === 1
-                        ? 'Cho đám cưới sắp diễn ra'
-                        : `≈ ${(Math.round(p.priceVnd / p.months / 1000) * 1000).toLocaleString('vi-VN')}đ/tháng`}
+                      ? 'Lưu giữ không gian 3D & lời chúc mãi mãi (kèm 100 mẫu 2D)'
+                      : 'Cho đám cưới sắp diễn ra · gia hạn linh hoạt (kèm 100 mẫu 2D)'}
                   </p>
                 </li>
               ))}

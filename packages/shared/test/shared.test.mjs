@@ -328,28 +328,28 @@ test('Invitation plans: published only when paid, renewals add on, a paid 3D hal
   } = await import('../dist/index.js');
   assert.equal(INVITATION_2D_TEMPLATES.length, 100);
   assert.equal(INVITATION_3D_TEMPLATES.length, 10);
-  assert.deepEqual(INVITATION_PLANS.map((p) => p.priceVnd), [150000, 400000, 750000, 1400000, 3000000]);
-  assert.deepEqual(INVITATION_3D_PLANS.map((p) => p.priceVnd), [290000, 690000, 1190000, 1990000, 3990000]);
+  assert.deepEqual(INVITATION_PLANS.map((p) => p.priceVnd), [99000, 599000]);
+  assert.deepEqual(INVITATION_3D_PLANS.map((p) => p.priceVnd), [199000, 799000]);
 
   const now = Date.parse('2026-11-20T00:00:00Z');
   const draft = { tier: 'TRIAL_24H', status: 'DRAFT', invitationPaidUntil: null };
   assert.equal(invitationAccess(draft, now).published, false);
   assert.equal(invitationAccess(draft, now).expired, false);
-  // 3 months from now, then a 1-month renewal adds onto the remaining time
-  const end3 = invitationPlanEnd('3m', null, new Date(now));
-  assert.equal(end3, '2027-02-20T00:00:00.000Z');
-  assert.equal(invitationPlanEnd('1m', end3, new Date(now)), '2027-03-20T00:00:00.000Z');
-  const paid = { ...draft, invitationPaidUntil: end3 };
+  // 1 month from now, then another 1-month renewal adds onto the remaining time
+  const end1 = invitationPlanEnd('1m', null, new Date(now));
+  assert.equal(end1, '2026-12-20T00:00:00.000Z');
+  assert.equal(invitationPlanEnd('1m', end1, new Date(now)), '2027-01-20T00:00:00.000Z');
+  const paid = { ...draft, invitationPaidUntil: end1 };
   assert.deepEqual(
     { ...invitationAccess(paid, now) },
-    { published: true, source: 'plan', until: end3, lifetime: false, expired: false, is3D: false, needs3dUpgrade: false },
+    { published: true, source: 'plan', until: end1, lifetime: false, expired: false, is3D: false, needs3dUpgrade: false },
   );
   // Lapsed plan: hidden and marked expired; a lapsed plan restarts from today
   const lapsed = invitationAccess(paid, Date.parse('2027-03-01T00:00:00Z'));
   assert.equal(lapsed.published, false);
   assert.equal(lapsed.expired, true);
-  assert.equal(invitationPlanEnd('1m', end3, new Date('2027-03-01T00:00:00Z')), '2027-04-01T00:00:00.000Z');
-  assert.equal(invitationPlanEnd('life', end3, new Date(now)), INVITATION_LIFETIME_UNTIL);
+  assert.equal(invitationPlanEnd('1m', end1, new Date('2027-03-01T00:00:00Z')), '2027-04-01T00:00:00.000Z');
+  assert.equal(invitationPlanEnd('life', end1, new Date(now)), INVITATION_LIFETIME_UNTIL);
 
   // Anti-bypass: 2D plan active does NOT unlock a 3D walkthrough template
   const bypassAttempt = {
@@ -363,8 +363,8 @@ test('Invitation plans: published only when paid, renewals add on, a paid 3D hal
   assert.equal(blocked3d.source, null);
 
   // Buying a 3D plan unlocks 3D (and also covers 2D)
-  const end3d = invitation3dPlanEnd('3m', null, new Date(now));
-  assert.equal(end3d, '2027-02-20T00:00:00.000Z');
+  const end3d = invitation3dPlanEnd('1m', null, new Date(now));
+  assert.equal(end3d, '2026-12-20T00:00:00.000Z');
   const paid3d = { ...bypassAttempt, invitation3dPaidUntil: end3d };
   const ok3d = invitationAccess(paid3d, now);
   assert.equal(ok3d.published, true);

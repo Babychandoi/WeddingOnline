@@ -228,13 +228,13 @@ function Create3DInvitation() {
         <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-start">
           <form onSubmit={submit} className="min-w-0 rounded-3xl border border-amber-200 bg-white p-5 shadow-sm sm:p-8">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-800 ring-1 ring-rose-200">
-              <Sparkles className="h-3.5 w-3.5" /> Thiệp Cưới 3D · Từ 290.000đ/tháng
+              <Sparkles className="h-3.5 w-3.5" /> Thiệp Cưới 3D · 199.000đ/tháng · 799.000đ trọn đời
             </span>
             <h1 className="mt-2 font-serif text-3xl font-bold leading-tight text-rose-950 sm:text-4xl">Tạo Thiệp Cưới 3D Dạo Bước</h1>
             <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-slate-600">
               Thiết kế hoàn toàn miễn phí bản nháp với đầy đủ chuyển cảnh camera đa trạm &amp; cần điều khiển đi dạo 3D; chỉ thanh toán khi phát hành gửi khách.{' '}
               <Link href="/thiep-cuoi/tao" className="font-bold text-rose-700 underline underline-offset-4">
-                Tạo Thiệp 2D (từ 150k) →
+                Tạo Thiệp 2D (99k/tháng · 599k trọn đời) →
               </Link>
             </p>
 

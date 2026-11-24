@@ -204,9 +204,7 @@ export default function CreateOnlineInvitationGuidePage() {
                       <td className="px-4 py-3 text-slate-600">
                         {p.months === null
                           ? 'Lưu giữ thiệp, album ảnh và toàn bộ lời chúc mãi mãi'
-                          : p.months === 1
-                            ? 'Đám cưới sắp diễn ra trong 2–4 tuần tới'
-                            : `Gửi thiệp sớm và giữ kỷ niệm sau lễ ${p.months} tháng`}
+                          : 'Đám cưới sắp diễn ra trong 30 ngày tới · gia hạn linh hoạt'}
                       </td>
                     </tr>
                   ))}

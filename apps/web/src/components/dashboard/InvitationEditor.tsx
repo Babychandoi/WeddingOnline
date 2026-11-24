@@ -652,7 +652,7 @@ export function InvitationEditor({
             id="mau"
             bare={bare}
             title="Mẫu thiệp 2D & Thiệp 3D"
-            hint={gallery.length ? 'Thiệp 2D (từ 150k) và Thiệp 3D (từ 290k) có gói phát hành riêng; đổi mẫu giữ nguyên toàn bộ nội dung.' : 'Đổi mẫu bất cứ lúc nào, nội dung giữ nguyên. Ảnh trên thẻ là ảnh minh hoạ; thiệp của bạn dùng ảnh bạn tải lên ở phần Ảnh cưới.'}
+            hint={gallery.length ? 'Thiệp 2D (từ 99k) và Thiệp 3D (từ 199k) có gói phát hành riêng; đổi mẫu giữ nguyên toàn bộ nội dung.' : 'Đổi mẫu bất cứ lúc nào, nội dung giữ nguyên. Ảnh trên thẻ là ảnh minh hoạ; thiệp của bạn dùng ảnh bạn tải lên ở phần Ảnh cưới.'}
           >
             <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-slate-100 p-1" role="tablist" aria-label="Phân loại thiệp 2D và 3D">
               <button
@@ -662,7 +662,7 @@ export function InvitationEditor({
                 onClick={() => setTplTierTab('2d')}
                 className={`min-h-[38px] rounded-lg px-3 text-xs font-bold transition ${tplTierTab === '2d' ? 'bg-white text-rose-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
               >
-                Thiệp 2D ({INVITATION_2D_TEMPLATES.length} mẫu · 150k+)
+                Thiệp 2D ({INVITATION_2D_TEMPLATES.length} mẫu · 99k+)
               </button>
               <button
                 type="button"
@@ -671,7 +671,7 @@ export function InvitationEditor({
                 onClick={() => setTplTierTab('3d')}
                 className={`min-h-[38px] rounded-lg px-3 text-xs font-bold transition ${tplTierTab === '3d' ? 'bg-white text-rose-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
               >
-                Thiệp 3D ({INVITATION_3D_TEMPLATES.length} bộ · 290k+)
+                Thiệp 3D ({INVITATION_3D_TEMPLATES.length} bộ · 199k+)
               </button>
             </div>
 

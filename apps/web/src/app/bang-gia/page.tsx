@@ -8,7 +8,7 @@ import { buildBreadcrumbJsonLd, canonicalUrl } from '@/lib/seo';
 
 const TITLE = 'Bảng Giá Thiệp Cưới 2D, Thiệp 3D & Sảnh Cưới 3D — DamCuoiOnline.vn';
 const DESC =
-  'Bảng giá minh bạch 2026: Thiệp cưới 2D từ 150.000đ, Thiệp cưới 3D tương tác từ 290.000đ, Sảnh cưới 3D Dùng Thử 24h miễn phí, Hạnh Phúc 399k, VIP 1.199k.';
+  'Bảng giá minh bạch 2026: Thiệp cưới 2D 99k/tháng – 599k trọn đời, Thiệp cưới 3D tương tác 199k/tháng – 799k trọn đời, Sảnh cưới 3D Dùng Thử 24h miễn phí, Hạnh Phúc 399k, VIP 1.199k.';
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -123,25 +123,28 @@ export default function PricingPage() {
             </Link>
           </div>
 
-          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <ul className="mt-6 grid max-w-3xl gap-4 sm:grid-cols-2">
             {INVITATION_PLANS.map((p) => (
               <li
                 key={p.id}
-                className={`flex flex-col justify-between rounded-2xl border bg-white p-5 shadow-sm ${
-                  p.id === '3m' ? 'border-rose-600 ring-2 ring-rose-200' : 'border-amber-200'
+                className={`flex flex-col justify-between rounded-2xl border bg-white p-6 shadow-sm ${
+                  p.id === 'life' ? 'border-rose-600 ring-2 ring-rose-200' : 'border-amber-200'
                 }`}
               >
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-rose-800">{p.nameVi}</p>
-                  <p className="mt-2 text-2xl font-black tabular-nums text-slate-900">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-rose-800">{p.nameVi}</p>
+                    {p.id === 'life' && (
+                      <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-bold text-rose-800">Lưu mãi mãi</span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-3xl font-black tabular-nums text-slate-900">
                     {p.priceVnd.toLocaleString('vi-VN')}đ
                   </p>
                   <p className="mt-1.5 text-xs text-slate-600">
                     {p.months === null
                       ? 'Lưu giữ thiệp 2D, album lật sách 3D và lời chúc mãi mãi.'
-                      : p.months === 1
-                        ? 'Phù hợp đám cưới diễn ra trong 30 ngày tới.'
-                        : `≈ ${(Math.round(p.priceVnd / p.months / 1000) * 1000).toLocaleString('vi-VN')}đ/tháng · gia hạn giữ nguyên link.`}
+                      : 'Phù hợp đám cưới diễn ra trong 30 ngày tới · gia hạn giữ nguyên link.'}
                   </p>
                 </div>
                 <Link
@@ -174,25 +177,28 @@ export default function PricingPage() {
             </Link>
           </div>
 
-          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <ul className="mt-6 grid max-w-3xl gap-4 sm:grid-cols-2">
             {INVITATION_3D_PLANS.map((p) => (
               <li
                 key={p.id}
-                className={`flex flex-col justify-between rounded-2xl border bg-white p-5 shadow-sm ${
-                  p.id === '3m' ? 'border-rose-600 ring-2 ring-rose-200' : 'border-amber-200'
+                className={`flex flex-col justify-between rounded-2xl border bg-white p-6 shadow-sm ${
+                  p.id === 'life' ? 'border-rose-600 ring-2 ring-rose-200' : 'border-amber-200'
                 }`}
               >
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-rose-800">{p.nameVi}</p>
-                  <p className="mt-2 text-2xl font-black tabular-nums text-slate-900">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-rose-800">{p.nameVi}</p>
+                    {p.id === 'life' && (
+                      <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-bold text-rose-800">Lưu mãi mãi</span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-3xl font-black tabular-nums text-slate-900">
                     {p.priceVnd.toLocaleString('vi-VN')}đ
                   </p>
                   <p className="mt-1.5 text-xs text-slate-600">
                     {p.months === null
                       ? 'Lưu giữ không gian thiệp 3D và lời chúc mãi mãi.'
-                      : p.months === 1
-                        ? 'Phù hợp đám cưới diễn ra trong 30 ngày tới.'
-                        : `≈ ${(Math.round(p.priceVnd / p.months / 1000) * 1000).toLocaleString('vi-VN')}đ/tháng · gia hạn giữ nguyên link.`}
+                      : 'Phù hợp đám cưới diễn ra trong 30 ngày tới · gia hạn giữ nguyên link.'}
                   </p>
                 </div>
                 <Link
