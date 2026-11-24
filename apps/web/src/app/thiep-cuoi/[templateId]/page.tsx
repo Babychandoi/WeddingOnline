@@ -85,7 +85,7 @@ export default function TemplateDemoPage({ params, searchParams }: { params: { t
         }}
       />
       {/* Sample banner, in the flow so it never covers the card: the couple and families are fictional */}
-      <div className="flex min-h-[56px] items-center justify-between gap-3 bg-slate-950 px-4 py-1.5 text-sm text-white sm:px-6">
+      <div className="flex h-14 items-center justify-between gap-3 bg-slate-950 px-4 text-sm text-white sm:px-6">
         <span className="min-w-0 truncate">
           <span className="hidden sm:inline">{is3D ? 'Thiệp 3D mẫu' : 'Thiệp mẫu'} · </span><strong>{meta.nameVi}</strong>
         </span>

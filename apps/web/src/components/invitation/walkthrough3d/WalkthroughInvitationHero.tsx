@@ -248,7 +248,7 @@ export function WalkthroughInvitationHero({
   return (
     <section
       aria-label={`Trải nghiệm thiệp cưới 3D ${theme.nameVi}`}
-      className={`relative mx-auto w-full select-none ${editorMode ? 'h-[620px] max-w-[560px]' : demo ? 'h-[calc(100dvh-56px)] min-h-[540px] w-full' : 'h-[100dvh] w-full'
+      className={`relative mx-auto w-full select-none ${editorMode ? 'h-[620px] max-w-[560px]' : demo ? 'h-[calc(100dvh-56px)] min-h-[460px] w-full' : 'h-[100dvh] min-h-[460px] w-full'
         }`}
       style={{ backgroundColor: theme.cardBgTint }}
     >

@@ -629,7 +629,7 @@ export function InvitationView(props: InvitationViewProps) {
     : `color-mix(in srgb, #fff5d6 68%, ${theme.line})`;
 
   return (
-    <div data-skin={skinOf(theme)} className={`${INVITATION_FONT_VARS} inv-root relative min-h-screen ${hydrated ? 'inv-js' : ''} ${embedded ? '' : 'sm:px-0 sm:py-10'}`} style={{ ...themeVars(theme), background: theme.ground, color: theme.ink, fontFamily: theme.body }}>
+    <div data-skin={skinOf(theme)} className={`${INVITATION_FONT_VARS} inv-root relative min-h-screen ${hydrated ? 'inv-js' : ''} ${embedded ? '' : is3D ? 'sm:px-0 sm:pb-10' : 'sm:px-0 sm:py-10'}`} style={{ ...themeVars(theme), background: theme.ground, color: theme.ink, fontFamily: theme.body }}>
       <style
         // raw CSS: as a text child React would escape the quotes inside url("…") and content: "…"
         dangerouslySetInnerHTML={{
@@ -759,7 +759,7 @@ export function InvitationView(props: InvitationViewProps) {
 
       <main
         id="chi-tiet-thiep"
-        className={`relative z-[2] mx-auto max-w-[560px] overflow-hidden ${embedded ? '' : 'sm:rounded-[var(--inv-r)] sm:shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6)]'}`}
+        className={`relative z-[2] mx-auto max-w-[560px] overflow-hidden ${embedded ? '' : is3D ? 'sm:mt-10 sm:rounded-[var(--inv-r)] sm:shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6)]' : 'sm:rounded-[var(--inv-r)] sm:shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6)]'}`}
         style={{ background: theme.paper }}
       >
         <Grain paper={theme.paper} strength={theme.grain} />
